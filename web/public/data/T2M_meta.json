@@ -1,0 +1,35 @@
+{
+  "variable": "T2M",
+  "label": "Air temperature",
+  "units": "C",
+  "units_per_decade": "C per decade",
+  "definition": "Average air temperature 2 metres above the ground over the year.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 0.74,
+  "colormap_stops": [
+    "#053061",
+    "#2065ab",
+    "#4393c3",
+    "#90c4dd",
+    "#d1e5f0",
+    "#f7f6f6",
+    "#fddbc7",
+    "#f3a481",
+    "#d6604d",
+    "#b1182b",
+    "#67001f"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "frac_significant": 0.6898208606867585,
+  "global_mean_slope_decade": 0.17182059351846024
+}

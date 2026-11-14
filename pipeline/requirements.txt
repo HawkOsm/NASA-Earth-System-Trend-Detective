@@ -1,0 +1,9 @@
+numpy
+scipy
+xarray
+zarr
+s3fs
+pillow
+matplotlib
+pytest
+pymannkendall
