@@ -16,7 +16,8 @@
 import { signedRate } from './analysis';
 import { dataUrl } from './data';
 import { rateUnits, rateUnitsLong } from './format';
-import { fmtP, verdict, verdictKind, type VerdictKind } from './stats/trend';
+import { fmtP, type VerdictKind } from './stats/trend';
+import { effectiveKind, effectiveVerdict } from './verdicts';
 
 export interface SummaryVariable {
   variable: string;
@@ -149,7 +150,7 @@ export function rankAt(s: Summary, lat: number, lng: number): RankResult {
     }
     const slope = b.slope[r];
     const p = b.p[r];
-    const kind = verdictKind(p);
+    const kind = effectiveKind(slope, p);
     ranked.push({
       variable: v.variable,
       label: v.label,
@@ -158,7 +159,7 @@ export function rankAt(s: Summary, lat: number, lng: number): RankResult {
       unitsShort: rateUnits(v.units),
       p,
       pAdjusted: b.q[r] / 65535,
-      verdict: verdict(slope, p, rateUnitsLong(v.units)),
+      verdict: effectiveVerdict(slope, p, rateUnitsLong(v.units)),
       kind,
       direction: slope > 0 ? 'rising' : slope < 0 ? 'falling' : 'flat',
       strength: v.spread > 0 ? Math.abs(slope) / v.spread : 0,

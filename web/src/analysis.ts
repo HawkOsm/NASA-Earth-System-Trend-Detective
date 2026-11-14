@@ -1,5 +1,6 @@
 import { monthlyAnomalies, type PointSeries } from './power';
-import { fmtRate, senIntercept, trend, verdict, verdictKind, type TrendResult, type VerdictKind } from './stats/trend';
+import { fmtRate, senIntercept, trend, type TrendResult, type VerdictKind } from './stats/trend';
+import { effectiveKind, effectiveVerdict } from './verdicts';
 import { displayUnits, rateUnitsLong } from './format';
 import { filterToPeriod, isFullPeriod, type Period } from './period';
 import { qualityOf, type QualityResult } from './quality';
@@ -96,14 +97,15 @@ export function analyze(series: PointSeries, period?: Period): Analysis | null {
     ciLowDecade: result.ciLow * 10,
     ciHighDecade: result.ciHigh * 10,
     p: result.p,
-    verdict: verdict(slopeDecade, result.p, rateUnitsLong(units)),
-    kind: verdictKind(result.p),
+    verdict: effectiveVerdict(slopeDecade, result.p, rateUnitsLong(units)),
+    kind: effectiveKind(slopeDecade, result.p),
     chart,
     result,
     period: per,
     years,
     annual: ann,
-    quality: qualityOf(years, ann),
+    // A trend of exactly zero is "no measurable change" (verdicts.ts): there is nothing to grade.
+    quality: slopeDecade === 0 ? { ...qualityOf(years, ann), grade: 'none' as const } : qualityOf(years, ann),
   };
 }
 

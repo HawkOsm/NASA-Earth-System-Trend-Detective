@@ -9,7 +9,8 @@
  */
 import { dataUrl } from './data';
 import { rateUnits, rateUnitsLong } from './format';
-import { verdict, verdictKind, type VerdictKind } from './stats/trend';
+import { type VerdictKind } from './stats/trend';
+import { effectiveKind, effectiveVerdict } from './verdicts';
 import type { VarQuality } from './quality';
 import type { NoDataEntry, RankResult, RankedEntry, SummaryMeta } from './whatsChanging';
 
@@ -98,7 +99,7 @@ export function regionRank(rec: RegionRec, meta: SummaryMeta): { rank: RankResul
       noData.push({ variable: v.variable, label: v.label, surface: v.surface });
       return;
     }
-    const kind = verdictKind(r.p);
+    const kind = effectiveKind(r.slopePerDecade, r.p);
     ranked.push({
       variable: v.variable,
       label: v.label,
@@ -107,7 +108,7 @@ export function regionRank(rec: RegionRec, meta: SummaryMeta): { rank: RankResul
       unitsShort: rateUnits(v.units),
       p: r.p,
       pAdjusted: r.p,
-      verdict: verdict(r.slopePerDecade, r.p, rateUnitsLong(v.units)),
+      verdict: effectiveVerdict(r.slopePerDecade, r.p, rateUnitsLong(v.units)),
       kind,
       direction: r.slopePerDecade > 0 ? 'rising' : r.slopePerDecade < 0 ? 'falling' : 'flat',
       strength: v.spread > 0 ? Math.abs(r.slopePerDecade) / v.spread : 0,
