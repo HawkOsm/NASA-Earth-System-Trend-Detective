@@ -1,24 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { DEMOS, VARIABLES } from './demos';
 import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatmap';
 import { formatTick, gradientCss, significantText } from './legend';
 import { buildCoastlines, splitLines, type LngLat } from './coastlines';
-import { snapToCell } from './power';
-import type { GridMeta } from './data';
 
-const GRID: GridMeta = { nlat: 361, nlon: 576, lat0: -90, dlat: 0.5, lon0: -180, dlon: 0.625 };
-
-describe('demos', () => {
-  it('point at existing variables with valid coordinates', () => {
-    expect(DEMOS).toHaveLength(3);
-    for (const d of DEMOS) {
-      expect(VARIABLES).toContain(d.variable);
-      const c = snapToCell(d.lat, d.lng, GRID);
-      expect(Math.abs(c.lat - d.lat)).toBeLessThanOrEqual(0.25);
-    }
-    expect(DEMOS[1].variable).toBe(DEMOS[2].variable);
-  });
-});
 
 describe('flat map', () => {
   it('maps corners and centre', () => {

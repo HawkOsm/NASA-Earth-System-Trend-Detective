@@ -54,13 +54,6 @@ html, body, #root {
 .picker-opt:focus-within { outline: 2px solid #6aa3ff; outline-offset: 1px; }
 .picker-label { font-weight: 600; font-size: 0.95rem; }
 .picker-def { display: block; margin-top: 2px; font-size: 0.8rem; color: #a8b0c0; }
-.demos { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.demos-label { font-size: 0.8rem; color: #a8b0c0; }
-.demo-btn {
-  padding: 5px 10px; font-size: 0.82rem; text-align: left; color: #e6e9ef; cursor: pointer;
-  background: rgba(28, 42, 68, 0.9); border: 1px solid #3a4a6a; border-radius: 14px;
-}
-.demo-btn:hover { background: #26375a; }
 .legend {
   position: absolute; left: 12px; bottom: 12px; z-index: 5; width: 260px; max-width: calc(100% - 24px);
   padding: 8px 10px; box-sizing: border-box; font-size: 0.8rem;
@@ -219,10 +212,7 @@ html, body, #root {
   .picker-opt { flex: 1 1 auto; padding: 5px 8px; text-align: center; }
   .picker-opt.selected { flex-basis: 100%; order: -1; text-align: left; }
   .picker-label { font-size: 0.85rem; }
-  .demos { flex-direction: row; align-items: center; overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
-  .demo-btn { flex: 0 0 auto; }
   .legend-ctx { display: none; }
-  .globe-wrap.has-panel .demos,
   .globe-wrap.has-panel .legend { display: none; }
 }
 

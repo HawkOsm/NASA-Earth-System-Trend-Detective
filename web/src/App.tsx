@@ -4,9 +4,8 @@ import { prefersReducedMotion } from './wind/WindLayer';
 import type { LatLng, PointOfView } from './Globe';
 import Picker from './Picker';
 import Legend from './Legend';
-import Demos from './Demos';
 import HowToRead from './HowToRead';
-import { DEMOS, VARIABLES } from './demos';
+import { VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
 import CountryOverlay from './CountryOverlay';
@@ -89,7 +88,6 @@ declare global {
     };
     __pickAt?: (lat: number, lng: number) => void;
     __setVariable?: (name: string) => void;
-    __runDemo?: (index: number) => void;
     __setPeriod?: (startYear: number, endYear: number) => void;
     __detail?: {
       status: 'idle' | 'loading' | 'ready' | 'error';
@@ -513,21 +511,6 @@ export default function App() {
     commitPeriod(true);
   };
 
-  const runDemo = (index: number) => {
-    const d = DEMOS[index];
-    if (!d) return;
-    periodRef.current = FULL_PERIOD;
-    setPeriodState(FULL_PERIOD);
-    commitPeriod(true);
-    fetchedRef.current = null;
-    setCountryMode(false);
-    clearCountry();
-    selectVariable(d.variable, false);
-    sizeRef.current = 0;
-    setSizeDegState(0);
-    handlePick({ lat: d.lat, lng: d.lng }, true);
-  };
-
   /** The user explicitly chose Point or a box in the Area row: clicks stop lifting countries until "Country" is chosen. */
   const chooseArea = (size: number) => {
     liftRef.current = false;
@@ -535,19 +518,17 @@ export default function App() {
   };
 
   // Always-current handlers so the window hooks run exactly the UI code paths.
-  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName });
-  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName };
+  const handlersRef = useRef({ handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName });
+  handlersRef.current = { handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName };
   useEffect(() => {
     window.__pickAt = (lat, lng) => handlersRef.current.handlePick({ lat, lng });
     window.__setVariable = (name) => handlersRef.current.selectVariable(name, true);
-    window.__runDemo = (i) => handlersRef.current.runDemo(i);
     window.__setArea = (n) => (n === 'country' ? handlersRef.current.selectCountryArea() : handlersRef.current.chooseArea(n));
     window.__pickCountry = (x) => handlersRef.current.pickCountryByName(x);
     window.__setPeriod = (s, e) => handlersRef.current.setPeriod(s, e);
     return () => {
       delete window.__pickAt;
       delete window.__setVariable;
-      delete window.__runDemo;
       delete window.__setArea;
       delete window.__pickCountry;
       delete window.__setPeriod;
@@ -750,7 +731,6 @@ export default function App() {
           />
           <div className="overlay-tl">
             <Picker metas={metas} value={variable} onChange={(v) => selectVariable(v, true)} />
-            <Demos onRun={runDemo} />
           </div>
           {meta && (
             <Legend
