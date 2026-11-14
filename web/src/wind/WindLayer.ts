@@ -18,6 +18,7 @@ const TRAIL = 22; // positions per particle (TRAIL-1 segments)
 const ALTITUDE = 0.006;
 const K = 0.02; // degrees of latitude per (m/s) per 60 fps frame
 const MIN_SPEED = 0.3; // m/s; slower cells respawn the particle
+const MIN_STEP_MS = 13; // same frame cap as the globe renderer (renderOnDemand.ts)
 const MAX_FRAMES_STEP = 3;
 const FADE = 12; // frames of fade in / out at birth and death
 
@@ -102,6 +103,8 @@ export function createWindLayer(globe: GlobeMethods, field: WindField, count = d
   const tick = (now: number) => {
     if (disposed) return;
     raf = requestAnimationFrame(tick);
+    // Step the particles at most ~60 times a second; on a 240 Hz screen rAF fires 4x as often.
+    if (last && now - last < MIN_STEP_MS) return;
     const dtFrames = last ? Math.min((now - last) / (1000 / 60), MAX_FRAMES_STEP) : 1;
     last = now;
     const step = K * dtFrames;

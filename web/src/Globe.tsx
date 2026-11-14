@@ -9,6 +9,8 @@ import { WHOLE_GLOBE_ALTITUDE, WHOLE_GLOBE_BUTTON_BELOW } from './detail';
 import { dataUrl } from './data';
 import { createWindLayer } from './wind/WindLayer';
 import { loadWindField, type WindField } from './wind/windField';
+import { renderOnDemand, type RenderControl } from './renderOnDemand';
+import { createMergedLines, type LineStyle, type MergedLines } from './mergedLines';
 
 export interface LatLng {
   lat: number;
@@ -64,36 +66,56 @@ const CYAN = '#00ffff';
 const WHITE = '#ffffff';
 const SLATE = 'rgba(15,20,35,0.85)';
 
-interface PathDatum {
-  /** [lng, lat] or [lng, lat, altitude]. */
-  coords: number[][];
-  color: string;
-  stroke: number;
-}
-
 interface LabelDatum extends MapLabel {
   color: string;
   size: number;
   dot: number;
 }
 
-const COAST_PATHS: PathDatum[] = buildCoastlines().map((coords) => ({
-  coords,
-  color: 'rgba(20,20,30,0.75)',
-  stroke: 0.6,
-}));
-const BORDER_PATHS: PathDatum[] = buildBorders().map((coords) => ({
-  coords,
-  color: 'rgba(20,20,30,0.4)',
-  stroke: 0.3,
-}));
-const GRATICULE_PATHS: PathDatum[] = buildGraticule().map((g) => ({
-  coords: g.coords,
-  color: g.strong ? 'rgba(20,25,40,0.6)' : 'rgba(20,25,40,0.35)',
-  stroke: 0.35,
-}));
+// Map lines are drawn as one merged mesh per style (a few draw calls instead of one per polyline).
+const LINE_ALT = 0.002;
+const SELECTION_ALT = 0.004;
+const COASTLINES = buildCoastlines();
+const BORDERS = buildBorders();
+const GRATICULE = buildGraticule();
+const COAST_STYLE: LineStyle = { lines: COASTLINES, color: 'rgba(20,20,30,0.75)', stroke: 0.6, altitude: LINE_ALT };
+const BORDER_STYLE: LineStyle = { lines: BORDERS, color: 'rgba(20,20,30,0.4)', stroke: 0.3, altitude: LINE_ALT };
+const GRATICULE_STYLES: LineStyle[] = [
+  { lines: GRATICULE.filter((g) => g.strong).map((g) => g.coords), color: 'rgba(20,25,40,0.6)', stroke: 0.35, altitude: LINE_ALT },
+  { lines: GRATICULE.filter((g) => !g.strong).map((g) => g.coords), color: 'rgba(20,25,40,0.35)', stroke: 0.35, altitude: LINE_ALT },
+];
 const GRATICULE_LABELS: LabelDatum[] = buildGraticuleLabels().map((l) => ({ ...l, color: SLATE, size: 0.7, dot: 0 }));
 const PLACE_LABELS: LabelDatum[] = PLACES.map((l) => ({ ...l, color: SLATE, size: 1.0, dot: 0 }));
+
+/** Draws `styles` as merged line meshes; rebuilt only when the styles change, resized with the canvas. */
+function useMergedLines(
+  globeRef: { current: GlobeMethods | undefined },
+  ready: boolean,
+  styles: LineStyle[],
+  size: { width: number; height: number },
+  renderCtl: { current: RenderControl | null },
+) {
+  const handle = useRef<MergedLines | null>(null);
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+
+  useEffect(() => {
+    const g = globeRef.current;
+    if (!ready || !g || !styles.length) return;
+    const h = createMergedLines(g, styles, sizeRef.current.width, sizeRef.current.height);
+    handle.current = h;
+    renderCtl.current?.invalidate();
+    return () => {
+      h.dispose();
+      handle.current = null;
+      renderCtl.current?.invalidate();
+    };
+  }, [globeRef, ready, styles, renderCtl]);
+
+  useEffect(() => {
+    handle.current?.setResolution(size.width, size.height);
+  }, [size.width, size.height]);
+}
 
 interface PointDatum {
   lat: number;
@@ -108,6 +130,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
   const [ready, setReady] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [zoomedIn, setZoomedIn] = useState(false);
+  const renderCtl = useRef<RenderControl | null>(null);
 
   // Track the container size (follows window resizes via flex layout).
   useEffect(() => {
@@ -130,18 +153,21 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     return list;
   }, [landmarks, marker]);
 
-  const paths = useMemo<PathDatum[]>(() => {
-    const base = mapLines ? [...GRATICULE_PATHS, ...BORDER_PATHS, ...COAST_PATHS] : COAST_PATHS;
-    const extra: PathDatum[] = [];
-    if (box) {
-      extra.push({ coords: boxOutline(box).map(([lng, lat]) => [lng, lat, 0.004]), color: WHITE, stroke: 1.0 });
-    }
+  const baseLines = useMemo<LineStyle[]>(
+    () => (mapLines ? [...GRATICULE_STYLES, BORDER_STYLE, COAST_STYLE] : [COAST_STYLE]),
+    [mapLines],
+  );
+
+  const selectionLines = useMemo<LineStyle[]>(() => {
+    const out: LineStyle[] = [];
+    if (box) out.push({ lines: [boxOutline(box)], color: WHITE, stroke: 1.0, altitude: SELECTION_ALT });
     // The selected country: white, a little thicker than the coastlines; clicks on it still pick the surface point.
-    for (const line of countryOutline ?? []) {
-      extra.push({ coords: line.map(([lng, lat]) => [lng, lat, 0.004]), color: WHITE, stroke: 0.9 });
-    }
-    return extra.length ? [...base, ...extra] : base;
-  }, [mapLines, box, countryOutline]);
+    if (countryOutline?.length) out.push({ lines: countryOutline, color: WHITE, stroke: 0.9, altitude: SELECTION_ALT });
+    return out;
+  }, [box, countryOutline]);
+
+  useMergedLines(globeRef, ready, baseLines, size, renderCtl);
+  useMergedLines(globeRef, ready, selectionLines, size, renderCtl);
 
   const labels = useMemo<LabelDatum[]>(() => {
     const debug: LabelDatum[] = (landmarks ?? []).map((l) => ({
@@ -158,8 +184,8 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
   useEffect(() => {
     window.__mapLines = {
       on: mapLines,
-      graticuleLines: mapLines ? GRATICULE_PATHS.length : 0,
-      borderLines: mapLines ? BORDER_PATHS.length : 0,
+      graticuleLines: mapLines ? GRATICULE.length : 0,
+      borderLines: mapLines ? BORDERS.length : 0,
       labels: mapLines ? GRATICULE_LABELS.length + PLACE_LABELS.length : 0,
     };
     return () => {
@@ -171,6 +197,9 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     const g = globeRef.current;
     if (!g) return;
     g.pointOfView(initialView, 0);
+    // Draw only when something changed, at most ~60 fps (see renderOnDemand.ts).
+    renderCtl.current?.dispose();
+    renderCtl.current = renderOnDemand(g);
     window.__globe = g;
     if (flyRef) flyRef.current = (v) => g.pointOfView(v, 1200);
     window.__view = () => {
@@ -186,15 +215,19 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     if (!wind || !ready || !g) return;
     let cancelled = false;
     let handle: { dispose: () => void } | null = null;
+    let release: (() => void) | null = null;
     getWindField()
       .then((field) => {
         if (cancelled) return;
         handle = createWindLayer(g, field);
+        release = renderCtl.current?.hold() ?? null; // the streaks move every frame
       })
       .catch((err) => console.error('Wind layer unavailable', err));
     return () => {
       cancelled = true;
       handle?.dispose();
+      release?.();
+      renderCtl.current?.invalidate();
     };
   }, [wind, ready]);
 
@@ -204,6 +237,19 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
       delete window.__view;
     },
     [flyRef],
+  );
+
+  // Any change to what the globe shows keeps frames coming briefly (layer updates and texture loads land later).
+  useEffect(() => {
+    renderCtl.current?.invalidate();
+  }, [textureUrl, points, labels, size.width, size.height, ready]);
+
+  useEffect(
+    () => () => {
+      renderCtl.current?.dispose();
+      renderCtl.current = null;
+    },
+    [],
   );
 
   // Show the "Whole globe" button while the camera is closer than WHOLE_GLOBE_BUTTON_BELOW.
@@ -250,18 +296,6 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           pointAltitude={0.01}
           pointsMerge={false}
           onPointClick={(d) => onPick({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
-          pathsData={paths}
-          pathPoints={(d) => (d as PathDatum).coords}
-          pathPointLat={(p) => (p as number[])[1]}
-          pathPointLng={(p) => (p as number[])[0]}
-          pathPointAlt={(p) => (p as number[])[2] ?? 0.002}
-          pathColor={(d: object) => (d as PathDatum).color}
-          pathStroke={(d) => (d as PathDatum).stroke}
-          pathDashLength={1}
-          pathDashGap={0}
-          pathDashAnimateTime={0}
-          pathTransitionDuration={0}
-          onPathClick={(_path, ev, c) => onPick(surfaceAt(ev, c))}
           labelsData={labels}
           labelLat="lat"
           labelLng="lng"
