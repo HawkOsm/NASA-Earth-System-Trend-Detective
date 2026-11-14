@@ -1,0 +1,35 @@
+{
+  "variable": "PRECTOTCORR",
+  "label": "Precipitation",
+  "units": "mm/day",
+  "units_per_decade": "mm/day per decade",
+  "definition": "Average amount of rain and snow (as water) falling per day over the year.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 0.47,
+  "colormap_stops": [
+    "#543005",
+    "#8b500a",
+    "#bf812d",
+    "#dec17b",
+    "#f6e8c3",
+    "#f4f5f5",
+    "#c7eae5",
+    "#7fccc0",
+    "#35978f",
+    "#01655d",
+    "#003c30"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "frac_significant": 0.2121320473572302,
+  "global_mean_slope_decade": -0.022374585647748746
+}

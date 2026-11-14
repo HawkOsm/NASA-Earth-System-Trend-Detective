@@ -26,7 +26,9 @@ def main():
     years = np.load(os.path.join(config.CACHE_DIR, "years.npy"))
 
     t0 = time.time()
-    res = trend_grid(data.astype(np.float64), years.astype(np.float64))
+    # The source is quantised to 0.01; rounding the float32 cache back to 2 decimals makes the
+    # grid numerically identical to what the browser computes from the POWER point API.
+    res = trend_grid(np.round(data.astype(np.float64), 2), years.astype(np.float64))
     q = bh_adjust(res["p"])
     secs = time.time() - t0
 

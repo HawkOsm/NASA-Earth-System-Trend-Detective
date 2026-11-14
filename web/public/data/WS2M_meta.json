@@ -1,0 +1,35 @@
+{
+  "variable": "WS2M",
+  "label": "Wind speed",
+  "units": "m/s",
+  "units_per_decade": "m/s per decade",
+  "definition": "Average wind speed 2 metres above the ground over the year.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 0.15,
+  "colormap_stops": [
+    "#2d004b",
+    "#532687",
+    "#8073ac",
+    "#b1aad1",
+    "#d8daeb",
+    "#f7f7f6",
+    "#fee0b6",
+    "#fcb761",
+    "#e08214",
+    "#b25706",
+    "#7f3b08"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "frac_significant": 0.14143236848302654,
+  "global_mean_slope_decade": 0.013162439731885288
+}
