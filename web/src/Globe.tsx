@@ -5,6 +5,7 @@ import { buildBorders, buildCoastlines } from './coastlines';
 import { buildGraticule, buildGraticuleLabels, type MapLabel } from './graticule';
 import { boxOutline, type RegionBox } from './region';
 import { PLACES } from './places';
+import { WHOLE_GLOBE_ALTITUDE, WHOLE_GLOBE_BUTTON_BELOW } from './detail';
 import { dataUrl } from './data';
 import { createWindLayer } from './wind/WindLayer';
 import { loadWindField, type WindField } from './wind/windField';
@@ -50,6 +51,8 @@ function getWindField(): Promise<WindField> {
 declare global {
   interface Window {
     __globe?: GlobeMethods;
+    /** Current camera, for testing. Not set in flat mode. */
+    __view?: () => { lat: number; lng: number; altitude: number };
     __lastPick?: LatLng;
     __mapLines?: { on: boolean; graticuleLines: number; borderLines: number; labels: number };
   }
@@ -102,6 +105,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [zoomedIn, setZoomedIn] = useState(false);
 
   // Track the container size (follows window resizes via flex layout).
   useEffect(() => {
@@ -164,7 +168,11 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     if (!g) return;
     g.pointOfView(initialView, 0);
     window.__globe = g;
-    if (flyRef) flyRef.current = (v) => g.pointOfView(v, 1500);
+    if (flyRef) flyRef.current = (v) => g.pointOfView(v, 1200);
+    window.__view = () => {
+      const v = g.pointOfView();
+      return { lat: v.lat, lng: v.lng, altitude: v.altitude };
+    };
     setReady(true);
   };
 
@@ -189,9 +197,27 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
   useEffect(
     () => () => {
       if (flyRef) flyRef.current = null;
+      delete window.__view;
     },
     [flyRef],
   );
+
+  // Show the "Whole globe" button while the camera is closer than WHOLE_GLOBE_BUTTON_BELOW.
+  useEffect(() => {
+    if (!ready) return;
+    const id = window.setInterval(() => {
+      const alt = globeRef.current?.pointOfView().altitude;
+      if (alt !== undefined) setZoomedIn(alt < WHOLE_GLOBE_BUTTON_BELOW);
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [ready]);
+
+  const wholeGlobe = () => {
+    const g = globeRef.current;
+    if (!g) return;
+    const v = g.pointOfView();
+    g.pointOfView({ lat: v.lat, lng: v.lng, altitude: WHOLE_GLOBE_ALTITUDE }, 1200);
+  };
 
   // Lines and labels float slightly above the surface, so the coordinates react-globe.gl reports for a
   // click on them are a little off. Ask the globe for the surface point under the cursor instead.
@@ -244,6 +270,11 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           labelsTransitionDuration={0}
           onLabelClick={(_label, ev, c) => onPick(surfaceAt(ev, c))}
         />
+      )}
+      {zoomedIn && (
+        <button className="whole-globe" onClick={wholeGlobe}>
+          Whole globe
+        </button>
       )}
     </div>
   );

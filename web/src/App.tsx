@@ -11,7 +11,9 @@ import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
 import { analyze } from './analysis';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
-import { areaMeanSeries, regionBox, type RegionBox } from './region';
+import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
+import DetailMap from './DetailMap';
+import { POINT_DETAIL_SIZE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './detail';
 import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data';
 import PeriodBar from './PeriodBar';
 import { useRangeMap } from './useRangeMap';
@@ -48,8 +50,24 @@ declare global {
     __setVariable?: (name: string) => void;
     __runDemo?: (index: number) => void;
     __setPeriod?: (startYear: number, endYear: number) => void;
+    __detail?: {
+      status: 'idle' | 'loading' | 'ready' | 'error';
+      sizeDeg: number;
+      period: [number, number];
+      vmax: number;
+      nCells: number;
+      nSignificant: number;
+      cells: { lat: number; lng: number; slopeDecade: number | null; p: number | null; n: number }[];
+    };
   }
 }
+
+/** Where the close-up map's cells come from. */
+type DetailState =
+  | { status: 'idle' }
+  | { status: 'loading'; sizeDeg: number }
+  | { status: 'error'; sizeDeg: number; message: string }
+  | { status: 'ready'; sizeDeg: number; box: RegionBox; data: RegionData };
 
 const DEFAULT_VIEW: PointOfView = { lat: 30, lng: 20, altitude: 2.2 };
 
@@ -82,9 +100,11 @@ export default function App() {
   const [mapLines, setMapLines] = useState(true);
   const [period, setPeriodState] = useState<Period>(FULL_PERIOD);
   const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
+  const [detail, setDetail] = useState<DetailState>({ status: 'idle' });
   const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
 
   const abortRef = useRef<AbortController | null>(null);
+  const detailAbortRef = useRef<AbortController | null>(null);
   const flyRef = useRef<((v: PointOfView) => void) | null>(null);
   const metasRef = useRef(metas);
   metasRef.current = metas;
@@ -161,6 +181,7 @@ export default function App() {
     const m = metasRef.current[v];
     if (!m) return;
     abortRef.current?.abort();
+    detailAbortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     const cell = snapToCell(center.lat, center.lng, m.grid);
@@ -168,40 +189,75 @@ export default function App() {
     const base = { cell, center: { lat: center.lat, lng: center.lng }, sizeDeg: size, box };
     fetchedRef.current = null;
     setPanel({ ...base, status: 'loading' });
-    const request: Promise<{ series: PointSeries; cells: [number, number][] }> = box
+    setDetail(box ? { status: 'loading', sizeDeg: size } : { status: 'idle' });
+    const request: Promise<{ series: PointSeries; cells: [number, number][]; region?: RegionData }> = box
       ? fetchRegionSeries(v, box, ctrl.signal, m.years).then((data) => {
           const mean = areaMeanSeries(data);
-          return { series: mean.series, cells: mean.cells.map((c): [number, number] => [c.lat, c.lng]) };
+          return { series: mean.series, cells: mean.cells.map((c): [number, number] => [c.lat, c.lng]), region: data };
         })
       : fetchPointSeries(v, cell.lat, cell.lng, ctrl.signal, m.years).then((series) => ({
           series,
           cells: [[cell.lat, cell.lng]] as [number, number][],
         }));
     request
-      .then(({ series, cells }) => {
+      .then(({ series, cells, region }) => {
         if (ctrl.signal.aborted) return;
         fetchedRef.current = { base, series, cells, variable: v };
         showResult(base, series, cells, v, periodRef.current);
+        if (region && box) setDetail({ status: 'ready', sizeDeg: size, box, data: region });
+        else loadDetail(center, v);
       })
       .catch((err: unknown) => {
         if (ctrl.signal.aborted) return;
         const message = err instanceof Error ? err.message : 'Something went wrong fetching data.';
         setPanel({ ...base, status: 'error', message });
+        setDetail({ status: 'idle' });
       });
+  };
+
+  /** Point selection: fetch the 5-degree box around the click for the close-up map (after the point result is shown). */
+  const loadDetail = (center: LatLng, v: string) => {
+    const m = metasRef.current[v];
+    if (!m) return;
+    detailAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    detailAbortRef.current = ctrl;
+    const box = regionBox(center.lat, center.lng, POINT_DETAIL_SIZE);
+    setDetail({ status: 'loading', sizeDeg: POINT_DETAIL_SIZE });
+    fetchRegionSeries(v, box, ctrl.signal, m.years)
+      .then((data) => {
+        if (ctrl.signal.aborted) return;
+        setDetail({ status: 'ready', sizeDeg: POINT_DETAIL_SIZE, box, data });
+      })
+      .catch((err: unknown) => {
+        if (ctrl.signal.aborted) return;
+        const message = err instanceof Error ? err.message : 'Could not load the close-up.';
+        setDetail({ status: 'error', sizeDeg: POINT_DETAIL_SIZE, message });
+      });
+  };
+
+  /** Fly the camera to a picked spot (no-op in flat mode). `alt` overrides the pick rule. */
+  const flyTo = (pos: LatLng, alt: number) => {
+    flyRef.current?.({ lat: pos.lat, lng: pos.lng, altitude: alt });
   };
 
   const handlePick = (pos: LatLng) => {
     window.__lastPick = { lat: pos.lat, lng: pos.lng };
+    flyTo(pos, pickAltitude(window.__view?.().altitude, sizeRef.current));
     load(pos, variableRef.current, sizeRef.current);
   };
 
   /** Change the area size (0 = single grid cell); if the panel is open, re-run for the same centre. */
   const selectArea = (size: number) => {
     if (![0, 2, 5, 10].includes(size)) return;
+    const old = sizeRef.current;
     sizeRef.current = size;
     setSizeDegState(size);
     const p = panelRef.current;
-    if (p) load(p.center, variableRef.current, size);
+    if (p) {
+      flyTo(p.center, areaChangeAltitude(window.__view?.().altitude, old, size));
+      load(p.center, variableRef.current, size);
+    }
   };
 
   /** Switch variable; if the panel is open, refetch the same cell for the new variable. */
@@ -252,7 +308,6 @@ export default function App() {
     selectVariable(d.variable, false);
     sizeRef.current = 0;
     setSizeDegState(0);
-    flyRef.current?.({ lat: d.lat, lng: d.lng, altitude: 1.3 });
     handlePick({ lat: d.lat, lng: d.lng });
   };
 
@@ -274,8 +329,17 @@ export default function App() {
     };
   }, []);
 
+  /** A cell clicked in the close-up map: same path as a globe click at its centre, with Area switched to Point. */
+  const selectDetailCell = (lat: number, lng: number) => {
+    sizeRef.current = 0;
+    setSizeDegState(0);
+    handlePick({ lat, lng });
+  };
+
   const closePanel = () => {
     abortRef.current?.abort();
+    detailAbortRef.current?.abort();
+    setDetail({ status: 'idle' });
     fetchedRef.current = null;
     setPanel(null);
   };
@@ -285,6 +349,30 @@ export default function App() {
   const subtitle = meta ? `How has ${meta.label.toLowerCase()} changed, ${periodText(period)}?` : '';
   const isFull = isFullPeriod(period, fullYears);
   const range = useRangeMap(variable, mapPeriod, meta);
+
+  const detailVmax = range.shown.vmax;
+  const detailCells = useMemo<DetailCell[]>(
+    () => (detail.status === 'ready' ? cellTrends(detail.data.cells, detail.data.years, period) : []),
+    [detail, period],
+  );
+  useEffect(() => {
+    const sum = summarize(detailCells);
+    window.__detail = {
+      status: detail.status,
+      sizeDeg: detail.status === 'idle' ? 0 : detail.sizeDeg,
+      period: [period[0], period[1]],
+      vmax: detailVmax,
+      nCells: sum.nCells,
+      nSignificant: sum.nSignificant,
+      cells: detailCells.map((c) => ({ lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p, n: c.n })),
+    };
+  }, [detail, detailCells, period, detailVmax]);
+  useEffect(
+    () => () => {
+      delete window.__detail;
+    },
+    [],
+  );
 
   const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
 
@@ -350,6 +438,33 @@ export default function App() {
             onRetry={() => load(panel.center, variable, sizeDeg)}
             period={period}
             fullPeriod={isFull}
+            detail={
+              panel.status === 'ready' || panel.status === 'insufficient' ? (
+                <section className="detail" aria-label="Close-up map">
+                  <h3 className="detail-title">Close-up: each ~50 km grid cell around this spot</h3>
+                  {detail.status === 'loading' && <p className="panel-msg detail-msg">Loading close-up…</p>}
+                  {detail.status === 'error' && (
+                    <div className="panel-msg panel-error detail-msg">
+                      <p>{detail.message}</p>
+                      <button className="retry" onClick={() => loadDetail(panel.center, variable)}>
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                  {detail.status === 'ready' && (
+                    <DetailMap
+                      meta={meta}
+                      box={detail.box}
+                      cells={detailCells}
+                      vmax={detailVmax}
+                      center={panel.center}
+                      selected={panel.box ? null : { lat: panel.cell.lat, lng: panel.cell.lng }}
+                      onSelectCell={selectDetailCell}
+                    />
+                  )}
+                </section>
+              ) : null
+            }
           />
         )}
       </main>

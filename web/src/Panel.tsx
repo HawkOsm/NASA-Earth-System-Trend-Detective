@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Chart from './Chart';
 import { signedRate, type Analysis, MIN_YEARS } from './analysis';
 import { periodText, type Period } from './period';
@@ -41,6 +42,8 @@ interface PanelProps {
   period: Period;
   /** True when the period is the whole data period (then no period line is shown). */
   fullPeriod: boolean;
+  /** Close-up map section, shown under the verdict (or the not-enough-data message). */
+  detail?: ReactNode;
 }
 
 export default function Panel({
@@ -53,6 +56,7 @@ export default function Panel({
   onRetry,
   period,
   fullPeriod,
+  detail,
 }: PanelProps) {
   const { cell } = state;
   return (
@@ -112,6 +116,8 @@ export default function Panel({
       )}
 
       {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} />}
+
+      {detail}
     </aside>
   );
 }

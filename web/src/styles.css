@@ -259,3 +259,26 @@ html, body, #root {
   .legend { bottom: 104px; }
   .globe-wrap.has-panel .period-bar { bottom: calc(55% + 8px); }
 }
+
+/* ---- whole-globe button ---- */
+.whole-globe {
+  position: absolute; top: 12px; right: 12px; z-index: 5; padding: 6px 12px; font-size: 0.85rem; color: #e6e9ef;
+  background: rgba(10, 14, 24, 0.88); border: 1px solid #3a4a6a; border-radius: 6px; cursor: pointer;
+}
+.whole-globe:hover { background: #26375a; }
+@media (min-width: 761px) and (max-width: 1099px) { .globe-wrap.has-panel .whole-globe { right: 412px; } }
+@media (max-width: 760px) {
+  .whole-globe { top: auto; bottom: 112px; right: 8px; }
+  .globe-wrap.has-panel .whole-globe { bottom: calc(55% + 96px); }
+}
+
+/* ---- close-up map ---- */
+.detail { margin-top: 18px; padding-top: 12px; border-top: 1px solid #2a3244; }
+.detail-title { margin: 0 0 8px; font-size: 0.95rem; font-weight: 600; }
+.detail-msg { margin: 8px 0; }
+.detail-canvas-host { width: 100%; }
+.detail-canvas { display: block; border: 1px solid #2a3244; cursor: crosshair; touch-action: manipulation; }
+.detail-readout { margin: 6px 0 4px; min-height: 1.4em; font-size: 0.85rem; color: #e6e9ef; font-variant-numeric: tabular-nums; }
+.detail-summary { margin: 4px 0; font-size: 0.85rem; color: #c9cfdb; }
+.detail-note { margin: 2px 0 6px; font-size: 0.78rem; color: #a8b0c0; }
+.detail-howto { margin: 6px 0 0; font-size: 0.8rem; color: #a8b0c0; }
