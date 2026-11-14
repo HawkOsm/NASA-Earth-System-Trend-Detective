@@ -10,7 +10,7 @@ export const PLACES: MapLabel[] = [
   { text: 'Australia', lat: -25, lng: 134 },
   { text: 'Antarctica', lat: -80, lng: 30 },
   { text: 'Greenland', lat: 73, lng: -40 },
-  { text: 'Pacific Ocean', lat: 0, lng: -150 },
+  { text: 'Pacific Ocean', lat: 12, lng: -140 },
   { text: 'Atlantic Ocean', lat: 28, lng: -42 },
   { text: 'Indian Ocean', lat: -22, lng: 78 },
   { text: 'Arctic Ocean', lat: 86, lng: -160 },
