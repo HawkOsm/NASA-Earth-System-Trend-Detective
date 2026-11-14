@@ -8,11 +8,15 @@ import {
   NOT_COMPARED_TEXT,
   boxAt,
   classify,
+  classFromCounts,
+  tally,
+  joinNames,
   combineGrade,
   referenceCheck,
   shortCheckText,
   summaryLine,
   yearsText,
+  type BoxRecord,
   type RefBox,
   type RefData,
 } from './reference';
@@ -56,7 +60,8 @@ describe('boxAt', () => {
   });
 });
 
-const box = (refSlope: number, refP: number): RefBox => ({ index: 0, lat: 0, lng: 0, refSlope, refP, merraSlope: null, sizeDiffers: false, badYears: [] });
+const gpcp = (slope: number, p: number): BoxRecord => ({ short: 'GPCP', what: 'rain gauges and satellites', slope, p, available: true });
+const box = (refSlope: number, refP: number): RefBox => ({ index: 0, lat: 0, lng: 0, refSlope, refP, records: [gpcp(refSlope, refP)], merraSlope: null, sizeDiffers: false, badYears: [] });
 
 describe('classify', () => {
   it('follows the definitions', () => {
@@ -179,7 +184,7 @@ describe('the shipped reference files', () => {
 describe('confirmed, but the size differs', () => {
   it('adds MERRA-2\'s box value when the two 95% ranges do not overlap, and nothing otherwise', () => {
     const ref = tiny({});
-    const differs: RefBox = { index: 0, lat: 0, lng: 0, refSlope: 0.23, refP: 0.001, merraSlope: 0.52, sizeDiffers: true, badYears: [] };
+    const differs: RefBox = { index: 0, lat: 0, lng: 0, refSlope: 0.23, refP: 0.001, records: [gpcp(0.23, 0.001)], merraSlope: 0.52, sizeDiffers: true, badYears: [] };
     const text = classSentence('confirmed', ref, differs, '°C');
     expect(text).toMatch(/^Confirmed by an independent record: /);
     expect(text).toMatch(/The size differs, though: averaged over the same box MERRA-2 shows \+0\.52 °C per decade\.$/);
@@ -198,8 +203,182 @@ describe('confirmed, but the size differs', () => {
 describe('the record shows a change that MERRA-2 does not', () => {
   it('says so when the site has no clear trend and the record is significant', () => {
     const ref = tiny({});
-    const b: RefBox = { index: 0, lat: 0, lng: 0, refSlope: 0.24, refP: 0.0001, merraSlope: -0.004, sizeDiffers: true, badYears: [] };
+    const b: RefBox = { index: 0, lat: 0, lng: 0, refSlope: 0.24, refP: 0.0001, records: [gpcp(0.24, 0.0001)], merraSlope: -0.004, sizeDiffers: true, badYears: [] };
     expect(classSentence('info', ref, b, '°C')).toMatch(/^MERRA-2 shows no clear trend here, but an independent record does: /);
     expect(classSentence('info', ref, { ...b, refP: 0.4 }, '°C')).toMatch(/^Independent record: /);
+  });
+});
+
+
+// ---- several records: "confirmed by k of n" -------------------------------------------------------------------------------
+
+describe('class rule (n records, k confirm, c contradict)', () => {
+  it('follows the definitions, ties and n = 0..4 included', () => {
+    const table: [number, number, number, string][] = [
+      [0, 0, 0, 'none'],
+      [1, 1, 0, 'confirmed'], [1, 0, 0, 'unconfirmed'], [1, 0, 1, 'contradicted'],
+      [2, 2, 0, 'confirmed'], [2, 1, 0, 'partly'], [2, 0, 0, 'unconfirmed'], [2, 1, 1, 'partly'], [2, 0, 1, 'contradicted'], [2, 0, 2, 'contradicted'],
+      [3, 3, 0, 'confirmed'], [3, 2, 0, 'confirmed'], [3, 2, 1, 'confirmed'], [3, 1, 0, 'partly'], [3, 1, 1, 'partly'], [3, 1, 2, 'contradicted'], [3, 0, 0, 'unconfirmed'],
+      [4, 4, 0, 'confirmed'], [4, 3, 1, 'confirmed'], [4, 3, 0, 'confirmed'], [4, 2, 0, 'partly'], [4, 2, 1, 'partly'], [4, 2, 2, 'partly'], [4, 1, 0, 'partly'], [4, 1, 1, 'partly'],
+      [4, 1, 3, 'contradicted'], [4, 0, 0, 'unconfirmed'], [4, 0, 1, 'contradicted'],
+    ];
+    for (const [n, k, c, want] of table) expect(classFromCounts(n, k, c), `${n},${k},${c}`).toBe(want);
+  });
+  it('counts records by the site\'s sign, availability and p < 0.05', () => {
+    const recs: BoxRecord[] = [
+      { short: 'A', what: '', slope: 0.3, p: 0.01, available: true },
+      { short: 'B', what: '', slope: -0.2, p: 0.04, available: true },
+      { short: 'C', what: '', slope: 0.3, p: 0.05, available: true },
+      { short: 'D', what: '', slope: null, p: null, available: false },
+    ];
+    expect(tally(recs, 1)).toEqual({ n: 3, k: 1, c: 1 });
+    expect(tally(recs, -1)).toEqual({ n: 3, k: 1, c: 1 });
+    expect(tally(recs, 0)).toEqual({ n: 3, k: 0, c: 0 });
+  });
+  it('grade caps: partly and unconfirmed -> caution, contradicted -> doubtful, the rest none', () => {
+    expect(combineGrade('robust', 'partly')).toBe('caution');
+    expect(combineGrade('doubtful', 'partly')).toBe('doubtful');
+    expect(combineGrade('robust', 'confirmed')).toBe('robust');
+  });
+  it('names: A, A and B, A, B and C', () => {
+    expect([joinNames([]), joinNames(['A']), joinNames(['A', 'B']), joinNames(['A', 'B', 'C'])]).toEqual(['', 'A', 'A and B', 'A, B and C']);
+  });
+});
+
+/** A 3 x 4 grid like tiny() with four rainfall records; `rows` = [slope, p] of GPCP, CMAP, GPCC, PREC/L (null = not available). */
+function multi(rows: ([number, number] | null)[], over: Partial<RefData> = {}): RefData {
+  const names = [['GPCP', 'rain gauges and satellites'], ['CMAP', 'rain gauges and satellites'], ['GPCC', 'rain gauges'], ['PREC/L', 'rain gauges']];
+  const records = rows.map((r, i) => ({
+    short: names[i][0], name: names[i][0], what: names[i][1],
+    refSlope: Array(12).fill(r ? r[0] : null), refP: Array(12).fill(r ? r[1] : null), available: Array(12).fill(r ? 1 : 0),
+  }));
+  const first = rows[0] ?? [0, 1];
+  return tiny({ refSlope: Array(12).fill(first[0]), refP: Array(12).fill(first[1]), records, ...over });
+}
+const check = (ref: RefData, kind: 'significant' | 'possible' | 'none' = 'significant', slope = 0.3) =>
+  referenceCheck({ variable: 'PRECTOTCORR', ref, lat: 0, lng: 0, fullPeriod: true, kind, slope, unitsLong: 'mm/day' });
+const TAIL = 'for the roughly 280 km box around this place';
+
+describe('sentences with several records', () => {
+  it('confirmed by all', () => {
+    const c = check(multi([[0.26, 0.001], [0.21, 0.01], [0.23, 0.002], [0.15, 0.02]]));
+    expect(c).toMatchObject({ cls: 'confirmed', n: 4, k: 4, c: 0 });
+    expect(c.sentence).toBe(`Confirmed by 4 of 4 independent records (GPCP, CMAP, GPCC and PREC/L): they show +0.15 to +0.26 mm/day per decade ${TAIL}.`);
+  });
+  it('confirmed by 3 of 4 (the Cebu case): the record that does not confirm is named', () => {
+    const c = check(multi([[0.09, 0.51], [0.56, 0.0004], [0.44, 0.006], [0.48, 0.0009]]));
+    expect(c).toMatchObject({ cls: 'confirmed', n: 4, k: 3, c: 0 });
+    expect(c.sentence).toBe(`Confirmed by 3 of 4 independent records (CMAP, GPCC and PREC/L): they show +0.44 to +0.56 mm/day per decade ${TAIL}. GPCP shows no significant change.`);
+  });
+  it('confirmed by 3 of 4 (more than half), one not confirming', () => {
+    expect(check(multi([[0.06, 0.7], [0.49, 0.001], [0.44, 0.006], [0.57, 0.0003]])).sentence).toBe(
+      `Confirmed by 3 of 4 independent records (CMAP, GPCC and PREC/L): they show +0.44 to +0.57 mm/day per decade ${TAIL}. GPCP shows no significant change.`,
+    );
+  });
+  it('half is not enough: 2 of 4 and 1 of 2 are "partly"', () => {
+    const a = check(multi([[0.06, 0.7], [0.49, 0.001], [0.22, 0.09], [0.57, 0.0003]]));
+    expect(a).toMatchObject({ cls: 'partly', n: 4, k: 2 });
+    expect(a.sentence).toBe(
+      `Confirmed by 2 of 4 independent records only: CMAP and PREC/L show +0.49 to +0.57 mm/day per decade; GPCP and GPCC show no significant change ${TAIL}.`,
+    );
+    const b = check(multi([[0.06, 0.7], [0.49, 0.001], null, null]));
+    expect(b).toMatchObject({ cls: 'partly', n: 2, k: 1 });
+    expect(b.sentence).toBe(`Confirmed by 1 of 2 independent records only: CMAP shows +0.49 mm/day per decade; GPCP shows no significant change ${TAIL}.`);
+  });
+  it('partly confirmed', () => {
+    const c = check(multi([[0.05, 0.7], [0.49, 0.001], [0.02, 0.3], [0.04, 0.4]]));
+    expect(c).toMatchObject({ cls: 'partly', n: 4, k: 1 });
+    expect(c.sentence).toBe(`Confirmed by 1 of 4 independent records only: CMAP shows +0.49 mm/day per decade; GPCP, GPCC and PREC/L show no significant change ${TAIL}.`);
+    const d = check(multi([[0.3, 0.001], [-0.2, 0.01], [0.04, 0.4], [0.03, 0.4]]));   // k = 1, c = 1 of 4: partly, with an opposite record
+    expect(d.cls).toBe('partly');
+    expect(d.sentence).toBe(`Confirmed by 1 of 4 independent records only: GPCP shows +0.30 mm/day per decade; GPCC and PREC/L show no significant change; CMAP shows the opposite, -0.20 mm/day per decade ${TAIL}.`);
+  });
+  it('not confirmed by any', () => {
+    const c = check(multi([[0.0, 1], [-0.02, 0.5], [0.01, 0.6], [0.0, 0.9]]));
+    expect(c).toMatchObject({ cls: 'unconfirmed', n: 4, k: 0, c: 0 });
+    expect(c.sentence).toBe(`Not confirmed by any of 4 independent records (GPCP, CMAP, GPCC and PREC/L): none shows a significant change ${TAIL}.`);
+  });
+  it('contradicted, with and without records that confirm', () => {
+    const c = check(multi([[-0.1, 0.01], [-0.2, 0.02], [0.03, 0.4], [0.04, 0.4]]));
+    expect(c).toMatchObject({ cls: 'contradicted', n: 4, k: 0, c: 2 });
+    expect(c.sentence).toBe(`Contradicted: 2 of 4 independent records (GPCP and CMAP) show the opposite, -0.10 to -0.20 mm/day per decade ${TAIL}.`);
+    expect(check(multi([[-0.1, 0.01], [-0.2, 0.02], [0.3, 0.01], [0.04, 0.4]])).cls).toBe('contradicted');   // c = 2 > k = 1
+  });
+  it('contradicted: "K confirm it"', () => {
+    const c = check(multi([[-0.1, 0.01], [-0.2, 0.02], [-0.15, 0.03], [0.3, 0.01]]));
+    expect(c.cls).toBe('contradicted');
+    expect(c.sentence).toBe(`Contradicted: 3 of 4 independent records (GPCP, CMAP and GPCC) show the opposite, -0.10 to -0.20 mm/day per decade ${TAIL}. 1 confirms it.`);
+  });
+  it('info: records that see a change although MERRA-2 does not, or none', () => {
+    const a = check(multi([[0.09, 0.51], [0.56, 0.0004], [0.44, 0.006], [0.1, 0.4]]), 'none');
+    expect(a).toMatchObject({ cls: 'info', n: 4 });
+    expect(a.sentence).toBe(`MERRA-2 shows no clear trend here, but 2 of 4 independent records do (CMAP and GPCC): +0.44 to +0.56 mm/day per decade ${TAIL}.`);
+    expect(check(multi([[0.0, 1], [0.01, 0.9], [0.02, 0.5], [0.0, 0.8]]), 'none').sentence).toBe(
+      `Independent records (GPCP, CMAP, GPCC and PREC/L): none shows a significant change ${TAIL}.`,
+    );
+  });
+  it('the size note against the first record stays', () => {
+    const ref = multi([[0.2, 0.001], [0.21, 0.01], [0.23, 0.002], [0.15, 0.02]]);
+    ref.agree = ref.agree.map(() => 2);
+    expect(check(ref).sentence).toMatch(/The size differs, though: averaged over the same box MERRA-2 shows \+0\.20 mm\/day per decade\.$/);
+  });
+  it('one available record keeps the one-record sentences (a box with GPCP only)', () => {
+    const c = check(multi([[0.1, 0.01], null, null, null]));
+    expect(c).toMatchObject({ cls: 'confirmed', n: 1, k: 1 });
+    expect(c.sentence).toBe('Confirmed by an independent record: GPCP (rain gauges and satellites) shows +0.10 mm/day per decade for the roughly 280 km box around this place (p = 0.01).');
+  });
+  it('the result lists every record, the unavailable ones too', () => {
+    const c = check(multi([[0.1, 0.01], [0.2, 0.01], null, null]));
+    expect(c.records).toEqual([
+      { short: 'GPCP', slope: 0.1, p: 0.01, available: true }, { short: 'CMAP', slope: 0.2, p: 0.01, available: true },
+      { short: 'GPCC', slope: null, p: null, available: false }, { short: 'PREC/L', slope: null, p: null, available: false },
+    ]);
+    expect(c.n).toBe(2);
+  });
+  it('Detective short forms', () => {
+    const n4 = { n: 4, k: 3, c: 0 };
+    expect(shortCheckText('confirmed', 'GPCP', n4)).toEqual({ reason: null, tail: ' · Confirmed by 3 of 4 records' });
+    expect(shortCheckText('partly', 'GPCP', { n: 4, k: 1, c: 0 })).toEqual({ reason: 'Confirmed by only 1 of 4 records.', tail: null });
+    expect(shortCheckText('unconfirmed', 'GPCP', { n: 4, k: 0, c: 0 })).toEqual({ reason: 'Not confirmed by any of 4 records.', tail: null });
+    expect(shortCheckText('contradicted', 'GPCP', { n: 4, k: 0, c: 2 })).toEqual({ reason: 'Contradicted by 2 of 4 records.', tail: null });
+    expect(shortCheckText('info', 'GPCP', n4)).toEqual({ reason: null, tail: null });
+    expect(shortCheckText('unconfirmed', 'GPCP', { n: 1, k: 0, c: 0 })).toEqual({ reason: 'Not confirmed by GPCP.', tail: null });
+  });
+  it('Menu line', () => {
+    const cons = { confirmed: 0.53, partly: 0.1, unconfirmed: 0.28, contradicted: 0.09, records: ['GPCP', 'CMAP', 'GPCC', 'PREC/L'], nBoxes: 10, byCount: {}, byCountArea: {} };
+    expect(summaryLine('PRECTOTCORR', multi([[0.1, 0.01], [0.1, 0.01], [0.1, 0.01], [0.1, 0.01]], { consensus: cons }))).toBe(
+      'Checked against 4 records (GPCP, CMAP, GPCC and PREC/L): 53% confirmed · 10% partly · 28% not confirmed · 9% contradicted',
+    );
+    const t = multi([[0.1, 0.01], [0.1, 0.01]], { consensus: { ...cons, records: ['NASA GISTEMP', 'GHCN-CAMS'] } });
+    t.records = t.records!.map((r, i) => ({ ...r, short: ['NASA GISTEMP', 'GHCN-CAMS'][i] }));
+    expect(summaryLine('T2M', t)).toBe('Checked against 2 records (NASA GISTEMP and GHCN-CAMS) (land): 53% confirmed · 10% partly · 28% not confirmed · 9% contradicted');
+  });
+});
+
+describe('the shipped files carry the records', () => {
+  const dir = resolve(dirname(fileURLToPath(import.meta.url)), '../public/data/reference');
+  const load = (v: string): RefData => JSON.parse(readFileSync(resolve(dir, `${v}.json`), 'utf8'));
+  it('rainfall: Cebu box is confirmed by 3 of 4; the first record is today\'s', () => {
+    const r = load('PRECTOTCORR');
+    expect(r.records!.map((x) => x.short)).toEqual(['GPCP', 'CMAP', 'GPCC', 'PREC/L']);
+    expect(r.records![0].refSlope).toEqual(r.refSlope.map((x, i) => (r.eligible[i] ? x : null)));
+    const c = referenceCheck({ variable: 'PRECTOTCORR', ref: r, lat: 10.32, lng: 123.89, fullPeriod: true, kind: 'significant', slope: 0.89, unitsLong: 'mm/day' });
+    expect(c).toMatchObject({ cls: 'confirmed', n: 4, k: 3, c: 0 });
+    expect(c.sentence).toMatch(/^Confirmed by 3 of 4 independent records \(CMAP, GPCC and PREC\/L\): they show \+0\.44 to \+0\.56 mm\/day per decade /);
+  });
+  it('rainfall: an ocean box has GPCP and CMAP only; temperature: two records over land', () => {
+    const c = referenceCheck({ variable: 'PRECTOTCORR', ref: load('PRECTOTCORR'), lat: 0, lng: -150, fullPeriod: true, kind: 'significant', slope: 0.1, unitsLong: 'mm/day' });
+    expect(c.n).toBe(2);
+    expect(c.records.map((x) => x.available)).toEqual([true, true, false, false]);
+    const t = referenceCheck({ variable: 'T2M', ref: load('T2M'), lat: 41.01, lng: 28.97, fullPeriod: true, kind: 'significant', slope: 0.5, unitsLong: '°C' });
+    expect(t).toMatchObject({ cls: 'confirmed', n: 2, k: 2 });
+  });
+  it('consensus shares add up to 1 and match the Menu line', () => {
+    for (const v of ['T2M', 'PRECTOTCORR']) {
+      const r = load(v);
+      const c = r.consensus!;
+      expect(c.confirmed + c.partly + c.unconfirmed + c.contradicted).toBeCloseTo(1, 2);
+      expect(summaryLine(v, r)).toMatch(new RegExp(`^Checked against ${r.records!.length} records \\(`));
+    }
   });
 });

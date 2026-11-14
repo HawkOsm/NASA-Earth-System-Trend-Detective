@@ -393,6 +393,8 @@ def write_json(var, o):
     doc["land"] = [int(x) for x in o["land"]]
     doc["eligible"] = [int(x) for x in eligible_mask(var, o["used"], o["land"])]
     doc["summary"] = summarize(var, o)
+    import reference_multi   # the other independent records (lazy: reference_multi imports this module)
+    doc["records"], doc["consensus"] = reference_multi.records_block(var, o)
     doc["badYears"] = badyears
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, f"{var}.json"), "w") as f:

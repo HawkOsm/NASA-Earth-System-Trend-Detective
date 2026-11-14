@@ -4,10 +4,17 @@
   "short": "GPCP",
   "name": "GPCP v2.3 monthly precipitation (NOAA PSL)"
  },
+ "records": [
+  "GPCP",
+  "CMAP",
+  "GPCC",
+  "PREC/L"
+ ],
  "shares": {
   "significant": 0.2121320473572302,
-  "confirmed": 0.05117718283113319,
-  "notConfirmed": 0.13015749032723398,
+  "confirmed": 0.04195568303612664,
+  "partly": 0.08026727247288522,
+  "notConfirmed": 0.059111717649355335,
   "uncheckable": 0.030797374198863036
  }
 }

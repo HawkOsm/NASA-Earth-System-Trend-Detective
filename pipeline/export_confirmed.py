@@ -8,6 +8,11 @@ Definition (fixed). For every full-resolution MERRA-2 cell with its own slope s 
 The texture is made exactly like {VAR}_trend.png (export.bilinear_to_pixels, export.overlay_rgb, same vmax, colormap, base map)
 except that the significance field (1 where q < ALPHA) is replaced by 1 on CONFIRMED cells and 0 elsewhere (NaN where q is NaN).
 
+MULTI-RECORD VERSION (what main() writes): CONFIRMED means the consensus class at the cell's box (reference_multi.class_of with
+n, k, c counted for the CELL's own slope sign over the records available at the box) is "confirmed" (more than half of the records, 2k > n, and
+k > c); "partly" cells (1 <= k, not confirmed, not contradicted) are counted separately and are NOT drawn; NOT CONFIRMED =
+unconfirmed + contradicted. classify() above is the one-record rule (first record only), kept for its tests.
+
 Run from the pipeline directory:  .venv/bin/python export_confirmed.py
 """
 import json
@@ -54,12 +59,36 @@ def classify(slope, q, lat, lon, grid, eligible, ref_slope, ref_p, alpha=config.
     return {"significant": sig, "confirmed": confirmed, "notConfirmed": not_confirmed, "uncheckable": uncheckable}
 
 
+def classify_multi(slope, q, lat, lon, grid, eligible, records, alpha=config.ALPHA):
+    """Like classify, with the consensus of several records (list of dicts slope, p, available: arrays [nbox]):
+    masks significant, confirmed, partly, notConfirmed, uncheckable (disjoint; the last four sum to significant)."""
+    import reference_multi as MM
+    slope = np.asarray(slope, dtype=np.float64)
+    q = np.asarray(q, dtype=np.float64)
+    with np.errstate(invalid="ignore"):
+        sig = np.isfinite(q) & np.isfinite(slope) & (q < alpha)
+    b = box_index(lat, lon, grid)
+    el = np.asarray(eligible).astype(bool)[b]
+    sub = [{"slope": np.asarray(r["slope"], dtype=np.float64)[b], "p": np.asarray(r["p"], dtype=np.float64)[b],
+            "available": np.asarray(r["available"], dtype=bool)[b]} for r in records]
+    n, k, c = MM.counts(np.sign(np.nan_to_num(slope)), sub)
+    code = MM.class_codes(n, k, c)
+    confirmed = sig & el & (code == MM.CLASS_CODES["confirmed"])
+    partly = sig & el & (code == MM.CLASS_CODES["partly"])
+    uncheckable = sig & ~el
+    not_confirmed = sig & el & ~confirmed & ~partly
+    return {"significant": sig, "confirmed": confirmed, "partly": partly, "notConfirmed": not_confirmed,
+            "uncheckable": uncheckable}
+
+
 def shares(masks, lat):
     """cos-latitude weighted share of the whole grid for each class; significant == the sum of the three (asserted)."""
     w = np.cos(np.radians(np.asarray(lat, dtype=np.float64)))[:, None] * np.ones(masks["significant"].shape)
     tot = w.sum()
-    out = {k: float((w * masks[k]).sum() / tot) for k in ("significant", "confirmed", "notConfirmed", "uncheckable")}
-    assert abs(out["significant"] - (out["confirmed"] + out["notConfirmed"] + out["uncheckable"])) < 1e-9
+    keys = ("significant", "confirmed", "partly", "notConfirmed", "uncheckable") if "partly" in masks else \
+        ("significant", "confirmed", "notConfirmed", "uncheckable")
+    out = {k: float((w * masks[k]).sum() / tot) for k in keys}
+    assert abs(out["significant"] - sum(out[k] for k in keys[1:])) < 1e-9
     return out
 
 
@@ -81,7 +110,9 @@ def main():
         r = np.load(os.path.join(config.CACHE_DIR, f"reference_{var}.npz"))
         grid = reference.reference_grid(var)
         el = reference.eligible_mask(var, r["used"], r["land"])
-        masks = classify(slope, q, lat, lon, grid, el, r["refSlope"], r["refP"])
+        import reference_multi as MM
+        recs, _ = MM.records_for(var)
+        masks = classify_multi(slope, q, lat, lon, grid, el, recs)
         sh = shares(masks, lat)
         vmax = export.round_up_2sig(float(np.percentile(np.abs(slope[np.isfinite(slope)]), 98)))
         with open(os.path.join(config.WEB_DATA_DIR, f"{var}_meta.json")) as f:
@@ -95,7 +126,7 @@ def main():
         os.makedirs(OUT_DIR, exist_ok=True)
         with open(os.path.join(OUT_DIR, f"confirmed_{var}.json"), "w") as f:
             json.dump({"texture": f"{var}_confirmed.png", "source": {"short": src["short"], "name": src["name"]},
-                       "shares": sh}, f, indent=1)
+                       "records": [r["short"] for r in recs], "shares": sh}, f, indent=1)
         print(var, json.dumps(sh), "->", path, f"({os.path.getsize(path)} bytes)")
 
 

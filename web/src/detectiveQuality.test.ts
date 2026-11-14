@@ -114,6 +114,14 @@ describe('buildAnswer with the independent check', () => {
     const c = buildAnswer(rank, 'H', [], undefined, q, new Map([['PRECTOTCORR', { cls: 'contradicted' as const, short: 'GPCP' }]]));
     expect(c.lines.find((l) => l.variable === 'PRECTOTCORR')).toMatchObject({ grade: 'doubtful', reasons: ['Contradicted by GPCP.'] });
   });
+  it('with several records: "k of n" texts, partly caps at caution, contradicted at doubtful', () => {
+    const run = (cls: 'confirmed' | 'partly' | 'unconfirmed' | 'contradicted', n: number, k: number, c: number) =>
+      buildAnswer(rank, 'H', [], undefined, q, new Map([['PRECTOTCORR', { cls, short: 'GPCP', n, k, c }]])).lines.find((l) => l.variable === 'PRECTOTCORR')!;
+    expect(run('confirmed', 4, 3, 0)).toMatchObject({ grade: 'robust', referenceTail: ' · Confirmed by 3 of 4 records', reasons: [] });
+    expect(run('partly', 4, 1, 0)).toMatchObject({ grade: 'caution', reference: 'partly', reasons: ['Confirmed by only 1 of 4 records.'] });
+    expect(run('unconfirmed', 4, 0, 0)).toMatchObject({ grade: 'caution', reasons: ['Not confirmed by any of 4 records.'] });
+    expect(run('contradicted', 4, 0, 2)).toMatchObject({ grade: 'doubtful', reasons: ['Contradicted by 2 of 4 records.'] });
+  });
   it('without checks nothing changes', () => {
     const a = buildAnswer(rank, 'H', [], undefined, q);
     expect(a.lines.every((l) => l.reference === null && l.referenceTail === null && l.grade === 'robust')).toBe(true);

@@ -7,6 +7,7 @@
  */
 import { dataUrl } from './data';
 import {
+  boxAt,
   classSentence,
   CUSTOM_PERIOD_TEXT,
   hasReference,
@@ -29,10 +30,14 @@ export interface AreaEntry {
   /** Share (0..1) of the area (by weight) that the records cover. */
   coverage: number;
   badYears: number[];
+  /** The records that cover at least half of the area (first record first): its own numbers over its own boxes. */
+  records?: { short: string; refSlope: number; refP: number; coverage: number }[];
 }
 
 export interface AreaRefData {
   source: { name: string; short: string; what: string; boxKm: number };
+  /** Every record of the variable, in order (an area lists only those that cover it). */
+  records?: { short: string; name: string; what: string }[];
   countries: Record<string, AreaEntry>;
   seas: Record<string, AreaEntry>;
   regions: Record<string, AreaEntry>;
@@ -76,7 +81,7 @@ export function areaCheck(inp: AreaCheckInput): AreaCheck {
   const d = inp.data;
   const short = d.source.short;
   const none = (sentence: string, cls: RefCheck['cls'] = 'none'): AreaCheck =>
-    base({ cls, short, sentence, refSlope: null, refP: null, boxLat: null, boxLng: null, badYears: [], badSentence: null, slopeWithout: null, pWithout: null, withoutSentence: null }, null);
+    base({ cls, n: 0, k: 0, c: 0, records: [], short, sentence, refSlope: null, refP: null, boxLat: null, boxLng: null, badYears: [], badSentence: null, slopeWithout: null, pWithout: null, withoutSentence: null }, null);
   if (!inp.fullPeriod) return none(CUSTOM_PERIOD_TEXT, null);
   const entry = d[inp.kind][inp.key];
   if (!entry) {
@@ -86,25 +91,35 @@ export function areaCheck(inp: AreaCheckInput): AreaCheck {
   }
   // A one-box RefData holding the area's numbers: referenceCheck then gives the class, the sentences, the bad years and the
   // "Without ..." line exactly as for a point; only the place wording is changed.
+  const listed = new Map((entry.records ?? []).map((r) => [r.short, r]));
+  const records = d.records?.length
+    ? d.records.map((r) => {
+        const e = listed.get(r.short);
+        return { short: r.short, name: r.name, what: r.what, refSlope: [e ? e.refSlope : null], refP: [e ? e.refP : null], available: [e ? 1 : 0] };
+      })
+    : undefined;
   const one: RefData = {
-    source: d.source, lat0: 0, dlat: 1, nlat: 1, lon0: 0, dlon: 1, nlon: 1, years: [],
+    source: d.source,
+    records, lat0: 0, dlat: 1, nlat: 1, lon0: 0, dlon: 1, nlon: 1, years: [],
     refSlope: [entry.refSlope], refP: [entry.refP], merraSlope: [entry.merraSlope], merraP: [null], agree: [entry.sizeDiffers ? 2 : 1],
     land: [1], eligible: [1], badYears: entry.badYears.length ? { '0': entry.badYears } : {},
     summary: { confirmed: null, contradicted: null, unconfirmed: null, eligibleShareOfGlobe: 0, nBoxes: 1 },
   };
   const c = referenceCheck({ variable: inp.variable, ref: one, lat: 0, lng: 0, fullPeriod: true, kind: inp.verdictKind, slope: inp.slope, unitsLong: inp.unitsLong, series: inp.series });
   const km = d.source.boxKm;
-  return base({ ...c, sentence: areaWording(classSentence(c.cls ?? 'none', one, { index: 0, lat: 0, lng: 0, refSlope: entry.refSlope, refP: entry.refP, merraSlope: entry.merraSlope, sizeDiffers: entry.sizeDiffers, badYears: entry.badYears }, inp.unitsLong), km) }, entry.coverage);
+  const box = boxAt(one, 0, 0);
+  const sentence = box ? areaWording(classSentence(c.cls ?? 'none', one, box, inp.unitsLong, inp.slope), km) : c.sentence;
+  return base({ ...c, sentence }, entry.coverage);
 }
 
 /** The Detective's per-line checks for a continent or the World: cls and short name for each temperature / rainfall line. */
-export function areaLineChecks(rank: RankResult, refs: Map<string, AreaRefData>, kind: AreaKind, key: string): Map<string, { cls: RefCheck['cls']; short: string | null }> {
-  const out = new Map<string, { cls: RefCheck['cls']; short: string | null }>();
+export function areaLineChecks(rank: RankResult, refs: Map<string, AreaRefData>, kind: AreaKind, key: string): Map<string, { cls: RefCheck['cls']; short: string | null; n: number; k: number; c: number }> {
+  const out = new Map<string, { cls: RefCheck['cls']; short: string | null; n: number; k: number; c: number }>();
   for (const e of rank.ranked) {
     const data = refs.get(e.variable);
     if (!data || !hasReference(e.variable)) continue;
     const c = areaCheck({ variable: e.variable, data, kind, key, fullPeriod: true, verdictKind: e.kind, slope: e.slopePerDecade, unitsLong: e.units.replace(/ per decade$/, '') });
-    out.set(e.variable, { cls: c.cls, short: c.short });
+    out.set(e.variable, { cls: c.cls, short: c.short, n: c.n, k: c.k, c: c.c });
   }
   return out;
 }

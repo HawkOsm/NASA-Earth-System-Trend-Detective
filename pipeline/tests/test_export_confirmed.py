@@ -96,7 +96,8 @@ def test_texture_matches_trend_and_basemap(var):
     slope, q, lat, lon = z["slope_decade"], z["q"], z["lat"], z["lon"]
     r = np.load(os.path.join(config.CACHE_DIR, f"reference_{var}.npz"))
     el = reference.eligible_mask(var, r["used"], r["land"])
-    m = C.classify(slope, q, lat, lon, reference.reference_grid(var), el, r["refSlope"], r["refP"])
+    import reference_multi as MM
+    m = C.classify_multi(slope, q, lat, lon, reference.reference_grid(var), el, MM.records_for(var)[0])   # multi-record design
     # the nearest-cell neighbourhood of a pixel: the 3x3 block around its nearest cell (covers the 4 bilinear corners)
     li, lj = export.pixel_indices(lat, lon)
     nlat, nlon = len(lat), len(lon)
@@ -133,4 +134,33 @@ def test_json_shares(var):
     s = d["shares"]
     assert d["texture"] == f"{var}_confirmed.png"
     assert d["source"]["short"] and d["source"]["name"]
-    assert abs(s["significant"] - (s["confirmed"] + s["notConfirmed"] + s["uncheckable"])) < 1e-9
+    assert abs(s["significant"] - (s["confirmed"] + s["partly"] + s["notConfirmed"] + s["uncheckable"])) < 1e-9
+    assert d["records"] and d["records"][0] == d["source"]["short"]
+
+
+def test_multi_record_classes_use_the_cells_own_sign_and_partly_is_not_confirmed():
+    """Two records on the tiny grid: box 0 both significant +, box 1 one of two significant + (one of two is not more than
+    half, so partly), box 2 none (k = 0), box 3 four records with k = 1 (partly)."""
+    s = np.full((4, 4), 1.0)
+    q = np.full((4, 4), 0.01)
+    el = np.ones(4)
+
+    def rec(slope, p, avail):
+        return {"slope": np.array(slope, dtype=float), "p": np.array(p, dtype=float), "available": np.array(avail, dtype=bool)}
+
+    recs = [rec([0.3, 0.3, 0.3, 0.3], [0.01, 0.01, 0.4, 0.01], [1, 1, 1, 1]),
+            rec([0.3, 0.3, 0.3, -0.3], [0.01, 0.4, 0.4, 0.4], [1, 1, 1, 1]),
+            rec([0.0, 0.0, 0.0, 0.3], [1, 1, 1, 0.4], [0, 0, 0, 1]),
+            rec([0.0, 0.0, 0.0, 0.3], [1, 1, 1, 0.4], [0, 0, 0, 1])]
+    m = C.classify_multi(s, q, LAT, LON, GRID, el, recs)
+    assert m["confirmed"][0:2, 0:2].all()          # box 0: n = 2, k = 2
+    assert m["partly"][0:2, 2:4].all() and not m["confirmed"][0:2, 2:4].any()   # box 1: n = 2, k = 1 -> partly
+    assert m["notConfirmed"][2:4, 0:2].all()       # box 2: n = 2, k = 0
+    assert m["partly"][2:4, 2:4].all() and not m["confirmed"][2:4, 2:4].any()   # box 3: n = 4, k = 1
+    # the cell's own sign decides: a negative cell in box 0 has k = 0 and c = 2 -> contradicted -> not confirmed
+    s2 = s.copy()
+    s2[0, 0] = -1.0
+    m2 = C.classify_multi(s2, q, LAT, LON, GRID, el, recs)
+    assert m2["notConfirmed"][0, 0] and not m2["confirmed"][0, 0] and m2["confirmed"][0, 1]
+    sh = C.shares(m, LAT)
+    assert abs(sh["significant"] - sh["confirmed"] - sh["partly"] - sh["notConfirmed"] - sh["uncheckable"]) < 1e-9

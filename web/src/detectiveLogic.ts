@@ -602,7 +602,7 @@ function listLabels(labels: string[]): string {
 }
 
 /** What the independent record says about each temperature / rainfall line of a place (the box containing the coarse cell's centre). */
-export type LineChecks = Map<string, { cls: RefClass | null; short: string | null }>;
+export type LineChecks = Map<string, { cls: RefClass | null; short: string | null; n?: number; k?: number; c?: number }>;
 
 export function lineChecks(rank: RankResult, refs: Map<string, RefData>): LineChecks {
   const out: LineChecks = new Map();
@@ -613,7 +613,7 @@ export function lineChecks(rank: RankResult, refs: Map<string, RefData>): LineCh
       variable: e.variable, ref, lat: rank.cell.lat, lng: rank.cell.lng, fullPeriod: true, kind: e.kind, slope: e.slopePerDecade,
       unitsLong: e.units.replace(/ per decade$/, ''),
     });
-    out.set(e.variable, { cls: c.cls, short: c.short });
+    out.set(e.variable, { cls: c.cls, short: c.short, n: c.n, k: c.k, c: c.c });
   }
   return out;
 }
@@ -637,7 +637,7 @@ export function buildAnswer(
     const lq: LineQuality | null =
       vq && vq.grade !== 'none' && vq.grade !== 'unchecked' ? lineQuality(vq, e.kind, adjOf.get(e.variable)!, rank.ranked.length) : null;
     const chk = checks?.get(e.variable);
-    const sc = chk ? shortCheckText(chk.cls, chk.short) : { reason: null, tail: null };
+    const sc = chk ? shortCheckText(chk.cls, chk.short, chk.n !== undefined ? { n: chk.n, k: chk.k ?? 0, c: chk.c ?? 0 } : null) : { reason: null, tail: null };
     return {
       variable: e.variable,
       label: e.label,

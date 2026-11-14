@@ -111,6 +111,11 @@ declare global {
         refP: number | null;
         boxLat: number | null;
         boxLng: number | null;
+        /** Records available at the place / confirming it / contradicting it, and each record's own trend (null when not available). */
+        n?: number;
+        k?: number;
+        c?: number;
+        records?: { short: string; slope: number | null; p: number | null; available: boolean }[];
         badYears: number[];
         slopeWithout: number | null;
         pWithout: number | null;
@@ -738,7 +743,7 @@ export default function App() {
     const r = referenceOfPanel;
     lr.quality.combined = combineGrade(lr.quality.grade, r.cls);
     lr.reference = {
-      cls: r.cls, short: r.short, refSlope: r.refSlope, refP: r.refP, boxLat: r.boxLat, boxLng: r.boxLng, badYears: r.badYears,
+      cls: r.cls, short: r.short, refSlope: r.refSlope, refP: r.refP, boxLat: r.boxLat, boxLng: r.boxLng, n: r.n, k: r.k, c: r.c, records: r.records, badYears: r.badYears,
       slopeWithout: r.slopeWithout, pWithout: r.pWithout,
     };
   }, [referenceOfPanel, panel, variable]);
@@ -771,7 +776,7 @@ export default function App() {
     };
   }, [confirmedOn, variable]);
   const confirmedLine =
-    confirmedOn && confirmedData?.variable === variable ? confirmedSentence(confirmedData.data.source.short, confirmedData.data.shares) : null;
+    confirmedOn && confirmedData?.variable === variable ? confirmedSentence(confirmedData.data.source.short, confirmedData.data.shares, confirmedData.data.records) : null;
   useEffect(() => {
     window.__confirmedOnly = confirmedOn;
   }, [confirmedOn]);

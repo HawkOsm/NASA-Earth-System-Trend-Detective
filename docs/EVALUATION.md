@@ -36,25 +36,39 @@ Code: `pipeline/quality.py` (Python) and `web/src/quality.ts` (browser). They mu
 
 ### B. The independent check (air temperature and rainfall only)
 
-This is the only check that tests MERRA-2 against something else. We compare with two records that are
+This is the only check that tests MERRA-2 against something else. We compare with several records that are
 built from measurements, not from MERRA-2:
 
-| Variable | Independent record | Made from | Box size |
+| Variable | Independent records | Made from | Box size |
 |---|---|---|---|
 | Air temperature | NASA GISTEMP v4 | Thermometers on land, ships and buoys at sea | 2° (about 220 km) |
+| | GHCN-CAMS (NOAA CPC) | Weather stations, land only | 0.5°, averaged to the 2° boxes |
 | Rainfall | GPCP v2.3 | Rain gauges and satellites | 2.5° (about 280 km) |
+| | CMAP (NOAA CPC) | Rain gauges and satellites | 2.5° |
+| | GPCC v2025 (DWD) | Rain gauges, land only | 2.5° |
+| | PREC/L (NOAA CPC) | Rain gauges, land only | 2.5° |
 
-For each box of the record we average MERRA-2 over the same area and compute the trend of both with the
-same method. Then, for a trend the site calls significant:
+The first record of each variable (GISTEMP, GPCP) is the one the site used on its own at first; its numbers are unchanged and it
+alone supplies the bad years and the "size differs" note. For each box of each record we average MERRA-2 over the same
+area and compute the trend of both with the same method. A record is *available* in a box when it has at least 40 valid
+years there. Let n be the number of available records, k the number whose own trend is significant in the same direction as
+the site's trend, and c the number significant in the opposite direction. Then, for a trend the site calls significant or possible:
 
-- **Confirmed**: the record also shows a significant change in the same direction.
-- **Not confirmed**: the record shows no significant change. Grade is at best "Use with caution".
-- **Contradicted**: the record shows a significant change in the opposite direction. Grade is "Doubtful".
+- **Confirmed** (k more than half of n, and more than c): "Confirmed by k of n independent records". No cap on the grade.
+- **Partly confirmed** (k at least 1, but fewer than half of n): "Confirmed by k of n records only". Grade is at best "Use with caution".
+- **Not confirmed** (k = 0 and c = 0): no record shows a significant change. Grade is at best "Use with caution".
+- **Contradicted** (c more than k): "Doubtful".
+
+With a single available record this is the old rule, and the old sentences are used.
+
+The rainfall records disagree with each other (see the example below). So a rainfall trend that none of the four records
+confirms is the strong signal; one that some records confirm and others do not is less clear-cut.
 
 Where it is not used, and why: for temperature over the sea (GISTEMP measures the water there, not the air)
 and for rainfall poleward of 60° (GPCP is weak near the poles).
 
-Code: `pipeline/reference.py` writes `web/public/data/reference/T2M.json` and `PRECTOTCORR.json`;
+Code: `pipeline/reference.py` and `pipeline/reference_multi.py` write `web/public/data/reference/T2M.json` and
+`PRECTOTCORR.json` (the `records` list with each record's trend per box, and the `consensus` and `byCount` summaries);
 `web/src/reference.ts` reads them in the browser.
 
 ## 3. What we measured
@@ -63,13 +77,18 @@ All numbers below were computed by the pipeline and recomputed independently in 
 
 ### Independent check, over the area where MERRA-2 shows a significant trend
 
-| | Confirmed | Not confirmed | Contradicted |
-|---|---|---|---|
-| Air temperature (land) vs GISTEMP | 97.1% | 2.3% | 0.6% |
-| Rainfall (60°S–60°N) vs GPCP | 26.0% | 67.8% | 6.2% |
+| | Confirmed | Partly confirmed | Not confirmed | Contradicted |
+|---|---|---|---|---|
+| Air temperature (land), 2 records | 89.9% | 7.7% | 1.9% | 0.5% |
+| Rainfall (60°S–60°N), 4 records | 20.1% | 43.5% | 27.7% | 8.8% |
+| *First record alone: GISTEMP* | 97.1% | | 2.3% | 0.6% |
+| *First record alone: GPCP* | 26.0% | | 67.8% | 6.2% |
 
-In words: MERRA-2's temperature trends on land are trustworthy. **Two thirds of its significant rainfall
-trends are not confirmed by an independent record.**
+In words: MERRA-2's temperature trends on land are trustworthy. Judged by GPCP alone, two thirds of its significant rainfall
+trends were not confirmed; judged by up to four records, 20% are confirmed by more than half of them, 43% by some but not most, and **28% by none of the
+available records**. Where all four rainfall records exist (905 boxes, land and coast), MERRA-2's significant trends are confirmed
+by all four on 11.9% of the area, by at least two on 42.4%, and by none on 34.4% (area-weighted; `byCount` in the JSON). The records do not
+agree with each other, which is why one record alone gave a misleading answer.
 
 ### Examples
 
@@ -78,10 +97,11 @@ trends are not confirmed by an independent record.**
 | Istanbul | Air temperature | +0.54 °C | +0.55 °C | Confirmed |
 | Porto Velho | Air temperature | +0.52 °C | +0.23 °C | Confirmed, but MERRA-2 is twice as large |
 | Porto Velho | Rainfall | −0.58 mm/day | −0.36 mm/day | Confirmed |
-| Cebu | Rainfall | +0.90 mm/day | +0.09 mm/day, not significant | Not confirmed |
-| Manila | Rainfall | +0.88 mm/day | +0.05 mm/day, not significant | Not confirmed |
+| Cebu | Rainfall | +0.90 mm/day | GPCP +0.09 (not significant), CMAP +0.56, GPCC +0.44, PREC/L +0.48 (significant) | Confirmed by 3 of 4 |
+| Manila | Rainfall | +0.88 mm/day | GPCP +0.05 and GPCC +0.22 (not significant), CMAP +0.49, PREC/L +0.57 (significant) | Confirmed by 2 of 4 |
 
-"Cebu is getting wetter" was one of the site's example findings. It should not be used.
+"Cebu is getting wetter" was an example finding that GPCP alone did not confirm; three of the four records do. The rainfall
+records disagree with each other, so for a place like Cebu the honest statement is "confirmed by 3 of 4", not a plain yes or no.
 
 ### Pattern checks: share of each variable's significant area by grade
 
@@ -115,8 +135,9 @@ lie inside the area, each box weighted by the area (cos of latitude) of the area
 qualify for a point (land for temperature, below 60 degrees latitude for rainfall, 45 years of data) are used. The area is
 checked when those boxes carry at least half of its weight; otherwise the site says the record covers less than half of
 it (this happens for small islands, and for rainfall in Russia and polar seas), and for air temperature over a sea it
-says the record measures the water. Classes (confirmed, not confirmed, contradicted), the grade cap and the bad years
-work as for a point; the numbers are in `web/public/data/reference/areas_*.json`.
+says the record measures the water. Every record is averaged over the same area on its own boxes (a record counts for the
+area when its boxes carry at least half of the area's weight); classes (confirmed, partly, not confirmed, contradicted), the grade cap and
+the bad years work as for a point; the numbers are in `web/public/data/reference/areas_*.json`.
 
 ### Bad years and patching
 
@@ -135,16 +156,18 @@ against GPCP 7.08, when every other recent year agrees within about 15%.
 
 ### The "Confirmed only" map
 
-The Menu row **Show** redraws the temperature or rainfall map (1981–2025 only) with just the trends the independent record
-confirms. For each MERRA-2 cell that is significant on the map: it is *confirmed* if the reference box containing the cell centre is
-eligible, the record's own trend there has p < 0.05 and the same sign; *cannot check* if the box is not eligible; otherwise
-*not confirmed*. The picture is the normal trend picture with only confirmed cells coloured. Shares of the whole globe (cos-latitude
+The Menu row **Show** redraws the temperature or rainfall map (1981–2025 only) with just the trends the independent records
+confirm. For each MERRA-2 cell that is significant on the map: it is *confirmed* if the reference box containing the cell centre is
+eligible and the class there, for the cell's own sign, is "confirmed" (k of n as above); *partly* if it is partly confirmed (not
+drawn); *cannot check* if the box is not eligible; otherwise *not confirmed* (not confirmed or contradicted). The picture is the normal trend picture with only confirmed cells coloured. Shares of the whole globe (cos-latitude
 weighted; `reference/confirmed_<VAR>.json`):
 
-| | Significant | Confirmed | Not confirmed | Cannot check |
-|---|---|---|---|---|
-| Air temperature (GISTEMP) | 69.0% | 18.4% | 0.5% | 50.0% |
-| Rainfall (GPCP) | 21.2% | 5.1% | 13.0% | 3.1% |
+| | Significant | Confirmed | Partly | Not confirmed | Cannot check |
+|---|---|---|---|---|---|
+| Air temperature (2 records) | 69.0% | 18.4% | 0.1% | 0.4% | 50.0% |
+| Rainfall (4 records) | 21.2% | 10.2% | 2.0% | 5.9% | 3.1% |
+| *Before: GISTEMP alone* | 69.0% | 18.4% | | 0.5% | 50.0% |
+| *Before: GPCP alone* | 21.2% | 5.1% | | 13.0% | 3.1% |
 
 Temperature looks small here only because half of the significant area is sea, where the record is not air temperature; on land
 almost all of it is confirmed (97% in the box table above). Code: `pipeline/export_confirmed.py`.
@@ -172,7 +195,8 @@ cd pipeline
 .venv/bin/python reference.py report     # prints the report again from the cache
 ```
 
-`reference.py` needs the GISTEMP file (`gistemp1200_GHCNv4_ERSSTv5.nc`, from
+The other records (GHCN-CAMS, CMAP, GPCC, PREC/L) are read from the cache that `sources.py` fills (`reference_more.py fetch`);
+`reference.py rewrite` and `reference_areas.py` then add them offline. `reference.py` needs the GISTEMP file (`gistemp1200_GHCNv4_ERSSTv5.nc`, from
 https://data.giss.nasa.gov/pub/gistemp/); set `GISTEMP_NC` to its path. GPCP is read over the web from NOAA.
 
 On the site: click a place with Click set to Point. Under the verdict there is a grade badge, the reasons,
@@ -189,8 +213,8 @@ These are judgement calls, not statistics. Each can be changed in one place.
    the calibration.)
 3. **Whether a "Robust" grade should be reworded for the eight variables with no independent record**, for
    example "No warning signs" instead of "Robust", so nobody reads it as "confirmed".
-4. **Whether to drop "Cebu is getting wetter"** from the submission (recommended) and lead with temperature,
-   where the evidence is strong.
+4. **Which rainfall example to lead with.** Shanghai is confirmed by four of four records and is on the start strip.
+   Cebu is confirmed by three of four; it is usable, with the note that MERRA-2 shows about twice the size.
 5. **More independent records.** Sea ice (NSIDC) and snow cover would be the next most useful, because sea
    ice has the most jump flags.
 
