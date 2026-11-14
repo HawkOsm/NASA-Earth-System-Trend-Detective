@@ -117,6 +117,74 @@ mean of its valid members and has no data when less than half of its weight is v
   than in the climate.
 - Linear trends only. A trend is a description of the past 45 years, not a forecast.
 
+## Evaluation layer
+
+A trend can be statistically significant and still be a flaw in the data (a jump when a satellite instrument changed, one
+bad year). Next to every significant or possible trend the site therefore shows a grade, **Robust**, **Use with caution**
+or **Doubtful**, with the reason in plain words (click panel, country / sea view, Detective), a one-line caveat for each
+variable (what is measured and what is modelled) and, in the Menu, the share of each grade over the area where the map
+shows a trend. The checks have fixed definitions (`pipeline/quality.py`, mirrored in `web/src/quality.ts` and tied by
+`pipeline/tests/fixtures/quality_cases.json`); with fewer than 20 valid years in the selected period nothing is checked.
+
+- **Jump** (Pettitt change-point test, p < 0.05, plus: the slope inside the two parts is under half the overall slope, and a
+  two-level step fits better than the line, residuals ratio < 0.85; both parts need at least 5 years).
+- **One unusual year**: the largest residual of the Sen line (robust z > 3.5, via the median absolute deviation) is left out
+  and the verdict changes (significant / possible / none) or the direction flips.
+- **Reversal**: the first and the second half each have p < 0.10 and opposite directions.
+- **End sensitivity**: the direction flips when the first five or the last five years are dropped.
+- **Many tests** (Detective only): a line that is significant on its own but not after a Holm adjustment over the variables
+  with data at that place is at best "use with caution".
+
+Doubtful = one unusual year, or two or more flags; use with caution = exactly one of jump / reversal / end sensitivity;
+robust = none. The checks only catch patterns that are known signs of trouble; they cannot prove the data is right, and a
+robust trend can still be wrong.
+
+**Calibration** (`pipeline/calibrate_quality.py`, seed fixed, about 5 s; n = 45, 2000 series per row; shares are of the
+series whose verdict is significant; signal and the +8 / -8 outliers are in units of the innovation standard deviation):
+
+```
+n = 45, 2000 series per row, seed 20260101. Shares are percent of the SIGNIFICANT series (p < 0.05) of the row.
+scenario            phi signal  signif% n_sig |   STEP  ONE_YR  REVERS    END |  robust caution doubtful
+clean linear        0.0      2     95.8  1916 |    0.8     0.3     0.0    0.0 |    98.9     0.8      0.3
+clean linear        0.0      3    100.0  1999 |    0.7     0.0     0.0    0.0 |    99.3     0.7      0.0
+clean linear        0.0      5    100.0  2000 |    0.1     0.0     0.0    0.0 |   100.0     0.1      0.0
+clean linear        0.4      2     78.4  1568 |    5.9     0.1     1.1    0.0 |    93.1     6.6      0.3
+clean linear        0.4      3     96.8  1936 |    6.8     0.0     0.6    0.0 |    92.8     7.1      0.1
+clean linear        0.4      5    100.0  2000 |    2.3     0.0     0.2    0.0 |    97.7     2.1      0.2
+pure step           0.0      2     96.2  1925 |   38.0     0.1     3.0    0.0 |    61.2    36.5      2.3
+pure step           0.0      3     97.6  1952 |   80.7     0.0     2.9    0.0 |    19.3    77.8      2.9
+pure step           0.0      5     97.3  1946 |   98.3     0.0     2.7    0.0 |     1.7    95.6      2.7
+pure step           0.4      2     80.8  1616 |   34.0     0.1     4.6    0.0 |    64.1    33.1      2.8
+pure step           0.4      3     90.7  1814 |   68.6     0.1     5.2    0.0 |    30.7    64.8      4.5
+pure step           0.4      5     93.3  1867 |   93.4     0.0     5.8    0.0 |     6.4    87.9      5.6
+outlier +8, last5   0.0      -      6.0   120 |    0.0    48.3     0.0    0.0 |    51.7     0.0     48.3
+outlier +8, last5   0.4      -     13.8   275 |    0.7    32.7     0.7    0.0 |    66.2     1.1     32.7
+line 5 + outlier    0.0      5    100.0  2000 |    0.1     0.0     0.0    0.0 |    99.9     0.1      0.0
+line 5 + outlier    0.4      5    100.0  2000 |    1.6     0.0     0.1    0.0 |    98.4     1.5      0.1
+```
+
+A clean linear trend is graded robust 93-100% of the time (jump false-alarm 0.1-7%, higher with autocorrelated noise), a pure
+step is flagged as a jump 34-38% of the time at a size of 2 noise units, 69-81% at 3 and 93-98% at 5, and a single +8 outlier
+on a series with no trend produces a "significant" trend in 6-14% of the series, 33-48% of which are marked doubtful.
+
+**On the real data** (`pipeline/export_quality.py`; area-weighted shares of the area where the map shows a significant trend,
+1981-2025). Because a trend the map calls significant has already passed a strict false-discovery test, "one unusual year" and
+"end sensitivity" almost never apply there; the jump check is what flags real data.
+
+```
+variable     sig cells  robust% caution% doubtful% |  STEP% ONE_YR% REVERS%  END% | stepYear top 5 (cells flagged STEP; year:count)
+T2M             143018     94.2      5.2       0.5 |    5.0     0.1     1.1   0.0 | 2006:1375, 2005:1140, 1999:949, 2014:924, 2004:785   [meta mode 2006]
+PRECTOTCORR      41431     93.1      6.3       0.5 |    5.5     0.0     1.9   0.0 | 2004:278, 1998:201, 2007:201, 1999:151, 2005:132   [meta mode 2004]
+WS2M             30947     91.2      8.1       0.6 |    7.3     0.0     2.1   0.0 | 2007:439, 2005:425, 1998:309, 1996:259, 2009:139   [meta mode 2007]
+T2M_MAX          75673     98.0      1.9       0.1 |    1.8     0.0     0.3   0.0 | 2013:214, 1998:198, 1995:118, 1999:105, 2003:88   [meta mode 2013]
+GWETROOT          9996     84.2     14.5       1.3 |   14.7     0.0     2.3   0.0 | 1998:265, 1999:173, 2001:122, 2013:86, 1994:74   [meta mode 1998]
+EVLAND           12595     85.2     12.9       1.9 |   12.7     0.0     3.9   0.0 | 2005:266, 1998:141, 1999:137, 2004:114, 2007:101   [meta mode 2005]
+RH2M             67814     82.8     14.2       3.0 |   13.1     0.0     7.0   0.0 | 2005:1705, 2006:1532, 2008:760, 2007:735, 1999:632   [meta mode 2005]
+FRSNO             3827     95.7      4.3       0.0 |    4.0     0.0     0.3   0.0 | 2011:27, 2003:18, 2009:16, 2005:13, 2002:9   [meta mode 2011]
+FRSEAICE         16708     69.1     30.5       0.5 |   30.6     0.0     0.8   0.0 | 2005:3445, 2006:463, 2004:279, 2007:273, 2003:134   [meta mode 2005]
+TO3              20763     98.8      1.2       0.0 |    1.0     0.0     0.2   0.0 | 1989:222, 1992:32   [meta mode None]
+```
+
 ## Repository layout
 
 ```

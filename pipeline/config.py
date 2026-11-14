@@ -15,6 +15,7 @@ VARIABLES = {
         "definition": "Average air temperature 2 metres above the ground over the year.",
         "colormap": "RdBu_r",
         "group": "Temperature",
+        "caveat": "Air temperature is tied to many weather observations and is among the most reliable variables here.",
     },
     "PRECTOTCORR": {
         "label": "Precipitation",
@@ -23,6 +24,7 @@ VARIABLES = {
         "definition": "Average amount of rain and snow (as water) falling per day over the year.",
         "colormap": "BrBG",
         "group": "Water",
+        "caveat": "Precipitation is corrected with rain gauges and satellites over land; over oceans and near the poles it is mostly model-generated, and satellite changes can show up as jumps.",
     },
     "WS2M": {
         "label": "Wind speed",
@@ -31,6 +33,7 @@ VARIABLES = {
         "definition": "Average wind speed 2 metres above the ground over the year.",
         "colormap": "PuOr_r",
         "group": "Air",
+        "caveat": "Wind near the surface is computed by the model from winds higher up; ocean trends are sensitive to changes in satellite wind measurements.",
     },
     "T2M_MAX": {
         "label": "Hottest temperature of the year",
@@ -39,6 +42,7 @@ VARIABLES = {
         "definition": "The highest air temperature (2 metres above the ground, measured every hour) reached at any moment of the year.",
         "colormap": "RdBu_r",
         "group": "Temperature",
+        "caveat": "This is the single hottest hour of each year: one extreme value a year, so it is noisier than the yearly average.",
     },
     "GWETROOT": {
         "label": "Soil moisture",
@@ -48,6 +52,7 @@ VARIABLES = {
         "definition": "How wet the soil is in the root zone (the top metre), from 0% (bone dry) to 100% (soaked), averaged over the year; land only.",
         "colormap": "BrBG",
         "group": "Water",
+        "caveat": "Soil moisture is not measured directly: the model computes it from rain, evaporation and soil properties.",
         "display_scale": 100,
         "surface": "land",
     },
@@ -58,6 +63,7 @@ VARIABLES = {
         "definition": "How much water evaporates from soil, plants and puddles into the air each day, averaged over the year; land only.",
         "colormap": "PRGn",
         "group": "Water",
+        "caveat": "Evaporation is computed by the model, not measured.",
         "surface": "land",
     },
     "RH2M": {
@@ -68,6 +74,7 @@ VARIABLES = {
         "definition": "How much water vapour the air 2 metres above the ground holds compared with the most it could hold, averaged over the year.",
         "colormap": "PiYG",
         "group": "Water",
+        "caveat": "Humidity is tied to weather observations where stations exist and to the model elsewhere.",
     },
     "FRSNO": {
         "label": "Snow cover",
@@ -77,6 +84,7 @@ VARIABLES = {
         "definition": "The share of the land surface covered by snow, averaged over the year; places that never have snow show no data.",
         "colormap": "RdBu",
         "group": "Ice & snow",
+        "caveat": "Snow cover is computed by the model from snowfall and melting, not taken from satellite snow maps.",
         "display_scale": 100,
         "zero_means_absent": True,
         "surface": "land",
@@ -89,6 +97,7 @@ VARIABLES = {
         "definition": "The share of the sea surface covered by ice, averaged over the year; places that never have sea ice show no data.",
         "colormap": "RdBu",
         "group": "Ice & snow",
+        "caveat": "Sea ice comes from satellite observations, not from the model, so it is one of the better-measured variables here.",
         "display_scale": 100,
         "zero_means_absent": True,
         "surface": "sea",
@@ -101,6 +110,7 @@ VARIABLES = {
         "definition": "How much ozone there is in the whole column of air above you (the layer that blocks harmful sunlight), averaged over the year.",
         "colormap": "PuOr",
         "group": "Air",
+        "caveat": "Ozone combines satellite measurements with the model; the satellite instruments changed in late 2004, which can appear as a jump.",
         "int16_offset": 300,
     },
 }

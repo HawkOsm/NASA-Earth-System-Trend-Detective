@@ -234,6 +234,7 @@ def main():
         "zero_means_absent": bool(meta_cfg.get("zero_means_absent", False)),
         "surface": meta_cfg.get("surface", "any"),
         "definition": meta_cfg["definition"],
+        "caveat": meta_cfg["caveat"],
         "years": [config.YEARS[0], config.YEARS[-1]],
         "vmax": vmax,
         "colormap_stops": stops_hex,

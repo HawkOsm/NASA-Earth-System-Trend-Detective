@@ -158,4 +158,8 @@ def test_fixture_matches_shipped_file(data):
         fx = json.load(f)
     assert [r["name"] for r in fx["regions"]] == ["Europe", "Africa"]
     for r in fx["regions"]:
-        assert r == next(x for x in data["regions"] if x["name"] == r["name"])
+        shipped = next(x for x in data["regions"] if x["name"] == r["name"])
+        # the shipped file also carries the evaluation layer's "quality" per variable (export_quality.py); the rest is the fixture
+        stripped = {**shipped, "variables": {v: (None if e is None else {k: x for k, x in e.items() if k != "quality"})
+                                              for v, e in shipped["variables"].items()}}
+        assert r == stripped
