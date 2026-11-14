@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ALPHA_CELL,
   cellAlpha,
@@ -44,18 +44,32 @@ interface Props {
   tiny: boolean;
   onSelectCell: (lat: number, lng: number) => void;
   onSelectCity: (city: CityTrend) => void;
+  /** Tallest the canvas may be, in CSS pixels (its width follows the container). */
+  maxHeight?: number;
+  /** Shown between the hover readout and the scale line (the colour legend). */
+  children?: ReactNode;
 }
 
 type Hover = { kind: 'cell' | 'city'; index: number } | null;
 
-const MAX_HEIGHT = 420;
+const DEFAULT_MAX_HEIGHT = 420;
+
+/** The "inside the country" sentence: how many cells are significant and the range of cell trends. */
+export function insideText(summary: ReturnType<typeof summarize>, units: string): string {
+  const head =
+    summary.nWithData === 0
+      ? 'No cell here has enough data in this period.'
+      : `${summary.nSignificant} of ${summary.nCells} cells show a significant trend on their own (p < ${ALPHA_CELL}). Cell trends range from ${signedRate(summary.min as number)} to ${signedRate(summary.max as number)} ${units} per decade.`;
+  const tail = summary.nWithData > 0 && summary.nWithData < summary.nCells ? ` (${summary.nCells - summary.nWithData} without enough data.)` : '';
+  return head + tail;
+}
 
 function rate(slope: number | null, p: number | null, units: string): string {
   if (slope === null || p === null) return 'not enough data in this period';
   return `${signedRate(slope)} ${units} per decade (p ${p < 0.001 ? '< 0.001' : `= ${fmtPValue(p)}`})`;
 }
 
-export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity }: Props) {
+export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity, maxHeight = DEFAULT_MAX_HEIGHT, children }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
@@ -74,8 +88,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
 
   const stops = useMemo(() => parseStops(meta.colormap_stops), [meta]);
   const units = displayUnits(meta.units);
-  const summary = useMemo(() => summarize(cells), [cells]);
-  const pr = useMemo(() => (width > 0 && polys.length ? fitCountryProjection(polys, width, MAX_HEIGHT) : null), [polys, width]);
+  const pr = useMemo(() => (width > 0 && polys.length ? fitCountryProjection(polys, width, maxHeight) : null), [polys, width, maxHeight]);
   const fcells = useMemo(() => cells.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cells, wrapRef]);
   const fcities = useMemo(() => cities.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cities, wrapRef]);
 
@@ -285,19 +298,11 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
           onClick={onClick}
         />
       </div>
-      {pr && <p className="country-size">About {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.</p>}
       <p className="detail-readout" aria-live="polite">
         {readout}
       </p>
-      <p className="detail-summary">
-        {summary.nWithData === 0
-          ? 'No cell here has enough data in this period.'
-          : `${summary.nSignificant} of ${summary.nCells} cells show a significant trend on their own (p < ${ALPHA_CELL}). Cell trends range from ${signedRate(summary.min as number)} to ${signedRate(summary.max as number)} ${units} per decade.`}
-        {summary.nWithData > 0 && summary.nWithData < summary.nCells
-          ? ` (${summary.nCells - summary.nWithData} without enough data.)`
-          : ''}
-      </p>
-      <p className="detail-note">Faded cells are not significant on their own.</p>
+      {children}
+      {pr && <p className="country-size">About {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.</p>}
     </div>
   );
 }

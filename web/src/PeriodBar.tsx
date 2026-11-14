@@ -12,6 +12,8 @@ interface Props {
   /** 0..1 while the map is being recomputed, else null. */
   recomputing: number | null;
   failed?: boolean;
+  /** Sits in the normal flow (inside the country overlay) instead of floating over the globe. */
+  inline?: boolean;
 }
 
 function Slider({
@@ -60,10 +62,10 @@ function Slider({
   );
 }
 
-export default function PeriodBar({ period, full, onChange, onCommit, onReset, recomputing, failed }: Props) {
+export default function PeriodBar({ period, full, onChange, onCommit, onReset, recomputing, failed, inline }: Props) {
   const isFull = isFullPeriod(period, full);
   return (
-    <div className="period-bar" role="group" aria-label="Period">
+    <div className={`period-bar${inline ? ' period-bar-inline' : ''}`} role="group" aria-label="Period">
       <div className="period-head">
         <span className="period-title">Period</span>
         <span className="period-status" aria-live="polite">

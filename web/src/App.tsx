@@ -9,6 +9,7 @@ import HowToRead from './HowToRead';
 import { DEMOS, VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
+import CountryOverlay from './CountryOverlay';
 import CountryPanel, { type CountryData, type CountryPanelState } from './CountryPanel';
 import { useCountryTrends } from './useCountryTrends';
 import {
@@ -65,6 +66,7 @@ declare global {
       years: number[];
       period: [number, number];
     };
+    __countryOverlay?: { open: boolean };
     __setArea?: (sizeDeg: number | 'country') => void;
     __pickCountry?: (nameOrIdx: string | number) => void;
     __country?: {
@@ -659,6 +661,20 @@ export default function App() {
   }, [spotKey]);
   const inCountry = panel && spotCountry && spotCountry.key === spotKey ? spotCountry.rec : null;
 
+  // A picked country opens the full-screen overlay; only the water-click message stays in the side panel.
+  const overlayState = countryPanel && countryPanel.status !== 'water' && meta ? countryPanel : null;
+  const overlayOpen = overlayState !== null;
+  const waterPanel = countryPanel?.status === 'water';
+  useEffect(() => {
+    window.__countryOverlay = { open: overlayOpen };
+  }, [overlayOpen]);
+  useEffect(
+    () => () => {
+      delete window.__countryOverlay;
+    },
+    [],
+  );
+
   const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
 
   const textureUrl =
@@ -674,7 +690,7 @@ export default function App() {
           How to read this
         </button>
       </header>
-      <main className={`globe-wrap${panel || countryPanel ? ' has-panel' : ''}`}>
+      <main className={`globe-wrap${panel || waterPanel ? ' has-panel' : ''}${overlayOpen ? ' country-open' : ''}`}>
         <div className="globe-area">
           <GlobeArea
             forceFlat={forceFlat}
@@ -701,7 +717,7 @@ export default function App() {
               shown={range.shown}
             />
           )}
-          {meta && (
+          {meta && !overlayOpen && (
             <PeriodBar
               period={period}
               full={fullYears}
@@ -713,16 +729,30 @@ export default function App() {
             />
           )}
         </div>
-        {countryPanel && meta && (
+        {waterPanel && meta && (
           <CountryPanel
-            state={countryPanel}
-            meta={meta}
             label={meta.label}
-            period={period}
-            fullPeriod={isFull}
             sizeDeg={sizeDeg}
             onAreaChange={selectArea}
             onCountryArea={selectCountryArea}
+            onClose={closePanel}
+          />
+        )}
+        {overlayState && meta && (
+          <CountryOverlay
+            state={overlayState}
+            meta={meta}
+            metas={metas}
+            variable={variable}
+            onVariable={(v) => selectVariable(v, true)}
+            period={period}
+            fullYears={fullYears}
+            fullPeriod={isFull}
+            onPeriodChange={changePeriod}
+            onPeriodCommit={() => commitPeriod()}
+            onPeriodReset={resetPeriod}
+            recomputing={recomputing}
+            mapFailed={range.status === 'error'}
             onClose={closePanel}
             onRetry={() => selectedRec && selectCountry(selectedRec, countryPosRef.current ?? { lat: selectedRec.centre[0], lng: selectedRec.centre[1] })}
             trends={countryTrends}

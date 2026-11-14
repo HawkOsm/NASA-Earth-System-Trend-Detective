@@ -158,18 +158,8 @@ export default function Panel({
   );
 }
 
-export function Result({
-  a,
-  area,
-  period,
-  country = false,
-}: {
-  a: Analysis;
-  area: boolean;
-  period: Period;
-  /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
-  country?: boolean;
-}) {
+/** Period line, chart and its legend text. */
+export function ResultChart({ a, period, country = false }: { a: Analysis; period: Period; country?: boolean }) {
   return (
     <>
       <p className="period-line">Trend for {periodText(period)}</p>
@@ -183,6 +173,14 @@ export function Result({
         <span className="swatch swatch-annual" /> Bold line with dots: each year&apos;s average.{' '}
         <span className="swatch swatch-trend" /> Dashed line: the trend{a.chart.shade ? ' over the selected period (shaded)' : ''}.
       </p>
+    </>
+  );
+}
+
+/** The rate, p-value and 95% range tiles, and the verdict. */
+export function ResultSummary({ a, area, country = false }: { a: Analysis; area: boolean; country?: boolean }) {
+  return (
+    <>
       <div className="tiles">
         <div className="tile">
           <div className="tile-label">Rate</div>
@@ -204,6 +202,26 @@ export function Result({
       </div>
       {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
+    </>
+  );
+}
+
+export function Result({
+  a,
+  area,
+  period,
+  country = false,
+}: {
+  a: Analysis;
+  area: boolean;
+  period: Period;
+  /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
+  country?: boolean;
+}) {
+  return (
+    <>
+      <ResultChart a={a} period={period} country={country} />
+      <ResultSummary a={a} area={area} country={country} />
     </>
   );
 }

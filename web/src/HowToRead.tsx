@@ -46,8 +46,8 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         </p>
         <h3>Choosing the period</h3>
         <p>
-          You can choose the period with the two sliders at the bottom of the map; the map and the side panel then
-          use only those years. Shorter periods have fewer years, so trends are noisier and harder to prove
+          You can choose the period with the two sliders at the bottom of the map; the map, the side panel and the country view
+          then use only those years. Shorter periods have fewer years, so trends are noisier and harder to prove
           significant.
         </p>
         <h3>&ldquo;Statistically significant&rdquo;</h3>
