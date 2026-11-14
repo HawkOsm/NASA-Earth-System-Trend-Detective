@@ -1,7 +1,7 @@
 # Text for the project form
 
 Field names and what each asks for are taken from the official Project Submission Guide
-(https://www.spaceappschallenge.org/resources/project-submission-guide/, read on 15 November 2026).
+(https://www.spaceappschallenge.org/resources/project-submission-guide/, read on 14 November 2026).
 Everything must be in English. Paste, then read once: the numbers below are the ones the site shows.
 
 ---
@@ -38,7 +38,8 @@ https://hawkosm.github.io/NASA-Earth-System-Trend-Detective/deck/Trend-Detective
 
 https://hawkosm.github.io/NASA-Earth-System-Trend-Detective/
 
-(Add the repository link here once the repository is public.)
+Code: https://github.com/HawkOsm/NASA-Earth-System-Trend-Detective (public from 15 November; if it is still
+private when you paste this, leave this line out).
 
 ## Detailed Project Description
 
@@ -111,8 +112,15 @@ work, wrote specifications, wrote and reviewed code and documentation, and verif
 written by AI coding agents working from those specifications (Claude models, and the Google Antigravity CLI
 early on). This is stated in the README's "Use of AI" section.
 
-**[Add one sentence in your own words: what you decided yourself, for example the idea, the choice of data and
-variables, and the decision to add the evaluation layer.]**
+The direction was the team's. Osman Sahin Guler (HawkTeam) chose the challenge and wrote the brief: the data
+source, the first variables, the statistical method and the requirement that Python and the browser agree. He
+then steered the design step by step: wind streaks, a familiar green-and-blue base map, lifting a country out
+of the map like a puzzle piece, seas and oceans, more variables, the menu and the Detective. He also raised the
+question that led to the evaluation layer, namely that the tool was accepting every value from one dataset with
+no measure of what good data is. The AI tools carried out and checked the work under that direction.
+
+*(Drafted from the project's working record. Read it once and change anything that does not match how you see
+your own role: this answer is yours.)*
 
 Results were checked independently of the generated code wherever possible: the statistics against SciPy,
 pymannkendall and a separately written reference; the browser code against the pipeline's test cases; the

@@ -1,6 +1,6 @@
 # Submission checklist
 
-Owner: HawkOsm. Last updated 15 November 2026.
+Owner: HawkOsm. Last updated 14 November 2026.
 
 - Live site: https://hawkosm.github.io/NASA-Earth-System-Trend-Detective/
 - Demo deck (7 slides, public, no sign-in): https://hawkosm.github.io/NASA-Earth-System-Trend-Detective/deck/Trend-Detective-deck.pdf
@@ -12,7 +12,7 @@ Owner: HawkOsm. Last updated 15 November 2026.
 ## Deadline
 
 From the official Project Submission Guide
-(https://www.spaceappschallenge.org/resources/project-submission-guide/, read on 15 November 2026):
+(https://www.spaceappschallenge.org/resources/project-submission-guide/, read on 14 November 2026):
 **"Submit for Judging" must be clicked before Sunday 15 November, 11:59 p.m., in the local time of the team's
 Local Event** (Universal Event: the local time of the Team Owner's area of residence). Anything saved or
 submitted later is not judged. You can edit and resubmit as often as you like before then; only the last saved
@@ -24,10 +24,10 @@ version is reviewed.
 |---|---|
 | Project Name | Ready |
 | High-Level Project Summary | Ready |
-| Link to Project Demo (at most 7 slides, or a video of 30 seconds or less; public link) | Ready, but see the team names below |
+| Link to Project Demo (at most 7 slides, or a video of 30 seconds or less; public link) | Ready |
 | Link to Final Project (public link) | The site is public. The repository is private |
 | Detailed Project Description | Ready |
-| Use of Super Intelligence (the guide's name for AI tools) | Ready except one sentence only the team can write |
+| Use of Super Intelligence (the guide's name for AI tools) | Drafted; read it once |
 | NASA Data (at least one NASA data set is needed for a Global Award) | Ready: NASA POWER, MERRA-2, GISTEMP |
 | Space Agency Partner Data and Other References | Ready |
 
@@ -47,12 +47,13 @@ Rules from the guide that affect us:
 
 ## Needs a person
 
-- [ ] **Team name and member names for slide 1.** They are marked in orange on the deck. Edit the two lines in
-      `docs/deck/deck.html` and rebuild the PDF (the command is at the top of that file), or say what they are.
-- [ ] **Decide whether to make the repository public.** The site is public either way; judges cannot see the code
-      while the repository is private.
-- [ ] Write the one sentence in the "Use of Super Intelligence" answer about what the team decided itself.
-- [ ] Open the site and the deck link in a private browser window, to confirm both load without signing in.
+- [ ] **Make the repository public** (planned for Sunday 15 November, before submitting). The site is public
+      either way; judges cannot see the code while the repository is private. Note that the old pull request #2
+      becomes publicly visible with it.
+- [ ] Read the "Use of Super Intelligence" answer in `SUBMISSION_FORM.md` once. The part about your own role was
+      drafted from the working record; change anything that does not match.
+- [ ] Open the site and the deck link in a private browser window. (Both were fetched without signing in on
+      14 November and loaded; this is a last human check.)
 - [ ] Try the site on a real phone and on a computer with an ordinary graphics card. All testing so far used
       software rendering in an automated browser, at desktop and phone-sized windows.
 - [ ] Fill in the form, tick "Terms and Conditions" and "Confirm All Work is Original", click
@@ -63,7 +64,8 @@ Rules from the guide that affect us:
 
 - [x] Official guide read; fields and rules listed above.
 - [x] Form text written (`SUBMISSION_FORM.md`).
-- [x] Deck built from `docs/deck/deck.html` (7 slides) and hosted on the site as a PDF.
+- [x] Deck built from `docs/deck/deck.html` (7 slides) and hosted on the site as a PDF. Slide 1 states the team
+      (HawkTeam), the member (Osman Sahin Guler) and the challenge, as the guide requires.
 - [x] Start strip on the site with three findings that open with one click (`web/src/StartCard.tsx`,
       `web/src/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
       record: Istanbul air temperature +0.54 °C per decade (NASA GISTEMP +0.55); Shanghai rainfall +0.36 mm/day

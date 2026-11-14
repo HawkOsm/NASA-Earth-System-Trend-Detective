@@ -4,7 +4,7 @@ import type { VariableName } from './demos';
  * Where a first-time visitor can begin: three places whose trend is not only significant but also CONFIRMED by an
  * independent observation record (see reference.ts and docs/EVALUATION.md).
  *
- * How they were chosen (15 November 2026): every city in cities.json was screened against the pipeline products for a
+ * How they were chosen (14 November 2026): every city in cities.json was screened against the pipeline products for a
  * trend that is significant in MERRA-2, graded "Robust" by the pattern checks, has no flagged bad year, and whose
  * surrounding box in the independent record shows a significant change in the same direction. From that list one
  * well-known place was taken per story (warming, wetter, drier). The numbers below were then read from the site's own
