@@ -4,7 +4,9 @@ import { prefersReducedMotion } from './wind/WindLayer';
 import type { LatLng, PointOfView } from './Globe';
 import Menu from './Menu';
 import HowToRead from './HowToRead';
-import Detective, { type LiftTarget } from './Detective';
+import FirstRun, { firstRunClosed, rememberFirstRunClosed } from './FirstRun';
+import type { Finding } from './findings';
+import Detective, { type LiftTarget } from './Detective.tsx';
 import { VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
@@ -163,6 +165,7 @@ export default function App() {
   const [sizeDeg, setSizeDegState] = useState<number>(0);
   const [panel, setPanel] = useState<PanelState | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [firstRun, setFirstRun] = useState(() => !firstRunClosed());
   const [mapLines, setMapLines] = useState(true);
   const [period, setPeriodState] = useState<Period>(FULL_PERIOD);
   const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
@@ -632,6 +635,13 @@ export default function App() {
     handlePick({ lat, lng }, true);
   };
 
+  /** A finding of the first-run card: its variable, the whole period, and the point panel for the cell of the place. */
+  const openFinding = (f: Finding) => {
+    selectVariable(f.variable, false);
+    resetPeriod();
+    selectDetailCell(f.lat, f.lng);
+  };
+
   const closePanel = () => {
     abortRef.current?.abort();
     detailAbortRef.current?.abort();
@@ -900,6 +910,16 @@ export default function App() {
               </button>
             }
           />
+          {firstRun && !panel && !waterPanel && !overlayOpen && (
+            <FirstRun
+              ready={!!meta}
+              onFinding={openFinding}
+              onClose={() => {
+                rememberFirstRunClosed();
+                setFirstRun(false);
+              }}
+            />
+          )}
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}
