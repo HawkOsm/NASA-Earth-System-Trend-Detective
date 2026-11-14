@@ -28,7 +28,7 @@ import { fmtPValue } from './stats/trend';
 
 let landPromise: Promise<LandPolygon[]> | null = null;
 /** Natural Earth 50 m land, loaded on first use as its own chunk. */
-function loadLand(): Promise<LandPolygon[]> {
+export function loadLand(): Promise<LandPolygon[]> {
   if (!landPromise) {
     landPromise = import('world-atlas/land-50m.json')
       .then((mod) => {

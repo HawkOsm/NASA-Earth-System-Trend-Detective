@@ -26,6 +26,20 @@ import {
   pickCountry,
   type CountryRec,
 } from './country';
+import {
+  citiesInFrame,
+  findSea,
+  frameRect,
+  loadSeaCells,
+  loadSeaMask,
+  loadSeaOutlines,
+  loadSeaSeries,
+  loadSeas,
+  pickSea,
+  seaAsRec,
+  seaFrame,
+  seaWrapRef,
+} from './sea';
 import { splitLines, type LngLat } from './coastlines';
 import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
@@ -61,7 +75,8 @@ declare global {
             nCells: number;
             cells: [number, number][];
           }
-        | { sizeDeg: 'country'; country: { idx: number; name: string; nCells: number; tiny: boolean } };
+        | { sizeDeg: 'country'; country: { idx: number; name: string; nCells: number; tiny: boolean } }
+        | { sizeDeg: 'sea'; sea: { idx: number; name: string; nCells: number } };
       annual: number[];
       years: number[];
       period: [number, number];
@@ -74,6 +89,18 @@ declare global {
     };
     __setArea?: (sizeDeg: number | 'country') => void;
     __pickCountry?: (nameOrIdx: string | number) => void;
+    __pickSea?: (nameOrIdx: string | number) => void;
+    __sea?: {
+      status: 'idle' | 'loading' | 'ready' | 'error';
+      idx: number | null;
+      name: string | null;
+      nCells: number;
+      dlat: number;
+      dlng: number;
+      period: [number, number];
+      nSignificant: number;
+      cells: { lat: number; lng: number; slopeDecade: number | null; p: number | null }[];
+    };
     __country?: {
       status: 'idle' | 'loading' | 'computing' | 'ready' | 'error';
       idx: number | null;
@@ -145,6 +172,7 @@ export default function App() {
   const [countryPanel, setCountryPanelState] = useState<CountryPanelState | null>(null);
   const [outlines, setOutlines] = useState<number[][][][][] | null>(null);
   const [outlineError, setOutlineError] = useState(false);
+  const [seaOutlines, setSeaOutlines] = useState<Record<string, number[][][][]> | null>(null);
   const [spotCountry, setSpotCountry] = useState<{ key: string; rec: CountryRec | null } | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -305,7 +333,9 @@ export default function App() {
       p: a.p,
       verdict: a.verdict,
       nYears: a.nYears,
-      area: { sizeDeg: 'country', country: { idx: rec.idx, name: rec.name, nCells: rec.nCells, tiny: rec.tiny } },
+      area: rec.sea
+        ? { sizeDeg: 'sea', sea: { idx: rec.idx, name: rec.name, nCells: rec.nCells } }
+        : { sizeDeg: 'country', country: { idx: rec.idx, name: rec.name, nCells: rec.nCells, tiny: rec.tiny } },
       annual: a.annual,
       years: a.years,
       period: [per[0], per[1]],
@@ -331,19 +361,24 @@ export default function App() {
     if (alt !== undefined) flyTo({ lat: rec.centre[0], lng: rec.centre[1] }, alt);
     const nYears = m.years[1] - m.years[0] + 1;
     const years = Array.from({ length: nYears }, (_, k) => m.years[0] + k);
-    Promise.all([loadMask(), loadCities(), loadCountrySeries(v, rec.idx, nYears), loadCitySeries(v, nYears)])
-      .then(([mask, allCities, values, cityAll]) => {
+    // A sea reads its own files and takes the cities that lie in its frame; a country is unchanged.
+    const piece: Promise<Pick<CountryData, 'cells' | 'values' | 'cities' | 'cityValues'>> = rec.sea
+      ? Promise.all([loadSeaCells(rec.idx), loadSeaSeries(v, rec.idx, nYears), loadCities(), loadCitySeries(v, nYears)]).then(
+          ([cells, values, allCities, cityAll]) => {
+            const cities = citiesInFrame(allCities, seaFrame(rec), seaWrapRef(rec));
+            return { cells, values, cities, cityValues: cities.map((c) => cityAll[c.id]) };
+          },
+        )
+      : Promise.all([loadMask(), loadCities(), loadCountrySeries(v, rec.idx, nYears), loadCitySeries(v, nYears)]).then(
+          ([mask, allCities, values, cityAll]) => {
+            const cities = allCities.filter((c) => c.country === rec.idx);
+            return { cells: countryCells(mask, rec), values, cities, cityValues: cities.map((c) => cityAll[c.id]) };
+          },
+        );
+    piece
+      .then((pc) => {
         if (token !== countryTokenRef.current) return;
-        const cities = allCities.filter((c) => c.country === rec.idx);
-        const data: CountryData = {
-          rec,
-          variable: v,
-          years,
-          cells: countryCells(mask, rec),
-          values,
-          cities,
-          cityValues: cities.map((c) => cityAll[c.id]),
-        };
+        const data: CountryData = { rec, variable: v, years, ...pc };
         countryDataRef.current = data;
         showCountry(data, periodRef.current);
       })
@@ -363,15 +398,26 @@ export default function App() {
         if (token !== countryTokenRef.current) return;
         const idx = pickCountry(mask, recs, pos.lat, pos.lng);
         if (idx === undefined) {
-          abortRef.current?.abort();
-          detailAbortRef.current?.abort();
-          fetchedRef.current = null;
-          countryDataRef.current = null;
-          setDetail({ status: 'idle' });
-          // Open water: there is no country to lift, so show the ordinary point (or box) result for the spot.
-          setCountryMode(false);
-          flyTo(pos, pickAltitude(window.__view?.().altitude, sizeRef.current));
-          load(pos, variableRef.current, sizeRef.current);
+          const plainPoint = () => {
+            abortRef.current?.abort();
+            detailAbortRef.current?.abort();
+            fetchedRef.current = null;
+            countryDataRef.current = null;
+            setDetail({ status: 'idle' });
+            // Open water in no sea: show the ordinary point (or box) result for the spot.
+            setCountryMode(false);
+            flyTo(pos, pickAltitude(window.__view?.().altitude, sizeRef.current));
+            load(pos, variableRef.current, sizeRef.current);
+          };
+          // Open water: lift the sea or ocean there if there is one (sea_mask.bin), else the point panel.
+          Promise.all([loadSeaMask(), loadSeas()])
+            .then(([smask, seas]) => {
+              if (token !== countryTokenRef.current) return;
+              const sea = pickSea(smask, seas, pos.lat, pos.lng);
+              if (sea) selectCountry(seaAsRec(sea), pos);
+              else plainPoint();
+            })
+            .catch(() => token === countryTokenRef.current && plainPoint());
           return;
         }
         selectCountry(recs[idx], pos);
@@ -400,6 +446,21 @@ export default function App() {
           return;
         }
         selectCountry(rec, { lat: rec.centre[0], lng: rec.centre[1] });
+      })
+      .catch((err) => console.error(err));
+  };
+
+  /** window.__pickSea: the same selection as a click on that sea or ocean. */
+  const pickSeaByName = (nameOrIdx: string | number) => {
+    setCountryMode(true);
+    loadSeas()
+      .then((recs) => {
+        const rec = findSea(recs, nameOrIdx);
+        if (!rec) {
+          console.warn(`No sea matches ${String(nameOrIdx)}`);
+          return;
+        }
+        selectCountry(seaAsRec(rec), { lat: rec.centre[0], lng: rec.centre[1] });
       })
       .catch((err) => console.error(err));
   };
@@ -518,19 +579,21 @@ export default function App() {
   };
 
   // Always-current handlers so the window hooks run exactly the UI code paths.
-  const handlersRef = useRef({ handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName });
-  handlersRef.current = { handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName };
+  const handlersRef = useRef({ handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName, pickSeaByName });
+  handlersRef.current = { handlePick, selectVariable, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName, pickSeaByName };
   useEffect(() => {
     window.__pickAt = (lat, lng) => handlersRef.current.handlePick({ lat, lng });
     window.__setVariable = (name) => handlersRef.current.selectVariable(name, true);
     window.__setArea = (n) => (n === 'country' ? handlersRef.current.selectCountryArea() : handlersRef.current.chooseArea(n));
     window.__pickCountry = (x) => handlersRef.current.pickCountryByName(x);
+    window.__pickSea = (x) => handlersRef.current.pickSeaByName(x);
     window.__setPeriod = (s, e) => handlersRef.current.setPeriod(s, e);
     return () => {
       delete window.__pickAt;
       delete window.__setVariable;
       delete window.__setArea;
       delete window.__pickCountry;
+      delete window.__pickSea;
       delete window.__setPeriod;
     };
   }, []);
@@ -588,13 +651,17 @@ export default function App() {
   const selectedRec: CountryRec | null =
     countryPanel && countryPanel.status !== 'water' ? (countryPanel.status === 'ready' ? countryPanel.data.rec : countryPanel.rec) : null;
 
-  const provinceFile = useProvinces(selectedRec ? selectedRec.idx : null);
+  const seaRec = selectedRec?.sea ? selectedRec : null;
+  /** The selected country (a sea is handled separately: its idx is a sea index). */
+  const countryRec = selectedRec && !selectedRec.sea ? selectedRec : null;
+
+  const provinceFile = useProvinces(countryRec ? countryRec.idx : null);
   const provinceList = useProvinceTrends(provinceFile.list, countryData, period);
   useEffect(() => {
     const status = provinceFile.status === 'ready' && !provinceList ? 'loading' : provinceFile.status;
     window.__provinces = {
       status,
-      countryIdx: selectedRec ? selectedRec.idx : null,
+      countryIdx: countryRec ? countryRec.idx : null,
       list: provinceList
         ? provinceList.map((pv) => ({
             name: pv.name,
@@ -605,7 +672,7 @@ export default function App() {
           }))
         : [],
     };
-  }, [provinceFile.status, provinceList, selectedRec, countryData]);
+  }, [provinceFile.status, provinceList, countryRec, countryData]);
   useEffect(
     () => () => {
       delete window.__provinces;
@@ -615,7 +682,7 @@ export default function App() {
 
   // Outlines (a separate lazy chunk) once a country is shown.
   useEffect(() => {
-    if (!selectedRec || outlines) return;
+    if (!countryRec || outlines) return;
     let alive = true;
     loadOutlines()
       .then((o) => alive && setOutlines(o))
@@ -626,17 +693,35 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [selectedRec, outlines]);
+  }, [countryRec, outlines]);
 
-  const rawOutline = selectedRec && outlines ? outlines[selectedRec.idx] ?? null : null;
+  // A sea: its simplified polygons (static file) outline it on the globe; the piece itself is drawn in a frame.
+  useEffect(() => {
+    if (!seaRec || seaOutlines) return;
+    let alive = true;
+    loadSeaOutlines()
+      .then((o) => alive && setSeaOutlines(o))
+      .catch((err) => console.error('Sea outlines unavailable', err));
+    return () => {
+      alive = false;
+    };
+  }, [seaRec, seaOutlines]);
+
+  const rawOutline = countryRec && outlines ? outlines[countryRec.idx] ?? null : null;
+  const seaRaw = seaRec && seaOutlines ? seaOutlines[String(seaRec.idx)] ?? null : null;
   const countryPolys = useMemo(
-    () => (selectedRec && rawOutline ? countryPolygons(rawOutline, !!selectedRec.wraps, selectedRec.centre[1]) : null),
-    [selectedRec, rawOutline],
+    () =>
+      countryRec && rawOutline
+        ? countryPolygons(rawOutline, !!countryRec.wraps, countryRec.centre[1])
+        : seaRec
+          ? frameRect(seaFrame(seaRec))
+          : null,
+    [countryRec, seaRec, rawOutline],
   );
-  const globeOutline = useMemo<LngLat[][] | null>(
-    () => (rawOutline ? splitLines(rawOutline.flatMap((poly) => poly as LngLat[][])) : null),
-    [rawOutline],
-  );
+  const globeOutline = useMemo<LngLat[][] | null>(() => {
+    const raw = rawOutline ?? seaRaw;
+    return raw ? splitLines(raw.flatMap((poly) => poly as LngLat[][])) : null;
+  }, [rawOutline, seaRaw]);
 
   useEffect(() => {
     const sum = countryTrends ? summarize(countryTrends.cells) : null;
@@ -644,24 +729,53 @@ export default function App() {
     if (countryPanel?.status === 'loading') status = 'loading';
     else if (countryPanel?.status === 'error') status = 'error';
     else if (countryPanel?.status === 'ready') status = countryTrends ? 'ready' : 'computing';
+    if (seaRec) status = 'idle'; // a sea reports through window.__sea
     window.__country = {
       status,
-      idx: selectedRec ? selectedRec.idx : null,
-      name: selectedRec ? selectedRec.name : null,
-      nCells: selectedRec ? selectedRec.nCells : 0,
-      tiny: selectedRec ? selectedRec.tiny : false,
+      idx: countryRec ? countryRec.idx : null,
+      name: countryRec ? countryRec.name : null,
+      nCells: countryRec ? countryRec.nCells : 0,
+      tiny: countryRec ? countryRec.tiny : false,
       period: [period[0], period[1]],
       vmax: detailVmax,
       nSignificant: sum ? sum.nSignificant : 0,
-      cells: countryTrends ? countryTrends.cells.map((c) => ({ lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p })) : [],
-      cities: countryTrends
-        ? countryTrends.cities.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p }))
-        : [],
+      cells: countryTrends && !seaRec ? countryTrends.cells.map((c) => ({ lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p })) : [],
+      cities:
+        countryTrends && !seaRec
+          ? countryTrends.cities.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p }))
+          : [],
     };
   }, [countryPanel, countryTrends, selectedRec, period, detailVmax]);
   useEffect(
     () => () => {
       delete window.__country;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const sum = seaRec && countryTrends ? summarize(countryTrends.cells) : null;
+    let status: NonNullable<Window['__sea']>['status'] = 'idle';
+    if (seaRec) {
+      if (countryPanel?.status === 'loading') status = 'loading';
+      else if (countryPanel?.status === 'error') status = 'error';
+      else if (countryPanel?.status === 'ready') status = countryTrends ? 'ready' : 'loading';
+    }
+    window.__sea = {
+      status,
+      idx: seaRec ? seaRec.idx : null,
+      name: seaRec ? seaRec.name : null,
+      nCells: seaRec ? seaRec.nCells : 0,
+      dlat: seaRec?.sea ? seaRec.sea.dlat : 0,
+      dlng: seaRec?.sea ? seaRec.sea.dlng : 0,
+      period: [period[0], period[1]],
+      nSignificant: sum ? sum.nSignificant : 0,
+      cells: seaRec && countryTrends ? countryTrends.cells.map((c) => ({ lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p })) : [],
+    };
+  }, [countryPanel, countryTrends, selectedRec, period]);
+  useEffect(
+    () => () => {
+      delete window.__sea;
     },
     [],
   );
@@ -781,8 +895,8 @@ export default function App() {
             trends={countryTrends}
             provinces={provinceList}
             polys={countryPolys}
-            outlineError={outlineError}
-            wrapRef={selectedRec?.wraps ? selectedRec.centre[1] : null}
+            outlineError={seaRec ? false : outlineError}
+            wrapRef={seaRec ? seaWrapRef(seaRec) : selectedRec?.wraps ? selectedRec.centre[1] : null}
             vmax={detailVmax}
             onSelectCell={selectDetailCell}
             onSelectCity={(c: CityTrend) => selectDetailCell(c.lat, c.lng)}

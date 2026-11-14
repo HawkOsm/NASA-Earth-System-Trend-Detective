@@ -4,8 +4,11 @@ import {
   parseStops,
   summarize,
   type DetailCell,
+  type LandPolygon,
   type Ring,
 } from './detail';
+import { loadLand } from './DetailMap';
+import { landShifts, mixRgb, normaliseLand } from './sea';
 import {
   countryCellRect,
   countryWidthKm,
@@ -26,6 +29,17 @@ import { hexToRgb, overlayPixels } from './rangeMap';
 
 const DLAT = 0.5;
 const DLNG = 0.625;
+/** Land for the rim of a sea piece, unwrapped once (a lazy chunk, shared with the close-up map). */
+let seaLand: Promise<LandPolygon[]> | null = null;
+function loadSeaLand(): Promise<LandPolygon[]> {
+  if (!seaLand) {
+    seaLand = loadLand().then(normaliseLand).catch((err) => {
+      seaLand = null;
+      throw err;
+    });
+  }
+  return seaLand;
+}
 /** Overlay weight of a cell that is not significant on its own (a significant cell is 1). */
 const FADED_WEIGHT = 0.3;
 import { signedRate } from './analysis';
@@ -56,6 +70,8 @@ interface Props {
   highlightProvince?: number | null;
   /** Called with the province under the pointer (or null). */
   onHoverProvince?: (index: number | null) => void;
+  /** A sea or ocean piece: its cell size; `polys` is then the frame rectangle and the land around it is drawn as the rim. */
+  sea?: { dlat: number; dlng: number } | null;
   /** Tallest the canvas may be, in CSS pixels (its width follows the container). */
   maxHeight?: number;
   /** Shown between the hover readout and the scale line (the colour legend). */
@@ -81,13 +97,27 @@ function rate(slope: number | null, p: number | null, units: string): string {
   return `${signedRate(slope)} ${units} per decade (p ${p < 0.001 ? '< 0.001' : `= ${fmtPValue(p)}`})`;
 }
 
-export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity, provinces = null, highlightProvince = null, onHoverProvince, maxHeight = DEFAULT_MAX_HEIGHT, children }: Props) {
+export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity, provinces = null, highlightProvince = null, onHoverProvince, maxHeight = DEFAULT_MAX_HEIGHT, sea = null, children }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<Hover>(null);
   const [provHover, setProvHover] = useState<number | null>(null);
   const lastPointer = useRef<string>('mouse');
+  const [land, setLand] = useState<LandPolygon[] | null>(null);
+  const dlat = sea ? sea.dlat : DLAT;
+  const dlng = sea ? sea.dlng : DLNG;
+
+  useEffect(() => {
+    if (!sea) return;
+    let alive = true;
+    loadSeaLand()
+      .then((l) => alive && setLand(l))
+      .catch((err) => console.error('Coastline unavailable', err));
+    return () => {
+      alive = false;
+    };
+  }, [!!sea]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -192,7 +222,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     if (best >= 0) return { kind: 'city', index: best };
     const ctx = canvas.getContext('2d');
     if (!ctx || !ctx.isPointInPath(outline, x * (canvas.width / pr.width), y * (canvas.height / pr.height), 'evenodd')) return null;
-    const k = hitCountryCell(pr, fcells.map((c) => ({ lat: c.lat, lng: c.flng })), x, y);
+    const k = hitCountryCell(pr, fcells.map((c) => ({ lat: c.lat, lng: c.flng })), x, y, dlat / 2, dlng / 2);
     return k >= 0 ? { kind: 'cell', index: k } : null;
   };
 
@@ -210,8 +240,14 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // Same look as the globe: the land colour underneath, the trend laid over it with the globe's overlay rule,
     // blended smoothly between grid points. One pixel per grid cell is coloured, then scaled up with smoothing.
-    const [lr, lg, lb] = hexToRgb(meta.render.land);
-    ctx.fillStyle = `rgb(${Math.round(lr * 255)},${Math.round(lg * 255)},${Math.round(lb * 255)})`;
+    // A sea piece: the sea itself lies on the globe's ocean colour, the water around it is darkened and muted.
+    const [lr, lg, lb] = hexToRgb(sea ? meta.render.ocean : meta.render.land);
+    if (sea) {
+      const [mr, mg, mb] = mixRgb([lr * 255, lg * 255, lb * 255], [34, 48, 72], 0.6);
+      ctx.fillStyle = `rgb(${Math.round(mr)},${Math.round(mg)},${Math.round(mb)})`;
+    } else {
+      ctx.fillStyle = `rgb(${Math.round(lr * 255)},${Math.round(lg * 255)},${Math.round(lb * 255)})`;
+    }
     ctx.fillRect(0, 0, pr.width, pr.height);
     if (fcells.length) {
       let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
@@ -219,13 +255,15 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
         latMin = Math.min(latMin, c.lat); latMax = Math.max(latMax, c.lat);
         lngMin = Math.min(lngMin, c.flng); lngMax = Math.max(lngMax, c.flng);
       }
-      const nI = Math.round((latMax - latMin) / DLAT) + 1;
-      const nJ = Math.round((lngMax - lngMin) / DLNG) + 1;
+      const nI = Math.round((latMax - latMin) / dlat) + 1;
+      const nJ = Math.round((lngMax - lngMin) / dlng) + 1;
+      const present = new Uint8Array(nI * nJ);
       let slope = new Float64Array(nI * nJ).fill(NaN);
       let wgt = new Float64Array(nI * nJ).fill(NaN);
       for (const c of fcells) {
+        present[Math.round((latMax - c.lat) / dlat) * nJ + Math.round((c.flng - lngMin) / dlng)] = 1;
         if (c.slopeDecade === null) continue;
-        const k = Math.round((latMax - c.lat) / DLAT) * nJ + Math.round((c.flng - lngMin) / DLNG);
+        const k = Math.round((latMax - c.lat) / dlat) * nJ + Math.round((c.flng - lngMin) / dlng);
         slope[k] = c.slopeDecade;
         wgt[k] = c.p !== null && c.p < ALPHA_CELL ? 1 : FADED_WEIGHT;
       }
@@ -250,6 +288,9 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       const base = new Uint8ClampedArray(nI * nJ * 4);
       for (let k = 0; k < nI * nJ; k++) { base[k * 4] = lr * 255; base[k * 4 + 1] = lg * 255; base[k * 4 + 2] = lb * 255; base[k * 4 + 3] = 255; }
       const px = overlayPixels(slope, wgt, vmax, meta.colormap_stops, base, meta.render);
+      // A sea: transparent wherever there is no cell of this sea (after the edge spreading above), so the image
+      // itself is the mask; the blend between grid points then fades out over half a cell at the sea's edge.
+      if (sea) for (let k = 0; k < nI * nJ; k++) if (!present[k]) px[k * 4 + 3] = 0;
       const small = document.createElement('canvas');
       small.width = nJ; small.height = nI;
       const sctx = small.getContext('2d');
@@ -257,17 +298,43 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
         const img = sctx.createImageData(nJ, nI);
         img.data.set(px);
         sctx.putImageData(img, 0, 0);
-        const r0 = countryCellRect(pr, latMax, lngMin);
+        const r0 = countryCellRect(pr, latMax, lngMin, dlat / 2, dlng / 2);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(small, r0.x, r0.y, r0.w * nJ, r0.h * nI);
       }
     }
+    if (sea) {
+      // The rim: land from Natural Earth 50 m, muted, with a thin dark coastline, on top of the sea.
+      if (land) {
+        const [mr, mg, mb] = mixRgb(hexToRgb(meta.render.land).map((v) => v * 255) as [number, number, number], [120, 124, 128], 0.55);
+        const frame = { latMin: pr.latMax - pr.latSpan, latMax: pr.latMax, lngMin: pr.lngMin, lngMax: pr.lngMin + pr.lngSpan };
+        const path = new Path2D();
+        for (const { poly, shift } of landShifts(land, frame)) {
+          for (const ring of poly.rings) {
+            ring.forEach(([lng, lat], k) => {
+              const x = cx(pr, lng + shift);
+              const y = cy(pr, lat);
+              if (k === 0) path.moveTo(x, y);
+              else path.lineTo(x, y);
+            });
+            path.closePath();
+          }
+        }
+        ctx.fillStyle = `rgb(${Math.round(mr)},${Math.round(mg)},${Math.round(mb)})`;
+        ctx.fill(path, 'evenodd');
+        ctx.strokeStyle = 'rgba(20,20,30,0.8)';
+        ctx.lineWidth = 0.8;
+        ctx.lineJoin = 'round';
+        ctx.stroke(path);
+      }
+      return off;
+    }
     ctx.globalCompositeOperation = 'destination-in';
     ctx.fillStyle = '#000';
     ctx.fill(outline, 'evenodd');
     return off;
-  }, [pr, outline, fcells, vmax, meta]);
+  }, [pr, outline, fcells, vmax, meta, sea, land, dlat, dlng]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -288,7 +355,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     ctx.clip(outline, 'evenodd');
     if (hover?.kind === 'cell') {
       const c = fcells[hover.index];
-      const r = countryCellRect(pr, c.lat, c.flng);
+      const r = countryCellRect(pr, c.lat, c.flng, dlat / 2, dlng / 2);
       ctx.strokeStyle = '#ffd166';
       ctx.lineWidth = 2;
       ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
@@ -306,10 +373,12 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       }
     }
     ctx.restore();
-    ctx.strokeStyle = '#141a2a';
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = 'round';
-    ctx.stroke(outline);
+    if (!sea) {
+      ctx.strokeStyle = '#141a2a';
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.stroke(outline);
+    }
 
     // Cities: dots, then labels for the capital and the largest few (a label that would collide is skipped).
     ctx.font = '11px system-ui, sans-serif';
@@ -370,7 +439,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       ctx.textBaseline = 'bottom';
       ctx.fillText(`${km.toLocaleString('en-US')} km`, x0 + 2, y0 - 4);
     }
-  }, [pr, outline, layer, fcells, fcities, vmax, stops, hover, provPaths, provHover, highlightProvince]);
+  }, [pr, outline, layer, fcells, fcities, vmax, stops, hover, provPaths, provHover, highlightProvince, sea, dlat, dlng]);
 
   const onClick = (e: React.MouseEvent) => {
     const h = hitAt(e);
@@ -408,7 +477,11 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
           ref={canvasRef}
           className="detail-canvas country-canvas"
           role="img"
-          aria-label={`${name} on its own, each grid cell coloured by its own trend, with its cities`}
+          aria-label={
+            sea
+              ? `${name}, each grid cell coloured by its own trend, with the land around it and the cities on its shores`
+              : `${name} on its own, each grid cell coloured by its own trend, with its cities`
+          }
           onPointerMove={(e) => {
             lastPointer.current = e.pointerType;
             if (e.pointerType !== 'touch') {
@@ -436,7 +509,11 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
         <span className="ro-line">{readout}</span>
       </p>
       {children}
-      {pr && <p className="country-size">About {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.</p>}
+      {pr && (
+        <p className="country-size">
+          {sea ? 'This view is about' : 'About'} {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.
+        </p>
+      )}
     </div>
   );
 }

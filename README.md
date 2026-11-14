@@ -57,6 +57,14 @@ coloured piece are only as sharp as the grid. Province / state outlines (Natural
 `pipeline/provinces.py`, `web/public/data/provinces/<index>.json`) are drawn over it, and a province's value is the
 cos(latitude)-weighted mean of the grid cells whose centre lies inside it, put through the same trend code.
 
+**Seas and oceans.** A click on open water lifts the sea or ocean there, with the land around it as a rim. The pipeline
+(`pipeline/seas.py`) puts every water grid cell (country mask 255) into the Natural Earth marine area whose polygon
+contains the cell centre, the smallest polygon winning where several overlap (so the Bay of Biscay is not also counted in
+the North Atlantic); a named sea therefore leaves out the smaller named seas, gulfs and bays inside it. Seas of up to 4000
+cells keep the ~50 km cells, the oceans use the coarse ~100 km grid (the same block mean as the trend map), and the
+headline is the same cos(latitude)-weighted mean through the same trend code. For air temperature the value is the air
+2 m above the water, not the water temperature.
+
 ### Limits you should know about
 
 - The autocorrelation correction is partial (lag 1 only). On strongly autocorrelated synthetic noise the
@@ -118,6 +126,8 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
 - Coastlines and the green-land / blue-water base map (`pipeline/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
 - Country outlines (`countries-50m`, via `world-atlas`) and the populated places used for the city markers
   (`pipeline/data/ne_50m_populated_places_simple.geojson`): Natural Earth (public domain).
+- Seas and oceans (`pipeline/seas.py`): Natural Earth marine areas, `ne_50m_geography_marine_polys.geojson`
+  (public domain, copied to `pipeline/data/`).
 - Province / state outlines in the country view (`pipeline/provinces.py`): Natural Earth admin-1 states and provinces,
   `ne_10m_admin_1_states_provinces.geojson` (public domain), from
   https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_admin_1_states_provinces.geojson .

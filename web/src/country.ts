@@ -34,6 +34,8 @@ export interface CountryRec {
   centre: [number, number];
   tinyCell: [number, number] | null;
   wraps?: boolean;
+  /** Set when this piece is a sea or ocean (see sea.ts): `idx` is then the sea index, not a country index. */
+  sea?: { kind: string; dlat: number; dlng: number };
 }
 
 export interface CityRec {
@@ -250,7 +252,16 @@ export function fitCountryProjection(
   maxHeight = 420,
   margin = 10,
 ): CountryProjection {
-  const b = polygonBounds(polys);
+  return fitBoundsProjection(polygonBounds(polys), width, maxHeight, margin);
+}
+
+/** The same fit for a bounding box (a sea's frame is a rectangle, see sea.ts). */
+export function fitBoundsProjection(
+  b: { latMin: number; latMax: number; lngMin: number; lngMax: number },
+  width: number,
+  maxHeight = 420,
+  margin = 10,
+): CountryProjection {
   const midLat = (b.latMin + b.latMax) / 2;
   const cosMid = Math.max(Math.cos((midLat * Math.PI) / 180), 0.05);
   const lngSpan = Math.max(b.lngMax - b.lngMin, 1e-6);
@@ -271,11 +282,17 @@ export const cx = (pr: CountryProjection, lng: number): number => pr.offX + (lng
 export const cy = (pr: CountryProjection, lat: number): number => pr.offY + (pr.latMax - lat) * pr.scale;
 
 /** Canvas rectangle of the grid cell centred on (lat, lng), lng in the same frame as the polygons. */
-export function countryCellRect(pr: CountryProjection, lat: number, lng: number) {
-  const x0 = cx(pr, lng - CELL_HALF_LNG);
-  const x1 = cx(pr, lng + CELL_HALF_LNG);
-  const y0 = cy(pr, lat + CELL_HALF_LAT);
-  const y1 = cy(pr, lat - CELL_HALF_LAT);
+export function countryCellRect(
+  pr: CountryProjection,
+  lat: number,
+  lng: number,
+  halfLat = CELL_HALF_LAT,
+  halfLng = CELL_HALF_LNG,
+) {
+  const x0 = cx(pr, lng - halfLng);
+  const x1 = cx(pr, lng + halfLng);
+  const y0 = cy(pr, lat + halfLat);
+  const y1 = cy(pr, lat - halfLat);
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
@@ -285,11 +302,13 @@ export function hitCountryCell(
   cells: { lat: number; lng: number }[],
   x: number,
   y: number,
+  halfLat = CELL_HALF_LAT,
+  halfLng = CELL_HALF_LNG,
 ): number {
   let best = -1;
   let bestD = Infinity;
   cells.forEach((c, k) => {
-    const r = countryCellRect(pr, c.lat, c.lng);
+    const r = countryCellRect(pr, c.lat, c.lng, halfLat, halfLng);
     if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) {
       const d = Math.hypot(x - (r.x + r.w / 2), y - (r.y + r.h / 2));
       if (d < bestD) {
