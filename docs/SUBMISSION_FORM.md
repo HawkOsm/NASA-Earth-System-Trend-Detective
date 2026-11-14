@@ -138,6 +138,14 @@ project is AI-generated: the pictures in the deck are screenshots of the site. N
 - **MERRA-2**, NASA Global Modeling and Assimilation Office: the reanalysis behind NASA POWER's variables.
 - **GISTEMP v4**, NASA Goddard Institute for Space Studies, https://data.giss.nasa.gov/gistemp/: the
   independent temperature record used by the evaluation layer.
+- **"Time-Series Analysis of Remotely-Sensed SeaWiFS Chlorophyll in River-Influenced Coastal Regions"**
+  (Acker and co-authors, NASA Goddard Earth Sciences Data and Information Services Center), the research
+  article listed in this challenge's Resources. Its workflow is the one this project implements: an
+  area-averaged time series, the seasonal cycle removed through anomalies, a fitted trend, and a significance
+  test at p < 0.05. Where the article uses linear regression and an F-test, this project uses a Theil–Sen slope
+  and the Mann–Kendall test, which are less sensitive to single unusual years.
+- MERRA-2 is also the reanalysis served by **Giovanni**, the first tool on the challenge's Resources list; this
+  project reaches the same dataset through NASA POWER.
 
 ## Space Agency Partner Data and Other References
 
