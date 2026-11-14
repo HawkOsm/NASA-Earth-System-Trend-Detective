@@ -13,11 +13,13 @@ import {
   cy,
   fitCountryProjection,
   frameLng,
+  frameRing,
   hitCountryCell,
   labelOrder,
   niceKm,
   placeLabels,
   type CityRec,
+  type ProvinceTrend,
 } from './country';
 import type { VariableMeta } from './data';
 import { hexToRgb, overlayPixels } from './rangeMap';
@@ -48,6 +50,12 @@ interface Props {
   tiny: boolean;
   onSelectCell: (lat: number, lng: number) => void;
   onSelectCity: (city: CityTrend) => void;
+  /** Provinces / states with their own trend (null or empty: none are drawn). */
+  provinces?: ProvinceTrend[] | null;
+  /** Province highlighted from outside (hovering its row in the list), as an index into `provinces`. */
+  highlightProvince?: number | null;
+  /** Called with the province under the pointer (or null). */
+  onHoverProvince?: (index: number | null) => void;
   /** Tallest the canvas may be, in CSS pixels (its width follows the container). */
   maxHeight?: number;
   /** Shown between the hover readout and the scale line (the colour legend). */
@@ -73,11 +81,12 @@ function rate(slope: number | null, p: number | null, units: string): string {
   return `${signedRate(slope)} ${units} per decade (p ${p < 0.001 ? '< 0.001' : `= ${fmtPValue(p)}`})`;
 }
 
-export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity, maxHeight = DEFAULT_MAX_HEIGHT, children }: Props) {
+export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, vmax, tiny, onSelectCell, onSelectCity, provinces = null, highlightProvince = null, onHoverProvince, maxHeight = DEFAULT_MAX_HEIGHT, children }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<Hover>(null);
+  const [provHover, setProvHover] = useState<number | null>(null);
   const lastPointer = useRef<string>('mouse');
 
   useEffect(() => {
@@ -112,6 +121,58 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     }
     return path;
   }, [pr, polys]);
+
+  // Province borders: one path per province (rings moved into the country's longitude frame). A segment that lies on
+  // the +-180 line is a cut in the source data, not a border, and is left out.
+  const provPaths = useMemo(() => {
+    if (!pr || !provinces || !provinces.length) return null;
+    return provinces.map((pv) => {
+      const path = new Path2D();
+      const fill = new Path2D();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const raw of pv.rings) {
+        const ring = frameRing(raw, wrapRef);
+        ring.forEach(([lng, lat], k) => {
+          const x = cx(pr, lng);
+          const y = cy(pr, lat);
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+          if (k === 0) {
+            path.moveTo(x, y);
+            fill.moveTo(x, y);
+          } else {
+            const [pl] = raw[k - 1];
+            const cut = Math.abs(Math.abs(pl) - 180) < 0.002 && Math.abs(Math.abs(raw[k][0]) - 180) < 0.002;
+            if (cut) path.moveTo(x, y);
+            else path.lineTo(x, y);
+            fill.lineTo(x, y);
+          }
+        });
+        fill.closePath();
+      }
+      return { path, fill, box: [x0, y0, x1, y1] as [number, number, number, number] };
+    });
+  }, [pr, provinces, wrapRef]);
+
+  const provAt = (e: React.PointerEvent | React.MouseEvent): number | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !pr || !provPaths) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const kx = canvas.width / pr.width;
+    const ky = canvas.height / pr.height;
+    for (let k = 0; k < provPaths.length; k++) {
+      const b = provPaths[k].box;
+      if (x < b[0] || x > b[2] || y < b[1] || y > b[3]) continue;
+      if (ctx.isPointInPath(provPaths[k].fill, x * kx, y * ky, 'evenodd')) return k;
+    }
+    return null;
+  };
 
   const hitAt = (e: React.PointerEvent | React.MouseEvent): Hover => {
     const canvas = canvasRef.current;
@@ -232,6 +293,18 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       ctx.lineWidth = 2;
       ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
     }
+    if (provPaths) {
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(20,26,42,0.55)';
+      ctx.lineWidth = 0.7;
+      for (const pp of provPaths) ctx.stroke(pp.path);
+      const hp = provHover ?? highlightProvince;
+      if (hp !== null && provPaths[hp]) {
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 2;
+        ctx.stroke(provPaths[hp].path);
+      }
+    }
     ctx.restore();
     ctx.strokeStyle = '#141a2a';
     ctx.lineWidth = 1.5;
@@ -297,13 +370,14 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       ctx.textBaseline = 'bottom';
       ctx.fillText(`${km.toLocaleString('en-US')} km`, x0 + 2, y0 - 4);
     }
-  }, [pr, outline, layer, fcells, fcities, vmax, stops, hover]);
+  }, [pr, outline, layer, fcells, fcities, vmax, stops, hover, provPaths, provHover, highlightProvince]);
 
   const onClick = (e: React.MouseEvent) => {
     const h = hitAt(e);
     if (!h) return;
     if (lastPointer.current === 'touch' && !(hover && hover.kind === h.kind && hover.index === h.index)) {
       setHover(h);
+      setProvHover(provAt(e));
       return;
     }
     if (h.kind === 'city') onSelectCity(cities[h.index]);
@@ -319,6 +393,14 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     readout = `${c.name}: ${rate(c.slopeDecade, c.p, units)}`;
   }
 
+  const shownProv = provHover ?? highlightProvince;
+  let provLine: string | null = null;
+  if (provinces && shownProv !== null && provinces[shownProv]) {
+    const pv = provinces[shownProv];
+    const kind = pv.type ? pv.type.toLowerCase() : 'region';
+    provLine = `${pv.name} (${kind}): ${rate(pv.slopeDecade, pv.p, units)}${pv.slopeDecade === null ? '' : `, average of ${pv.nCells} grid cell${pv.nCells === 1 ? '' : 's'}`}`;
+  }
+
   return (
     <div className="detail-map country-map">
       <div ref={hostRef} className="detail-canvas-host">
@@ -329,19 +411,29 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
           aria-label={`${name} on its own, each grid cell coloured by its own trend, with its cities`}
           onPointerMove={(e) => {
             lastPointer.current = e.pointerType;
-            if (e.pointerType !== 'touch') setHover(hitAt(e));
+            if (e.pointerType !== 'touch') {
+              setHover(hitAt(e));
+              const pv = provAt(e);
+              setProvHover(pv);
+              onHoverProvince?.(pv);
+            }
           }}
           onPointerDown={(e) => {
             lastPointer.current = e.pointerType;
           }}
           onPointerLeave={(e) => {
-            if (e.pointerType !== 'touch') setHover(null);
+            if (e.pointerType !== 'touch') {
+              setHover(null);
+              setProvHover(null);
+              onHoverProvince?.(null);
+            }
           }}
           onClick={onClick}
         />
       </div>
       <p className="detail-readout" aria-live="polite">
-        {readout}
+        {provLine && <span className="ro-line ro-prov">{provLine}</span>}
+        <span className="ro-line">{readout}</span>
       </p>
       {children}
       {pr && <p className="country-size">About {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.</p>}

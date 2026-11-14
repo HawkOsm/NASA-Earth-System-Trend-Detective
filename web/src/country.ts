@@ -509,3 +509,108 @@ export function findCountry(recs: CountryRec[], nameOrIdx: string | number): Cou
   if (/^\d+$/.test(s)) return recs.find((r) => r.idx === Number(s));
   return recs.find((r) => r.name.toLowerCase() === s) ?? recs.find((r) => r.name.toLowerCase().startsWith(s));
 }
+
+// ---- provinces / states -----------------------------------------------------------------------------------------
+
+/** One province / state as written by pipeline/provinces.py. `cells` index the country's cell list (mask order). */
+export interface ProvinceRec {
+  name: string;
+  type: string;
+  centre: [number, number];
+  rings: Ring[];
+  cells: number[];
+}
+
+export interface ProvinceTrend extends ProvinceRec {
+  slopeDecade: number | null;
+  p: number | null;
+  /** Cells listed for the province / cells that actually had a full series. */
+  nCells: number;
+  nUsed: number;
+}
+
+const provinceCache = new Map<number, Promise<ProvinceRec[]>>();
+/** Provinces of one country; a missing file (or one that is not valid) or fewer than 2 provinces gives []. */
+export function loadProvinces(idx: number): Promise<ProvinceRec[]> {
+  let p = provinceCache.get(idx);
+  if (!p) {
+    p = fetch(dataUrl(`provinces/${idx}.json`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const list = (j && Array.isArray(j.provinces) ? j.provinces : []) as ProvinceRec[];
+        return list.length >= 2 ? list : [];
+      })
+      .catch(() => []);
+    provinceCache.set(idx, p);
+  }
+  return p;
+}
+
+/** cos(latitude)-weighted mean of the province's cells' series, then the trend for the period. */
+export function provinceTrend(
+  prov: ProvinceRec,
+  cells: [number, number][],
+  values: number[][],
+  years: number[],
+  period: Period,
+): ProvinceTrend {
+  const ks = prov.cells.filter((k) => k >= 0 && k < cells.length);
+  const { annual, nUsed } = countryMeanSeries(ks.map((k) => cells[k]), ks.map((k) => values[k]));
+  const t = nUsed > 0 ? spotTrend(years, annual, period) : { slopeDecade: null, p: null };
+  return { ...prov, slopeDecade: t.slopeDecade, p: t.p, nCells: ks.length, nUsed };
+}
+
+export function provinceTrends(
+  provs: ProvinceRec[],
+  cells: [number, number][],
+  values: number[][],
+  years: number[],
+  period: Period,
+): ProvinceTrend[] {
+  return provs.map((pv) => provinceTrend(pv, cells, values, years, period));
+}
+
+/** Largest rise first, no data last, then by name. */
+export function sortProvinces<T extends { name: string; slopeDecade: number | null }>(list: T[]): T[] {
+  return [...list].sort((a, b) => {
+    if (a.slopeDecade === null && b.slopeDecade === null) return a.name.localeCompare(b.name);
+    if (a.slopeDecade === null) return 1;
+    if (b.slopeDecade === null) return -1;
+    return b.slopeDecade - a.slopeDecade || a.name.localeCompare(b.name);
+  });
+}
+
+/** Card heading: the most common `type` of the country, pluralised ("Provinces", "States"); "Regions" if none. */
+export function provinceHeading(types: string[]): string {
+  const count = new Map<string, number>();
+  for (const t of types) {
+    const s = t.trim();
+    if (s) count.set(s, (count.get(s) ?? 0) + 1);
+  }
+  let best = '';
+  let bestN = 0;
+  count.forEach((n, t) => {
+    if (n > bestN) {
+      best = t;
+      bestN = n;
+    }
+  });
+  if (!best) return 'Regions';
+  const w = best.charAt(0).toUpperCase() + best.slice(1);
+  if (/(s|x|ch|sh)$/i.test(w)) return w;
+  if (/[^aeiou]y$/i.test(w)) return `${w.slice(0, -1)}ies`;
+  return `${w}s`;
+}
+
+/** A province ring moved by whole turns of 360 degrees into the longitude frame of a wrapping country. */
+export function frameRing(ring: Ring, wrapRef: number | null): Ring {
+  if (wrapRef === null) return ring;
+  let a = Infinity;
+  let b = -Infinity;
+  for (const p of ring) {
+    if (p[0] < a) a = p[0];
+    if (p[0] > b) b = p[0];
+  }
+  const sh = 360 * Math.round((wrapRef - (a + b) / 2) / 360);
+  return sh ? ring.map((p): [number, number] => [p[0] + sh, p[1]]) : ring;
+}

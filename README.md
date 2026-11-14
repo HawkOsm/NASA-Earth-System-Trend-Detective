@@ -53,7 +53,9 @@ and writes each country's cell series (`web/public/data/countries/<VAR>/<index>.
 is requested at run time. The country-wide headline is the cos(latitude)-weighted mean of its cells (a cell with a
 missing year is left out) put through the same Theil–Sen / Mann–Kendall path as a box; a city's value is the grid cell
 it sits in. Countries smaller than one grid cell get that single cell. Cells are 50 km, so borders and coasts in the
-coloured piece are only as sharp as the grid.
+coloured piece are only as sharp as the grid. Province / state outlines (Natural Earth admin-1, simplified to 0.02°,
+`pipeline/provinces.py`, `web/public/data/provinces/<index>.json`) are drawn over it, and a province's value is the
+cos(latitude)-weighted mean of the grid cells whose centre lies inside it, put through the same trend code.
 
 ### Limits you should know about
 
@@ -116,6 +118,10 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
 - Coastlines and the green-land / blue-water base map (`pipeline/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
 - Country outlines (`countries-50m`, via `world-atlas`) and the populated places used for the city markers
   (`pipeline/data/ne_50m_populated_places_simple.geojson`): Natural Earth (public domain).
+- Province / state outlines in the country view (`pipeline/provinces.py`): Natural Earth admin-1 states and provinces,
+  `ne_10m_admin_1_states_provinces.geojson` (public domain), from
+  https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_admin_1_states_provinces.geojson .
+  The 40 MB source file is not in this repository; the script takes its path as an argument.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was

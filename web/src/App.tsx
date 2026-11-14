@@ -12,6 +12,7 @@ import Panel, { type PanelState } from './Panel';
 import CountryOverlay from './CountryOverlay';
 import CountryPanel, { type CountryData, type CountryPanelState } from './CountryPanel';
 import { useCountryTrends } from './useCountryTrends';
+import { useProvinces, useProvinceTrends } from './useProvinces';
 import {
   countryCells,
   countryMeanSeries,
@@ -67,6 +68,11 @@ declare global {
       period: [number, number];
     };
     __countryOverlay?: { open: boolean };
+    __provinces?: {
+      status: 'none' | 'loading' | 'ready';
+      countryIdx: number | null;
+      list: { name: string; nCells: number; cells: [number, number][]; slopeDecade: number | null; p: number | null }[];
+    };
     __setArea?: (sizeDeg: number | 'country') => void;
     __pickCountry?: (nameOrIdx: string | number) => void;
     __country?: {
@@ -601,6 +607,31 @@ export default function App() {
   const selectedRec: CountryRec | null =
     countryPanel && countryPanel.status !== 'water' ? (countryPanel.status === 'ready' ? countryPanel.data.rec : countryPanel.rec) : null;
 
+  const provinceFile = useProvinces(selectedRec ? selectedRec.idx : null);
+  const provinceList = useProvinceTrends(provinceFile.list, countryData, period);
+  useEffect(() => {
+    const status = provinceFile.status === 'ready' && !provinceList ? 'loading' : provinceFile.status;
+    window.__provinces = {
+      status,
+      countryIdx: selectedRec ? selectedRec.idx : null,
+      list: provinceList
+        ? provinceList.map((pv) => ({
+            name: pv.name,
+            nCells: pv.nCells,
+            cells: pv.cells.filter((k) => k < (countryData?.cells.length ?? 0)).map((k) => [...(countryData as CountryData).cells[k]] as [number, number]),
+            slopeDecade: pv.slopeDecade,
+            p: pv.p,
+          }))
+        : [],
+    };
+  }, [provinceFile.status, provinceList, selectedRec, countryData]);
+  useEffect(
+    () => () => {
+      delete window.__provinces;
+    },
+    [],
+  );
+
   // Outlines (a separate lazy chunk) once a country is shown.
   useEffect(() => {
     if (!selectedRec || outlines) return;
@@ -768,6 +799,7 @@ export default function App() {
             onClose={closePanel}
             onRetry={() => selectedRec && selectCountry(selectedRec, countryPosRef.current ?? { lat: selectedRec.centre[0], lng: selectedRec.centre[1] })}
             trends={countryTrends}
+            provinces={provinceList}
             polys={countryPolys}
             outlineError={outlineError}
             wrapRef={selectedRec?.wraps ? selectedRec.centre[1] : null}

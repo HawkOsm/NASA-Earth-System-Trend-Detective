@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { signedRate } from './analysis';
 import CountryMap, { insideText, type CityTrend } from './CountryMap';
 import type { CountryPanelState } from './CountryPanel';
-import { cityMark } from './country';
+import { cityMark, provinceHeading, sortProvinces, type ProvinceTrend } from './country';
 import type { VariableMeta } from './data';
 import { summarize, type DetailCell, type Ring } from './detail';
 import { VARIABLES } from './demos';
@@ -32,6 +32,8 @@ interface Props {
   onClose: () => void;
   onRetry: () => void;
   trends: { cells: DetailCell[]; cities: CityTrend[] } | null;
+  /** Provinces / states with their trend for the selected period (null: none, or not computed yet). */
+  provinces?: ProvinceTrend[] | null;
   polys: Ring[][] | null;
   outlineError: boolean;
   wrapRef: number | null;
@@ -110,7 +112,7 @@ export default function CountryOverlay(p: Props) {
   }, []);
 
   // Room for the piece: the overlay height minus top bar, title, readout, legend, scale line and period bar.
-  const pieceMax = wide ? Math.min(Math.max(height - 400, 260), 900) : Math.min(Math.max(height - 360, 240), 520);
+  const pieceMax = wide ? Math.min(Math.max(height - 420, 260), 900) : Math.min(Math.max(height - 360, 240), 520);
 
   const sub = rec.tiny
     ? 'This country is smaller than one grid cell; values are for the single cell that covers it.'
@@ -123,6 +125,12 @@ export default function CountryOverlay(p: Props) {
   };
 
   const ready = state.status === 'ready' ? state : null;
+
+  // Provinces: the map and its hooks use the file order; the list is sorted by trend.
+  const provs = p.provinces && p.provinces.length ? p.provinces : null;
+  const [hoverProv, setHoverProv] = useState<number | null>(null);
+  const provRows = useMemo(() => (provs ? sortProvinces(provs.map((pv, index) => ({ pv, index, name: pv.name, slopeDecade: pv.slopeDecade }))) : []), [provs]);
+  const provHeading = useMemo(() => (provs ? provinceHeading(provs.map((pv) => pv.type)) : ''), [provs]);
 
   return (
     <div
@@ -178,6 +186,9 @@ export default function CountryOverlay(p: Props) {
                 maxHeight={pieceMax}
                 onSelectCell={p.onSelectCell}
                 onSelectCity={p.onSelectCity}
+                provinces={provs}
+                highlightProvince={hoverProv}
+                onHoverProvince={setHoverProv}
               >
                 <div className="co-legend" aria-label="Colour legend">
                   <div className="co-legend-title">Change per decade ({units}), {periodText(p.period)}</div>
@@ -229,6 +240,30 @@ export default function CountryOverlay(p: Props) {
                   <p className="panel-msg detail-msg">Computing…</p>
                 )}
               </section>
+              {provs && (
+                <section className="co-card co-provs" aria-label={provHeading}>
+                  <h3 className="co-card-title">{provHeading}</h3>
+                  <ul className="provs" onMouseLeave={() => setHoverProv(null)}>
+                    {provRows.map(({ pv, index }) => {
+                      const m = cityMark(pv.slopeDecade, pv.p);
+                      return (
+                        <li key={`${pv.name}-${index}`}>
+                          <div
+                            className={`prov-row${hoverProv === index ? ' active' : ''}`}
+                            onMouseEnter={() => setHoverProv(index)}
+                          >
+                            <span className="city-name">{pv.name}</span>
+                            <span className="city-rate">{pv.slopeDecade === null ? 'no data' : `${signedRate(pv.slopeDecade)} ${units}/decade`}</span>
+                            <span className={`city-mark city-mark-${m.kind}`} title={m.label} aria-label={m.label}>
+                              {m.symbol}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              )}
               {p.trends && p.trends.cities.length > 0 && (
                 <section className="co-card co-cities" aria-label="Cities">
                   <h3 className="co-card-title">Cities</h3>
@@ -254,11 +289,6 @@ export default function CountryOverlay(p: Props) {
                   <p className="detail-note">A city&apos;s value is the ~50 km grid cell it sits in, not the city alone.</p>
                 </section>
               )}
-              <p className="detail-howto">
-                <strong>How to read this:</strong> the country is shown alone, in its own shape; each coloured patch is one ~50 km grid cell,
-                coloured by its own trend with the same colours as the main map, so the colours follow the data&apos;s coarse grid rather than
-                the border. The headline numbers are the area-weighted average of those cells, and a city is just the grid cell it sits in.
-              </p>
             </div>
           )}
         </div>
@@ -273,6 +303,12 @@ export default function CountryOverlay(p: Props) {
           recomputing={p.recomputing}
           failed={p.mapFailed}
         />
+        <p className="detail-howto co-howto">
+                <strong>How to read this:</strong> the country is shown alone, in its own shape. The colours are blended smoothly between
+                grid points about 50 km apart, as on the globe, so detail finer than that is not real; they use the same colours as the main
+                map. The headline numbers are the area-weighted average of the grid cells inside the country, and a province&apos;s or city&apos;s
+                number is the average of the grid cell(s) it covers.
+        </p>
       </div>
     </div>
   );

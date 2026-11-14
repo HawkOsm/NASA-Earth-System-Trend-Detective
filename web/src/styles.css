@@ -339,6 +339,17 @@ html, body, #root {
 .co-card .tile { background: #121a2b; }
 .co-card .detail-summary { margin-top: 0; }
 .co-right .detail-howto { padding: 0 2px; }
+.ro-line { display: block; }
+.ro-prov { color: #ffd166; }
+.co-centre .detail-readout { min-height: 2.9em; }
+.provs { list-style: none; margin: 0; padding: 0; max-height: 20vh; overflow-y: auto; }
+.prov-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline; padding: 3px 4px;
+  border-bottom: 1px solid #1c2230; font-size: 0.82rem; color: #e6e9ef;
+}
+.prov-row.active, .prov-row:hover { background: #1c2740; }
+.prov-row .city-rate { white-space: nowrap; }
+.prov-row .city-mark { min-width: 1.2em; text-align: center; }
 .period-bar.period-bar-inline { position: static; width: 100%; max-width: 520px; margin: 0 auto; }
 @keyframes co-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes co-lift { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: none; } }
@@ -347,7 +358,8 @@ html, body, #root {
   .co-left { grid-column: 1; grid-row: 1; }
   .co-centre { grid-column: 2; grid-row: 1; }
   .co-right { grid-column: 3; grid-row: 1; }
-  .co-cities .cities { max-height: 28vh; overflow-y: auto; }
+  .co-cities .cities { max-height: 16vh; overflow-y: auto; }
+  .co-provs .provs { max-height: 22vh; }
 }
 @media (prefers-reduced-motion: reduce) {
   .co, .co-centre, .co-card { animation: none; }
@@ -357,3 +369,5 @@ html, body, #root {
 .country-overlay .tile-value, [role='dialog'] .tile-value { white-space: nowrap; font-size: 17px; }
 [role='dialog'] .tiles { grid-template-columns: 1fr 1fr; }
 [role='dialog'] .tiles .tile:last-child { grid-column: 1 / -1; }
+
+.co-howto { max-width: 760px; margin: 14px auto 0; text-align: center; }
