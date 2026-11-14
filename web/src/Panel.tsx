@@ -1,5 +1,6 @@
 import Chart from './Chart';
 import { signedRate, type Analysis, MIN_YEARS } from './analysis';
+import { periodText, type Period } from './period';
 import { formatLatLng } from './format';
 import type { Cell } from './power';
 import type { RegionBox } from './region';
@@ -37,9 +38,22 @@ interface PanelProps {
   sizeDeg: number;
   onAreaChange: (size: number) => void;
   onRetry: () => void;
+  period: Period;
+  /** True when the period is the whole data period (then no period line is shown). */
+  fullPeriod: boolean;
 }
 
-export default function Panel({ state, label, yearsText, sizeDeg, onAreaChange, onClose, onRetry }: PanelProps) {
+export default function Panel({
+  state,
+  label,
+  yearsText,
+  sizeDeg,
+  onAreaChange,
+  onClose,
+  onRetry,
+  period,
+  fullPeriod,
+}: PanelProps) {
   const { cell } = state;
   return (
     <aside className="panel" aria-label="Trend details">
@@ -92,23 +106,25 @@ export default function Panel({ state, label, yearsText, sizeDeg, onAreaChange, 
 
       {state.status === 'insufficient' && (
         <p className="panel-msg">
-          Not enough data: only {state.nYears} years have values here (at least {MIN_YEARS} are needed).
+          Not enough data: only {state.nYears} years have values here
+          {fullPeriod ? '' : ` in ${periodText(period)}`} (at least {MIN_YEARS} are needed).
         </p>
       )}
 
-      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} />}
+      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} />}
     </aside>
   );
 }
 
-function Result({ a, area }: { a: Analysis; area: boolean }) {
+function Result({ a, area, period }: { a: Analysis; area: boolean; period: Period }) {
   return (
     <>
+      <p className="period-line">Trend for {periodText(period)}</p>
       <Chart data={a.chart} units={a.units} />
       <p className="chart-legend">
         <span className="swatch swatch-monthly" /> Thin line: monthly values with the seasonal cycle removed.{' '}
         <span className="swatch swatch-annual" /> Bold line with dots: each year&apos;s average.{' '}
-        <span className="swatch swatch-trend" /> Dashed line: the overall trend.
+        <span className="swatch swatch-trend" /> Dashed line: the trend{a.chart.shade ? ' over the selected period (shaded)' : ''}.
       </p>
       <div className="tiles">
         <div className="tile">

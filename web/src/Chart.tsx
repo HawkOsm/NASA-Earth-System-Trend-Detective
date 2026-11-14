@@ -42,6 +42,20 @@ export default function Chart({ data, units }: ChartProps) {
           values: (_u, vals) => vals.map((v) => (Math.abs(v) < 1e-9 ? '0' : String(+v.toPrecision(3)))),
         },
       ],
+      hooks: {
+        drawClear: [
+          (u) => {
+            if (!data.shade) return;
+            const x0 = u.valToPos(data.shade[0], 'x', true);
+            const x1 = u.valToPos(data.shade[1], 'x', true);
+            const { top, height } = u.bbox;
+            u.ctx.save();
+            u.ctx.fillStyle = 'rgba(106, 163, 255, 0.16)';
+            u.ctx.fillRect(Math.min(x0, x1), top, Math.abs(x1 - x0), height);
+            u.ctx.restore();
+          },
+        ],
+      },
       series: [
         {},
         { label: 'Monthly', stroke: 'rgba(120, 170, 255, 0.35)', width: 1, spanGaps: true, points: { show: false } },

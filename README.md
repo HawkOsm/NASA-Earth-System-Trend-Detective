@@ -35,6 +35,13 @@ The same method is used for the map and for the click panel, so they agree.
 - **Verdict:** p < 0.05 "significant"; 0.05–0.10 "possible trend, needs more years"; otherwise "no clear
   trend". Direction and rate are always stated.
 
+**Choosing a period.** Two sliders (From / To, at least 10 years apart) set the years the trend is computed
+over. The side panel recomputes at once from the series it already fetched. The map is recomputed in the
+browser, in Web Workers, from a coarse annual grid (`web/public/data/<VAR>_annual.bin`, about 100 km, written by
+`pipeline/export_annual_grid.py`): every cell gets the same Theil–Sen / Mann–Kendall (lag-1 Hamed–Rao) /
+Sen-interval statistics on the years in the period, followed by Benjamini–Hochberg over all cells. For the full
+1981–2025 period the precomputed full-resolution texture is used instead.
+
 The statistics are implemented twice — Python (`pipeline/trendstats.py`) for the map and TypeScript
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series
 (`pipeline/tests/fixtures/`) so the two agree to 1e-12.

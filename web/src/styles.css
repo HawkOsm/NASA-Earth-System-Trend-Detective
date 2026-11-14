@@ -101,7 +101,7 @@ html, body, #root {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: #05070d;
 }
-.flat-note { position: absolute; bottom: 8px; right: 12px; text-align: right; max-width: 45%; font-size: 0.8rem; color: #a8b0c0; pointer-events: none; }
+.flat-note { position: absolute; bottom: 84px; right: 12px; text-align: right; max-width: 45%; font-size: 0.8rem; color: #a8b0c0; pointer-events: none; }
 .flat-box { position: relative; cursor: crosshair; }
 .flat-box img { width: 100%; height: 100%; display: block; user-select: none; }
 .flat-dot {
@@ -223,4 +223,38 @@ html, body, #root {
   .legend-ctx { display: none; }
   .globe-wrap.has-panel .demos,
   .globe-wrap.has-panel .legend { display: none; }
+}
+
+/* ---- period bar ---- */
+.period-bar {
+  position: absolute; bottom: 12px; left: 284px; right: 12px; max-width: 460px; margin: 0 auto; z-index: 5;
+  box-sizing: border-box; padding: 6px 10px 8px; font-size: 0.8rem;
+  background: rgba(10, 14, 24, 0.88); border: 1px solid #2a3244; border-radius: 6px;
+}
+.period-head { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.period-title { font-weight: 600; }
+.period-status { flex: 1 1 auto; color: #9ec1ff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.period-reset {
+  margin-left: auto; padding: 2px 10px; font-size: 0.78rem; color: #e6e9ef; cursor: pointer;
+  background: #1c2a44; border: 1px solid #3a4a6a; border-radius: 4px;
+}
+.period-reset:hover:not(:disabled) { background: #26375a; }
+.period-reset:disabled { opacity: 0.4; cursor: default; }
+.period-row { display: flex; align-items: center; gap: 8px; min-height: 28px; cursor: pointer; }
+.period-name { flex: 0 0 38px; color: #a8b0c0; }
+.period-row input[type='range'] { flex: 1 1 auto; min-width: 0; margin: 0; height: 24px; touch-action: pan-y; accent-color: #6aa3ff; }
+.period-row input[type='range']:focus-visible { outline: 2px solid #6aa3ff; outline-offset: 2px; }
+.period-year { flex: 0 0 36px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.period-line { margin: 12px 0 0; font-weight: 600; color: #9ec1ff; font-size: 0.9rem; }
+@media (min-width: 1000px) { .globe-wrap:not(.has-panel) .period-bar { right: 284px; } }
+@media (min-width: 1370px) { .period-bar { right: 284px; } }
+@media (min-width: 761px) and (max-width: 1099px) {
+  .globe-wrap.has-panel .period-bar { left: 12px; right: 412px; max-width: none; }
+  .globe-wrap.has-panel .legend { bottom: 100px; }
+}
+@media (max-width: 760px) {
+  .period-bar { left: 8px; right: 8px; bottom: 8px; max-width: none; padding: 4px 8px 6px; }
+  .period-row { min-height: 24px; }
+  .legend { bottom: 104px; }
+  .globe-wrap.has-panel .period-bar { bottom: calc(55% + 8px); }
 }

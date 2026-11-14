@@ -1,6 +1,7 @@
 import { monthlyAnomalies, type PointSeries } from './power';
 import { fmtRate, senIntercept, trend, verdict, verdictKind, type TrendResult, type VerdictKind } from './stats/trend';
 import { displayUnits } from './format';
+import { filterToPeriod, isFullPeriod, type Period } from './period';
 
 export const MIN_YEARS = 10;
 
@@ -12,6 +13,8 @@ export interface ChartData {
   trend: (number | null)[];
   xMin: number;
   xMax: number;
+  /** Selected period when it is not the whole series (the chart shades it); null for the whole series. */
+  shade: Period | null;
 }
 
 export interface Analysis {
@@ -25,24 +28,38 @@ export interface Analysis {
   kind: VerdictKind;
   chart: ChartData;
   result: TrendResult;
+  /** The years the statistics were computed over (inclusive). */
+  period: Period;
+  /** Valid years and annual values inside the period (the ones used for the statistics). */
+  years: number[];
+  annual: number[];
 }
 
 const nz = (v: number): number | null => (Number.isNaN(v) ? null : v);
 
-/** Stats use only years whose annual value is valid. Returns null when fewer than MIN_YEARS are valid. */
-export function analyze(series: PointSeries): Analysis | null {
-  const years: number[] = [];
-  const ann: number[] = [];
+/**
+ * Stats use only years inside `period` (default: the whole series) whose annual value is valid. Returns null
+ * when fewer than MIN_YEARS are valid. The chart always covers the whole series; the annual anomalies are
+ * relative to the mean of all valid years, and the trend line is drawn only across the period.
+ */
+export function analyze(series: PointSeries, period?: Period): Analysis | null {
+  const allYears: number[] = [];
+  const allAnn: number[] = [];
   series.years.forEach((yr, k) => {
     if (!Number.isNaN(series.annual[k])) {
-      years.push(yr);
-      ann.push(series.annual[k]);
+      allYears.push(yr);
+      allAnn.push(series.annual[k]);
     }
   });
+  const first = series.years[0];
+  const last = series.years[series.years.length - 1];
+  const per: Period = period ?? [first, last];
+  const { years, values: ann } = filterToPeriod(allYears, allAnn, per);
   if (years.length < MIN_YEARS) return null;
+  const partial = !isFullPeriod(per, [first, last]);
 
   const result = trend(ann, years);
-  const meanAnn = ann.reduce((a, b) => a + b, 0) / ann.length;
+  const meanAnn = allAnn.reduce((a, b) => a + b, 0) / allAnn.length;
   const intercept = senIntercept(ann, years, result.slope);
   const units = displayUnits(series.units);
 
@@ -50,9 +67,9 @@ export function analyze(series: PointSeries): Analysis | null {
   const anomalies = monthlyAnomalies(series.monthly);
   const pts = new Map<number, { m: number | null; a: number | null }>();
   series.monthlyT.forEach((t, k) => pts.set(t, { m: nz(anomalies[k]), a: null }));
-  years.forEach((yr, k) => {
+  allYears.forEach((yr, k) => {
     const e = pts.get(yr) ?? { m: null, a: null };
-    e.a = ann[k] - meanAnn;
+    e.a = allAnn[k] - meanAnn;
     pts.set(yr, e);
   });
   const x = [...pts.keys()].sort((a, b) => a - b);
@@ -60,9 +77,12 @@ export function analyze(series: PointSeries): Analysis | null {
     x,
     monthly: x.map((t) => pts.get(t)!.m),
     annual: x.map((t) => pts.get(t)!.a),
-    trend: x.map((t) => result.slope * t + intercept - meanAnn),
-    xMin: series.years[0],
-    xMax: series.years[series.years.length - 1] + 1,
+    trend: x.map((t) =>
+      partial && (t < per[0] || t > per[1]) ? null : result.slope * t + intercept - meanAnn,
+    ),
+    xMin: first,
+    xMax: last + 1,
+    shade: partial ? per : null,
   };
 
   const slopeDecade = result.slope * 10;
@@ -77,6 +97,9 @@ export function analyze(series: PointSeries): Analysis | null {
     kind: verdictKind(result.p),
     chart,
     result,
+    period: per,
+    years,
+    annual: ann,
   };
 }
 

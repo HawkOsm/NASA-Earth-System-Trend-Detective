@@ -12,7 +12,10 @@ import Panel, { type PanelState } from './Panel';
 import { analyze } from './analysis';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
 import { areaMeanSeries, regionBox, type RegionBox } from './region';
-import { landmarksTextureUrl, loadMeta, trendTextureUrl, type VariableMeta } from './data';
+import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data';
+import PeriodBar from './PeriodBar';
+import { useRangeMap } from './useRangeMap';
+import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './period';
 
 const DEFAULT_VARIABLE = VARIABLES[0];
 
@@ -38,11 +41,13 @@ declare global {
       };
       annual: number[];
       years: number[];
+      period: [number, number];
     };
     __setArea?: (sizeDeg: number) => void;
     __pickAt?: (lat: number, lng: number) => void;
     __setVariable?: (name: string) => void;
     __runDemo?: (index: number) => void;
+    __setPeriod?: (startYear: number, endYear: number) => void;
   }
 }
 
@@ -75,6 +80,8 @@ export default function App() {
   const [panel, setPanel] = useState<PanelState | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [mapLines, setMapLines] = useState(true);
+  const [period, setPeriodState] = useState<Period>(FULL_PERIOD);
+  const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
   const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
 
   const abortRef = useRef<AbortController | null>(null);
@@ -85,6 +92,15 @@ export default function App() {
   const sizeRef = useRef<number>(0);
   const panelRef = useRef(panel);
   panelRef.current = panel;
+  const periodRef = useRef<Period>(FULL_PERIOD);
+  const commitTimer = useRef<number | undefined>(undefined);
+  /** The fetched series of the open panel, so a period change recomputes without a new request. */
+  const fetchedRef = useRef<{
+    base: Omit<Extract<PanelState, { status: 'loading' }>, 'status'>;
+    series: PointSeries;
+    cells: [number, number][];
+    variable: string;
+  } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -101,6 +117,46 @@ export default function App() {
     };
   }, []);
 
+  /** Statistics + panel + __lastResult for the given period, from an already-fetched series. */
+  const showResult = (
+    base: Omit<Extract<PanelState, { status: 'loading' }>, 'status'>,
+    series: PointSeries,
+    cells: [number, number][],
+    v: string,
+    per: Period,
+  ) => {
+    const a = analyze(series, per);
+    if (!a) {
+      const nYears = series.annual.filter((x, k) => !Number.isNaN(x) && series.years[k] >= per[0] && series.years[k] <= per[1]).length;
+      setPanel({ ...base, status: 'insufficient', nYears, nCells: cells.length });
+      return;
+    }
+    const { cell, box, sizeDeg: size } = base;
+    window.__lastResult = {
+      variable: v,
+      cell,
+      slopeDecade: a.slopeDecade,
+      ciLowDecade: a.ciLowDecade,
+      ciHighDecade: a.ciHighDecade,
+      p: a.p,
+      verdict: a.verdict,
+      nYears: a.nYears,
+      area: {
+        sizeDeg: size,
+        latMin: box ? box.latMin : cell.lat,
+        latMax: box ? box.latMax : cell.lat,
+        lngMin: box ? box.lngMin : cell.lng,
+        lngMax: box ? box.lngMax : cell.lng,
+        nCells: cells.length,
+        cells,
+      },
+      annual: a.annual,
+      years: a.years,
+      period: [per[0], per[1]],
+    };
+    setPanel({ ...base, status: 'ready', analysis: a, nCells: cells.length });
+  };
+
   const load = (center: LatLng, v: string, size: number) => {
     const m = metasRef.current[v];
     if (!m) return;
@@ -110,6 +166,7 @@ export default function App() {
     const cell = snapToCell(center.lat, center.lng, m.grid);
     const box: RegionBox | null = size > 0 ? regionBox(center.lat, center.lng, size) : null;
     const base = { cell, center: { lat: center.lat, lng: center.lng }, sizeDeg: size, box };
+    fetchedRef.current = null;
     setPanel({ ...base, status: 'loading' });
     const request: Promise<{ series: PointSeries; cells: [number, number][] }> = box
       ? fetchRegionSeries(v, box, ctrl.signal, m.years).then((data) => {
@@ -123,42 +180,8 @@ export default function App() {
     request
       .then(({ series, cells }) => {
         if (ctrl.signal.aborted) return;
-        const a = analyze(series);
-        if (!a) {
-          const nYears = series.annual.filter((x) => !Number.isNaN(x)).length;
-          setPanel({ ...base, status: 'insufficient', nYears, nCells: cells.length });
-          return;
-        }
-        const years: number[] = [];
-        const annual: number[] = [];
-        series.years.forEach((yr, k) => {
-          if (!Number.isNaN(series.annual[k])) {
-            years.push(yr);
-            annual.push(series.annual[k]);
-          }
-        });
-        window.__lastResult = {
-          variable: v,
-          cell,
-          slopeDecade: a.slopeDecade,
-          ciLowDecade: a.ciLowDecade,
-          ciHighDecade: a.ciHighDecade,
-          p: a.p,
-          verdict: a.verdict,
-          nYears: a.nYears,
-          area: {
-            sizeDeg: size,
-            latMin: box ? box.latMin : cell.lat,
-            latMax: box ? box.latMax : cell.lat,
-            lngMin: box ? box.lngMin : cell.lng,
-            lngMax: box ? box.lngMax : cell.lng,
-            nCells: cells.length,
-            cells,
-          },
-          annual,
-          years,
-        };
-        setPanel({ ...base, status: 'ready', analysis: a, nCells: cells.length });
+        fetchedRef.current = { base, series, cells, variable: v };
+        showResult(base, series, cells, v, periodRef.current);
       })
       .catch((err: unknown) => {
         if (ctrl.signal.aborted) return;
@@ -190,9 +213,42 @@ export default function App() {
     if (reload && p) load(p.center, v, sizeRef.current);
   };
 
+  /** Live period change (sliders while dragging): numbers and side panel update at once, from the fetched series. */
+  const changePeriod = (p: Period) => {
+    if (p[0] === periodRef.current[0] && p[1] === periodRef.current[1]) return;
+    periodRef.current = p;
+    setPeriodState(p);
+    const f = fetchedRef.current;
+    if (f && panelRef.current && (panelRef.current.status === 'ready' || panelRef.current.status === 'insufficient')) {
+      showResult(f.base, f.series, f.cells, f.variable, p);
+    }
+  };
+
+  /** Slider released (or programmatic): recompute the map for the current period, debounced. */
+  const commitPeriod = (immediate = false) => {
+    window.clearTimeout(commitTimer.current);
+    const go = () => setMapPeriod([periodRef.current[0], periodRef.current[1]]);
+    if (immediate) go();
+    else commitTimer.current = window.setTimeout(go, 150);
+  };
+
+  const setPeriod = (start: number, end: number) => {
+    changePeriod(clampPeriod(start, end, 'both'));
+    commitPeriod(true);
+  };
+
+  const resetPeriod = () => {
+    changePeriod(FULL_PERIOD);
+    commitPeriod(true);
+  };
+
   const runDemo = (index: number) => {
     const d = DEMOS[index];
     if (!d) return;
+    periodRef.current = FULL_PERIOD;
+    setPeriodState(FULL_PERIOD);
+    commitPeriod(true);
+    fetchedRef.current = null;
     selectVariable(d.variable, false);
     sizeRef.current = 0;
     setSizeDegState(0);
@@ -201,34 +257,40 @@ export default function App() {
   };
 
   // Always-current handlers so the window hooks run exactly the UI code paths.
-  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea });
-  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea };
+  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, setPeriod });
+  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, setPeriod };
   useEffect(() => {
     window.__pickAt = (lat, lng) => handlersRef.current.handlePick({ lat, lng });
     window.__setVariable = (name) => handlersRef.current.selectVariable(name, true);
     window.__runDemo = (i) => handlersRef.current.runDemo(i);
     window.__setArea = (n) => handlersRef.current.selectArea(n);
+    window.__setPeriod = (s, e) => handlersRef.current.setPeriod(s, e);
     return () => {
       delete window.__pickAt;
       delete window.__setVariable;
       delete window.__runDemo;
       delete window.__setArea;
+      delete window.__setPeriod;
     };
   }, []);
 
   const closePanel = () => {
     abortRef.current?.abort();
+    fetchedRef.current = null;
     setPanel(null);
   };
 
   const meta = metas[variable] ?? null;
-  const subtitle = meta
-    ? `How has ${meta.label.toLowerCase()} changed, ${meta.years[0]}–${meta.years[1]}?`
-    : '';
+  const fullYears: Period = meta ? [meta.years[0], meta.years[1]] : FULL_PERIOD;
+  const subtitle = meta ? `How has ${meta.label.toLowerCase()} changed, ${periodText(period)}?` : '';
+  const isFull = isFullPeriod(period, fullYears);
+  const range = useRangeMap(variable, mapPeriod, meta);
 
   const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
 
-  const textureUrl = debugLandmarks ? landmarksTextureUrl(variable) : trendTextureUrl(variable);
+  const textureUrl =
+    debugLandmarks && !range.shown.recomputed ? landmarksTextureUrl(variable) : range.textureUrl;
+  const recomputing = range.status === 'loading' || range.status === 'computing' ? range.progress : null;
 
   return (
     <div className="app">
@@ -262,6 +324,18 @@ export default function App() {
               meta={meta}
               wind={windAvailable ? { on: windOn, onChange: setWindOn } : undefined}
               mapLines={{ on: mapLines, onChange: setMapLines }}
+              shown={range.shown}
+            />
+          )}
+          {meta && (
+            <PeriodBar
+              period={period}
+              full={fullYears}
+              onChange={changePeriod}
+              onCommit={() => commitPeriod()}
+              onReset={resetPeriod}
+              recomputing={recomputing}
+              failed={range.status === 'error'}
             />
           )}
         </div>
@@ -274,6 +348,8 @@ export default function App() {
             sizeDeg={sizeDeg}
             onAreaChange={selectArea}
             onRetry={() => load(panel.center, variable, sizeDeg)}
+            period={period}
+            fullPeriod={isFull}
           />
         )}
       </main>
