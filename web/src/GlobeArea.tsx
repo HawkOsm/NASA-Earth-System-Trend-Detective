@@ -34,6 +34,8 @@ interface Props {
   landmarks?: Landmark[];
   marker: LatLng | null;
   box?: RegionBox | null;
+  /** Outline of the selected country (globe only; the flat map shows nothing for it). */
+  countryOutline?: [number, number][][] | null;
   flyRef: { current: ((v: PointOfView) => void) | null };
   wind?: boolean;
   mapLines: boolean;
@@ -41,7 +43,7 @@ interface Props {
 
 const webgl = typeof document !== 'undefined' ? hasWebGL() : false;
 
-export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, box, flyRef, wind, mapLines }: Props) {
+export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines }: Props) {
   const flat = <FlatMap textureUrl={textureUrl} onPick={onPick} marker={marker} box={box} mapLines={mapLines} />;
   if (forceFlat || !webgl) return flat;
   return (
@@ -53,6 +55,7 @@ export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, 
         landmarks={landmarks}
         marker={marker}
         box={box}
+        countryOutline={countryOutline}
         flyRef={flyRef}
         wind={wind}
         mapLines={mapLines}

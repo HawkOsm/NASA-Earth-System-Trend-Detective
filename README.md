@@ -46,6 +46,15 @@ The statistics are implemented twice — Python (`pipeline/trendstats.py`) for t
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series
 (`pipeline/tests/fixtures/`) so the two agree to 1e-12.
 
+**Country view.** With Area = Country a click picks the country under it, which is then shown alone, in its own
+shape, with each ~50 km grid cell inside it coloured by its own trend and its main cities marked. The pipeline
+(`pipeline/countries.py`) assigns every grid cell to the country whose Natural Earth outline contains the cell centre
+and writes each country's cell series (`web/public/data/countries/<VAR>/<index>.bin`, Int16, hundredths), so nothing
+is requested at run time. The country-wide headline is the cos(latitude)-weighted mean of its cells (a cell with a
+missing year is left out) put through the same Theil–Sen / Mann–Kendall path as a box; a city's value is the grid cell
+it sits in. Countries smaller than one grid cell get that single cell. Cells are 50 km, so borders and coasts in the
+coloured piece are only as sharp as the grid.
+
 ### Limits you should know about
 
 - The autocorrelation correction is partial (lag 1 only). On strongly autocorrelated synthetic noise the
@@ -105,6 +114,8 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
 - The underlying data is **MERRA-2** (Modern-Era Retrospective analysis for Research and Applications,
   Version 2), NASA Global Modeling and Assimilation Office.
 - Coastlines and the green-land / blue-water base map (`pipeline/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
+- Country outlines (`countries-50m`, via `world-atlas`) and the populated places used for the city markers
+  (`pipeline/data/ne_50m_populated_places_simple.geojson`): Natural Earth (public domain).
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was

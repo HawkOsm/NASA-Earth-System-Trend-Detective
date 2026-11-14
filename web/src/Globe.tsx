@@ -29,6 +29,8 @@ interface GlobeProps {
   marker?: LatLng | null;
   /** Selected analysis box, outlined in white. */
   box?: RegionBox | null;
+  /** Outline of the selected country, as polylines (already split at the antimeridian). */
+  countryOutline?: [number, number][][] | null;
   /** Filled with a camera-fly function once the globe is ready (null in flat mode). */
   flyRef?: { current: ((v: PointOfView) => void) | null };
   /** Draw the animated mean-wind streaks. */
@@ -100,7 +102,7 @@ interface PointDatum {
   radius: number;
 }
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, box, flyRef, wind, mapLines = true }: GlobeProps) {
+export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines = true }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [ready, setReady] = useState(false);
@@ -130,14 +132,16 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
 
   const paths = useMemo<PathDatum[]>(() => {
     const base = mapLines ? [...GRATICULE_PATHS, ...BORDER_PATHS, ...COAST_PATHS] : COAST_PATHS;
-    if (!box) return base;
-    const outline: PathDatum = {
-      coords: boxOutline(box).map(([lng, lat]) => [lng, lat, 0.004]),
-      color: WHITE,
-      stroke: 1.0,
-    };
-    return [...base, outline];
-  }, [mapLines, box]);
+    const extra: PathDatum[] = [];
+    if (box) {
+      extra.push({ coords: boxOutline(box).map(([lng, lat]) => [lng, lat, 0.004]), color: WHITE, stroke: 1.0 });
+    }
+    // The selected country: white, a little thicker than the coastlines; clicks on it still pick the surface point.
+    for (const line of countryOutline ?? []) {
+      extra.push({ coords: line.map(([lng, lat]) => [lng, lat, 0.004]), color: WHITE, stroke: 0.9 });
+    }
+    return extra.length ? [...base, ...extra] : base;
+  }, [mapLines, box, countryOutline]);
 
   const labels = useMemo<LabelDatum[]>(() => {
     const debug: LabelDatum[] = (landmarks ?? []).map((l) => ({

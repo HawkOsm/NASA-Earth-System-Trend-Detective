@@ -9,6 +9,24 @@ import HowToRead from './HowToRead';
 import { DEMOS, VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
+import CountryPanel, { type CountryData, type CountryPanelState } from './CountryPanel';
+import { useCountryTrends } from './useCountryTrends';
+import {
+  countryCells,
+  countryMeanSeries,
+  countryPolygons,
+  findCountry,
+  loadCities,
+  loadCitySeries,
+  loadCountries,
+  loadCountrySeries,
+  loadMask,
+  loadOutlines,
+  pickCountry,
+  type CountryRec,
+} from './country';
+import { splitLines, type LngLat } from './coastlines';
+import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
 import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
@@ -32,20 +50,35 @@ declare global {
       p: number;
       verdict: string;
       nYears: number;
-      area: {
-        sizeDeg: number;
-        latMin: number;
-        latMax: number;
-        lngMin: number;
-        lngMax: number;
-        nCells: number;
-        cells: [number, number][];
-      };
+      area:
+        | {
+            sizeDeg: number;
+            latMin: number;
+            latMax: number;
+            lngMin: number;
+            lngMax: number;
+            nCells: number;
+            cells: [number, number][];
+          }
+        | { sizeDeg: 'country'; country: { idx: number; name: string; nCells: number; tiny: boolean } };
       annual: number[];
       years: number[];
       period: [number, number];
     };
-    __setArea?: (sizeDeg: number) => void;
+    __setArea?: (sizeDeg: number | 'country') => void;
+    __pickCountry?: (nameOrIdx: string | number) => void;
+    __country?: {
+      status: 'idle' | 'loading' | 'computing' | 'ready' | 'error';
+      idx: number | null;
+      name: string | null;
+      nCells: number;
+      tiny: boolean;
+      period: [number, number];
+      vmax: number;
+      nSignificant: number;
+      cells: { lat: number; lng: number; slopeDecade: number | null; p: number | null }[];
+      cities: { id: number; name: string; lat: number; lng: number; slopeDecade: number | null; p: number | null }[];
+    };
     __pickAt?: (lat: number, lng: number) => void;
     __setVariable?: (name: string) => void;
     __runDemo?: (index: number) => void;
@@ -102,6 +135,11 @@ export default function App() {
   const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
   const [detail, setDetail] = useState<DetailState>({ status: 'idle' });
   const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
+  // Country view: Area = Country is a mode on top of the numeric sizes; the country panel replaces the point panel.
+  const [countryPanel, setCountryPanelState] = useState<CountryPanelState | null>(null);
+  const [outlines, setOutlines] = useState<number[][][][][] | null>(null);
+  const [outlineError, setOutlineError] = useState(false);
+  const [spotCountry, setSpotCountry] = useState<{ key: string; rec: CountryRec | null } | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const detailAbortRef = useRef<AbortController | null>(null);
@@ -110,6 +148,11 @@ export default function App() {
   metasRef.current = metas;
   const variableRef = useRef<string>(DEFAULT_VARIABLE);
   const sizeRef = useRef<number>(0);
+  const countryModeRef = useRef(false);
+  const countryPanelRef = useRef<CountryPanelState | null>(null);
+  const countryPosRef = useRef<LatLng | null>(null);
+  const countryDataRef = useRef<CountryData | null>(null);
+  const countryTokenRef = useRef(0);
   const panelRef = useRef(panel);
   panelRef.current = panel;
   const periodRef = useRef<Period>(FULL_PERIOD);
@@ -182,6 +225,7 @@ export default function App() {
     if (!m) return;
     abortRef.current?.abort();
     detailAbortRef.current?.abort();
+    clearCountry();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     const cell = snapToCell(center.lat, center.lng, m.grid);
@@ -215,6 +259,140 @@ export default function App() {
       });
   };
 
+  // ---- country view ---------------------------------------------------------------------------------------------
+
+  const setCountryMode = (on: boolean) => {
+    countryModeRef.current = on;
+  };
+  const setCountryPanel = (p: CountryPanelState | null) => {
+    countryPanelRef.current = p;
+    setCountryPanelState(p);
+  };
+  /** Drop the country panel and cancel anything still loading for it. */
+  function clearCountry() {
+    countryTokenRef.current++;
+    countryDataRef.current = null;
+    if (countryPanelRef.current) setCountryPanel(null);
+  }
+
+  /** Statistics + panel + __lastResult for a loaded country, for the given period (no network). */
+  const showCountry = (data: CountryData, per: Period) => {
+    const m = metasRef.current[data.variable];
+    if (!m) return;
+    const mean = countryMeanSeries(data.cells, data.values);
+    const series: PointSeries = { years: data.years, annual: mean.annual, monthlyT: [], monthly: [], units: m.units };
+    const a = analyze(series, per);
+    if (!a) {
+      const nYears = series.annual.filter((x, k) => !Number.isNaN(x) && series.years[k] >= per[0] && series.years[k] <= per[1]).length;
+      setCountryPanel({ status: 'ready', data, analysis: null, nYears, nCellsUsed: mean.nUsed });
+      return;
+    }
+    const { rec } = data;
+    window.__lastResult = {
+      variable: data.variable,
+      cell: snapToCell(rec.centre[0], rec.centre[1], m.grid),
+      slopeDecade: a.slopeDecade,
+      ciLowDecade: a.ciLowDecade,
+      ciHighDecade: a.ciHighDecade,
+      p: a.p,
+      verdict: a.verdict,
+      nYears: a.nYears,
+      area: { sizeDeg: 'country', country: { idx: rec.idx, name: rec.name, nCells: rec.nCells, tiny: rec.tiny } },
+      annual: a.annual,
+      years: a.years,
+      period: [per[0], per[1]],
+    };
+    setCountryPanel({ status: 'ready', data, analysis: a, nYears: a.nYears, nCellsUsed: mean.nUsed });
+  };
+
+  /** Show one country (Area = Country): load its static files, recentre the camera, compute the panel. */
+  const selectCountry = (rec: CountryRec, pos: LatLng, v: string = variableRef.current) => {
+    const m = metasRef.current[v];
+    if (!m) return;
+    abortRef.current?.abort();
+    detailAbortRef.current?.abort();
+    fetchedRef.current = null;
+    setDetail({ status: 'idle' });
+    setPanel(null);
+    setCountryMode(true);
+    countryPosRef.current = pos;
+    const token = ++countryTokenRef.current;
+    countryDataRef.current = null;
+    setCountryPanel({ status: 'loading', rec });
+    const alt = window.__view?.().altitude;
+    if (alt !== undefined) flyTo({ lat: rec.centre[0], lng: rec.centre[1] }, alt);
+    const nYears = m.years[1] - m.years[0] + 1;
+    const years = Array.from({ length: nYears }, (_, k) => m.years[0] + k);
+    Promise.all([loadMask(), loadCities(), loadCountrySeries(v, rec.idx, nYears), loadCitySeries(v, nYears)])
+      .then(([mask, allCities, values, cityAll]) => {
+        if (token !== countryTokenRef.current) return;
+        const cities = allCities.filter((c) => c.country === rec.idx);
+        const data: CountryData = {
+          rec,
+          variable: v,
+          years,
+          cells: countryCells(mask, rec),
+          values,
+          cities,
+          cityValues: cities.map((c) => cityAll[c.id]),
+        };
+        countryDataRef.current = data;
+        showCountry(data, periodRef.current);
+      })
+      .catch((err: unknown) => {
+        if (token !== countryTokenRef.current) return;
+        const message = err instanceof Error ? err.message : 'Could not load the country data.';
+        setCountryPanel({ status: 'error', rec, message });
+      });
+  };
+
+  /** A click (or Area change) while Area = Country: the country under the position, or the water message. */
+  const pickCountryAt = (pos: LatLng) => {
+    const token = ++countryTokenRef.current;
+    countryPosRef.current = pos;
+    Promise.all([loadMask(), loadCountries()])
+      .then(([mask, recs]) => {
+        if (token !== countryTokenRef.current) return;
+        const idx = pickCountry(mask, recs, pos.lat, pos.lng);
+        if (idx === undefined) {
+          abortRef.current?.abort();
+          detailAbortRef.current?.abort();
+          fetchedRef.current = null;
+          countryDataRef.current = null;
+          setDetail({ status: 'idle' });
+          setPanel(null);
+          setCountryPanel({ status: 'water' });
+          return;
+        }
+        selectCountry(recs[idx], pos);
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Could not load the country data.';
+        console.error(message);
+      });
+  };
+
+  const selectCountryArea = () => {
+    setCountryMode(true);
+    const p = panelRef.current;
+    if (p) pickCountryAt(p.center);
+  };
+
+  /** window.__pickCountry: the same selection as a click inside that country with Area = Country. */
+  const pickCountryByName = (nameOrIdx: string | number) => {
+    setCountryMode(true);
+    loadCountries()
+      .then((recs) => {
+        const rec = findCountry(recs, nameOrIdx);
+        if (!rec) {
+          console.warn(`No country matches ${String(nameOrIdx)}`);
+          return;
+        }
+        selectCountry(rec, { lat: rec.centre[0], lng: rec.centre[1] });
+      })
+      .catch((err) => console.error(err));
+  };
+
   /** Point selection: fetch the 5-degree box around the click for the close-up map (after the point result is shown). */
   const loadDetail = (center: LatLng, v: string) => {
     const m = metasRef.current[v];
@@ -243,6 +421,10 @@ export default function App() {
 
   const handlePick = (pos: LatLng) => {
     window.__lastPick = { lat: pos.lat, lng: pos.lng };
+    if (countryModeRef.current) {
+      pickCountryAt(pos);
+      return;
+    }
     flyTo(pos, pickAltitude(window.__view?.().altitude, sizeRef.current));
     load(pos, variableRef.current, sizeRef.current);
   };
@@ -251,8 +433,21 @@ export default function App() {
   const selectArea = (size: number) => {
     if (![0, 2, 5, 10].includes(size)) return;
     const old = sizeRef.current;
+    const wasCountry = countryModeRef.current;
+    setCountryMode(false);
     sizeRef.current = size;
     setSizeDegState(size);
+    const cp = countryPanelRef.current;
+    const cpos = countryPosRef.current;
+    if (wasCountry) {
+      // Country -> Point or box: back to the spot that was clicked (the country panel closes in load()).
+      countryTokenRef.current++;
+      if (cp && cpos) {
+        flyTo(cpos, pickAltitude(window.__view?.().altitude, size));
+        load(cpos, variableRef.current, size);
+      }
+      return;
+    }
     const p = panelRef.current;
     if (p) {
       flyTo(p.center, areaChangeAltitude(window.__view?.().altitude, old, size));
@@ -267,6 +462,10 @@ export default function App() {
     setVariableState(v);
     const p = panelRef.current;
     if (reload && p) load(p.center, v, sizeRef.current);
+    const cp = countryPanelRef.current;
+    if (reload && cp && cp.status !== 'water' && countryPosRef.current) {
+      selectCountry(cp.status === 'ready' ? cp.data.rec : cp.rec, countryPosRef.current, v);
+    }
   };
 
   /** Live period change (sliders while dragging): numbers and side panel update at once, from the fetched series. */
@@ -278,6 +477,8 @@ export default function App() {
     if (f && panelRef.current && (panelRef.current.status === 'ready' || panelRef.current.status === 'insufficient')) {
       showResult(f.base, f.series, f.cells, f.variable, p);
     }
+    const cd = countryDataRef.current;
+    if (cd && countryPanelRef.current?.status === 'ready') showCountry(cd, p);
   };
 
   /** Slider released (or programmatic): recompute the map for the current period, debounced. */
@@ -305,6 +506,8 @@ export default function App() {
     setPeriodState(FULL_PERIOD);
     commitPeriod(true);
     fetchedRef.current = null;
+    setCountryMode(false);
+    clearCountry();
     selectVariable(d.variable, false);
     sizeRef.current = 0;
     setSizeDegState(0);
@@ -312,25 +515,28 @@ export default function App() {
   };
 
   // Always-current handlers so the window hooks run exactly the UI code paths.
-  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, setPeriod });
-  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, setPeriod };
+  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, setPeriod, selectCountryArea, pickCountryByName });
+  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, setPeriod, selectCountryArea, pickCountryByName };
   useEffect(() => {
     window.__pickAt = (lat, lng) => handlersRef.current.handlePick({ lat, lng });
     window.__setVariable = (name) => handlersRef.current.selectVariable(name, true);
     window.__runDemo = (i) => handlersRef.current.runDemo(i);
-    window.__setArea = (n) => handlersRef.current.selectArea(n);
+    window.__setArea = (n) => (n === 'country' ? handlersRef.current.selectCountryArea() : handlersRef.current.selectArea(n));
+    window.__pickCountry = (x) => handlersRef.current.pickCountryByName(x);
     window.__setPeriod = (s, e) => handlersRef.current.setPeriod(s, e);
     return () => {
       delete window.__pickAt;
       delete window.__setVariable;
       delete window.__runDemo;
       delete window.__setArea;
+      delete window.__pickCountry;
       delete window.__setPeriod;
     };
   }, []);
 
   /** A cell clicked in the close-up map: same path as a globe click at its centre, with Area switched to Point. */
   const selectDetailCell = (lat: number, lng: number) => {
+    setCountryMode(false);
     sizeRef.current = 0;
     setSizeDegState(0);
     handlePick({ lat, lng });
@@ -341,6 +547,7 @@ export default function App() {
     detailAbortRef.current?.abort();
     setDetail({ status: 'idle' });
     fetchedRef.current = null;
+    clearCountry();
     setPanel(null);
   };
 
@@ -374,6 +581,84 @@ export default function App() {
     [],
   );
 
+  // ---- country view: derived data and window hook ----
+  const countryData = countryPanel?.status === 'ready' ? countryPanel.data : null;
+  const { trends: countryTrends } = useCountryTrends(countryData, period);
+  const selectedRec: CountryRec | null =
+    countryPanel && countryPanel.status !== 'water' ? (countryPanel.status === 'ready' ? countryPanel.data.rec : countryPanel.rec) : null;
+
+  // Outlines (a separate lazy chunk) once a country is shown.
+  useEffect(() => {
+    if (!selectedRec || outlines) return;
+    let alive = true;
+    loadOutlines()
+      .then((o) => alive && setOutlines(o))
+      .catch((err) => {
+        console.error('Country outlines unavailable', err);
+        if (alive) setOutlineError(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selectedRec, outlines]);
+
+  const rawOutline = selectedRec && outlines ? outlines[selectedRec.idx] ?? null : null;
+  const countryPolys = useMemo(
+    () => (selectedRec && rawOutline ? countryPolygons(rawOutline, !!selectedRec.wraps, selectedRec.centre[1]) : null),
+    [selectedRec, rawOutline],
+  );
+  const globeOutline = useMemo<LngLat[][] | null>(
+    () => (rawOutline ? splitLines(rawOutline.flatMap((poly) => poly as LngLat[][])) : null),
+    [rawOutline],
+  );
+
+  useEffect(() => {
+    const sum = countryTrends ? summarize(countryTrends.cells) : null;
+    let status: NonNullable<Window['__country']>['status'] = 'idle';
+    if (countryPanel?.status === 'loading') status = 'loading';
+    else if (countryPanel?.status === 'error') status = 'error';
+    else if (countryPanel?.status === 'ready') status = countryTrends ? 'ready' : 'computing';
+    window.__country = {
+      status,
+      idx: selectedRec ? selectedRec.idx : null,
+      name: selectedRec ? selectedRec.name : null,
+      nCells: selectedRec ? selectedRec.nCells : 0,
+      tiny: selectedRec ? selectedRec.tiny : false,
+      period: [period[0], period[1]],
+      vmax: detailVmax,
+      nSignificant: sum ? sum.nSignificant : 0,
+      cells: countryTrends ? countryTrends.cells.map((c) => ({ lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p })) : [],
+      cities: countryTrends
+        ? countryTrends.cities.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, slopeDecade: c.slopeDecade, p: c.p }))
+        : [],
+    };
+  }, [countryPanel, countryTrends, selectedRec, period, detailVmax]);
+  useEffect(
+    () => () => {
+      delete window.__country;
+    },
+    [],
+  );
+
+  // "This spot is in X" line in the Point / box panel.
+  const spotKey = panel ? `${panel.center.lat},${panel.center.lng}` : null;
+  useEffect(() => {
+    if (!panel || !spotKey) return;
+    if (spotCountry?.key === spotKey) return;
+    let alive = true;
+    Promise.all([loadMask(), loadCountries()])
+      .then(([mask, recs]) => {
+        const idx = pickCountry(mask, recs, panel.center.lat, panel.center.lng);
+        if (alive) setSpotCountry({ key: spotKey, rec: idx === undefined ? null : recs[idx] });
+      })
+      .catch(() => alive && setSpotCountry({ key: spotKey, rec: null }));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spotKey]);
+  const inCountry = panel && spotCountry && spotCountry.key === spotKey ? spotCountry.rec : null;
+
   const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
 
   const textureUrl =
@@ -389,7 +674,7 @@ export default function App() {
           How to read this
         </button>
       </header>
-      <main className={`globe-wrap${panel ? ' has-panel' : ''}`}>
+      <main className={`globe-wrap${panel || countryPanel ? ' has-panel' : ''}`}>
         <div className="globe-area">
           <GlobeArea
             forceFlat={forceFlat}
@@ -399,6 +684,7 @@ export default function App() {
             landmarks={debugLandmarks ? LANDMARKS : undefined}
             marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : null}
             box={panel?.box ?? null}
+            countryOutline={globeOutline}
             flyRef={flyRef}
             wind={windAvailable && windOn}
             mapLines={mapLines}
@@ -427,6 +713,27 @@ export default function App() {
             />
           )}
         </div>
+        {countryPanel && meta && (
+          <CountryPanel
+            state={countryPanel}
+            meta={meta}
+            label={meta.label}
+            period={period}
+            fullPeriod={isFull}
+            sizeDeg={sizeDeg}
+            onAreaChange={selectArea}
+            onCountryArea={selectCountryArea}
+            onClose={closePanel}
+            onRetry={() => selectedRec && selectCountry(selectedRec, countryPosRef.current ?? { lat: selectedRec.centre[0], lng: selectedRec.centre[1] })}
+            trends={countryTrends}
+            polys={countryPolys}
+            outlineError={outlineError}
+            wrapRef={selectedRec?.wraps ? selectedRec.centre[1] : null}
+            vmax={detailVmax}
+            onSelectCell={selectDetailCell}
+            onSelectCity={(c: CityTrend) => selectDetailCell(c.lat, c.lng)}
+          />
+        )}
         {panel && meta && (
           <Panel
             state={panel}
@@ -435,6 +742,8 @@ export default function App() {
             onClose={closePanel}
             sizeDeg={sizeDeg}
             onAreaChange={selectArea}
+            onCountryArea={selectCountryArea}
+            inCountry={inCountry ? { name: inCountry.name, onShow: () => selectCountry(inCountry, panel.center) } : null}
             onRetry={() => load(panel.center, variable, sizeDeg)}
             period={period}
             fullPeriod={isFull}

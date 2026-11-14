@@ -31,6 +31,41 @@ export const AREA_OPTIONS: { size: number; label: string }[] = [
   { size: 10, label: '10° box (~1000 km)' },
 ];
 
+/** Area control: Point, three box sizes, and Country. `sizeDeg` is ignored while `country` is active. */
+export function AreaPicker({
+  sizeDeg,
+  country,
+  onAreaChange,
+  onCountry,
+}: {
+  sizeDeg: number;
+  country: boolean;
+  onAreaChange: (size: number) => void;
+  onCountry: () => void;
+}) {
+  return (
+    <div className="area-picker" role="group" aria-label="Area">
+      <span className="area-label">Area</span>
+      {AREA_OPTIONS.map((o) => {
+        const active = !country && o.size === sizeDeg;
+        return (
+          <button
+            key={o.size}
+            className={`area-btn${active ? ' active' : ''}`}
+            aria-pressed={active}
+            onClick={() => onAreaChange(o.size)}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+      <button className={`area-btn${country ? ' active' : ''}`} aria-pressed={country} onClick={onCountry}>
+        Country
+      </button>
+    </div>
+  );
+}
+
 interface PanelProps {
   state: PanelState;
   label: string;
@@ -44,6 +79,9 @@ interface PanelProps {
   fullPeriod: boolean;
   /** Close-up map section, shown under the verdict (or the not-enough-data message). */
   detail?: ReactNode;
+  onCountryArea: () => void;
+  /** The country the selected spot lies in (null: none / not known yet). */
+  inCountry?: { name: string; onShow: () => void } | null;
 }
 
 export default function Panel({
@@ -57,6 +95,8 @@ export default function Panel({
   period,
   fullPeriod,
   detail,
+  onCountryArea,
+  inCountry,
 }: PanelProps) {
   const { cell } = state;
   return (
@@ -77,19 +117,15 @@ export default function Panel({
         </button>
       </div>
 
-      <div className="area-picker" role="group" aria-label="Area">
-        <span className="area-label">Area</span>
-        {AREA_OPTIONS.map((o) => (
-          <button
-            key={o.size}
-            className={`area-btn${o.size === sizeDeg ? ' active' : ''}`}
-            aria-pressed={o.size === sizeDeg}
-            onClick={() => onAreaChange(o.size)}
-          >
-            {o.label}
+      <AreaPicker sizeDeg={sizeDeg} country={false} onAreaChange={onAreaChange} onCountry={onCountryArea} />
+      {inCountry && (
+        <p className="in-country">
+          This spot is in {inCountry.name}.{' '}
+          <button className="retry in-country-btn" onClick={inCountry.onShow}>
+            Show the whole country
           </button>
-        ))}
-      </div>
+        </p>
+      )}
 
       {state.status === 'loading' && (
         <p className="panel-msg">
@@ -122,13 +158,28 @@ export default function Panel({
   );
 }
 
-function Result({ a, area, period }: { a: Analysis; area: boolean; period: Period }) {
+export function Result({
+  a,
+  area,
+  period,
+  country = false,
+}: {
+  a: Analysis;
+  area: boolean;
+  period: Period;
+  /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
+  country?: boolean;
+}) {
   return (
     <>
       <p className="period-line">Trend for {periodText(period)}</p>
       <Chart data={a.chart} units={a.units} />
       <p className="chart-legend">
-        <span className="swatch swatch-monthly" /> Thin line: monthly values with the seasonal cycle removed.{' '}
+        {!country && (
+          <>
+            <span className="swatch swatch-monthly" /> Thin line: monthly values with the seasonal cycle removed.{' '}
+          </>
+        )}
         <span className="swatch swatch-annual" /> Bold line with dots: each year&apos;s average.{' '}
         <span className="swatch swatch-trend" /> Dashed line: the trend{a.chart.shade ? ' over the selected period (shaded)' : ''}.
       </p>
@@ -151,7 +202,7 @@ function Result({ a, area, period }: { a: Analysis; area: boolean; period: Perio
           <div className="tile-sub">{a.units} per decade</div>
         </div>
       </div>
-      {area && <p className="area-note">Area average, weighted by grid-cell area.</p>}
+      {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
     </>
   );
