@@ -1,6 +1,6 @@
 import type { VariableMeta } from './data';
 import { displayUnits } from './format';
-import { formatTick, gradientCss, significantText } from './legend';
+import { formatTick, overlayBarCss, significantText } from './legend';
 import { periodText } from './period';
 
 interface WindControl {
@@ -23,14 +23,20 @@ export default function Legend({
   return (
     <div className="legend" aria-label="Legend">
       <div className="legend-title">Change per decade ({displayUnits(meta.units)}), {periodText([shown.start, shown.end])}</div>
-      <div className="legend-bar" style={{ background: gradientCss(meta.colormap_stops) }} />
+      <div className="legend-bar" style={{ background: overlayBarCss(meta.legend_stops, meta.render) }} />
       <div className="legend-ticks">
         <span>{formatTick(-shown.vmax)}</span>
         <span>{formatTick(0)}</span>
         <span>{formatTick(shown.vmax)}</span>
       </div>
       <div className="legend-sig">
-        <span className="legend-grey" /> Pale / grey: no statistically significant trend
+        <span className="legend-plain" style={{ background: `linear-gradient(to right, ${meta.render.land} 50%, ${meta.render.ocean} 50%)` }} />{' '}
+        Plain map, no colour: no statistically significant trend
+      </div>
+      <div className="legend-sig">
+        <span className="legend-plain" style={{ background: meta.render.land }} /> land
+        <span className="legend-plain" style={{ background: meta.render.ocean }} /> water
+        <span className="legend-note">(backdrop, not data)</span>
       </div>
       <div className="legend-ctx">{significantText(shown.fracSignificant)}</div>
       {shown.recomputed && <div className="legend-ctx">Recomputed for this period at about 100 km detail.</div>}

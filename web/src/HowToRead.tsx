@@ -27,7 +27,7 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         <h3>What the map shows</h3>
         <p>
           Each ~50 km grid cell is coloured by how fast its yearly average changed per decade, 1981–2025.
-          The colour shows the direction, and a stronger colour means faster change. Colours are blended
+          The colour shows the direction, and a stronger, more solid colour means faster change. Colours are blended
           smoothly between grid points that are about 50 km apart, so fine detail smaller than that is not
           real.
         </p>
@@ -57,7 +57,12 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           needs more years&rdquo;; otherwise &ldquo;no clear trend&rdquo;. The 95% range is where the true rate
           plausibly lies.
         </p>
-        <h3>Pale on the map, significant in the panel?</h3>
+        <h3>Plain map, but significant in the panel?</h3>
+        <p>
+          The green-and-blue map underneath is only a backdrop (land and water). The trend is drawn over it like
+          tinted clouds: the stronger and more certain the trend, the more solid the colour. Where the plain map
+          shows through, there is no statistically significant trend.
+        </p>
         <p>
           The map tests 200,000+ places at once, so it uses a stricter rule (Benjamini–Hochberg false discovery
           control) to avoid being fooled by chance.

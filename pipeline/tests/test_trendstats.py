@@ -5,12 +5,14 @@ import sys
 
 import numpy as np
 import pytest
+from matplotlib import colormaps
+from matplotlib.colors import to_hex
 from scipy.special import erfc
 from scipy.stats import false_discovery_control, theilslopes
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from export import bilinear_to_pixels, colorize, map_to_pixels, WIDTH, HEIGHT  # noqa: E402
+from export import bilinear_to_pixels, map_to_pixels, overlay_rgb, legend_stops, WIDTH, HEIGHT  # noqa: E402
 from trendstats import KEYS, bh_adjust, trend_1d, trend_grid, verdict  # noqa: E402
 
 T45 = np.arange(1981, 2026, dtype=np.float64)
@@ -172,9 +174,10 @@ def test_texture_orientation(lat, lon):
           f"expected x={ex:.2f} y={ey:.2f}")
     assert abs(xs.mean() + 0.5 - ex) <= 2 and abs(ys.mean() + 0.5 - ey) <= 2
     # same check through the colouring step used for the PNG
-    rgb = colorize(img, np.zeros_like(img), 1.0, "RdBu_r")
-    bg = colorize(np.zeros((1, 1)), np.zeros((1, 1)), 1.0, "RdBu_r")[0, 0]
-    ys2, xs2 = np.nonzero(np.any(rgb != bg, axis=-1))
+    stops = [to_hex(colormaps["RdBu_r"](v)) for v in np.linspace(0.0, 1.0, 11)]
+    base = np.full((HEIGHT, WIDTH, 3), (176, 205, 150), dtype=np.uint8)
+    rgb = overlay_rgb(img, np.ones_like(img), 1.0, stops, base)
+    ys2, xs2 = np.nonzero(np.any(rgb != base, axis=-1))
     assert abs(xs2.mean() + 0.5 - ex) <= 2 and abs(ys2.mean() + 0.5 - ey) <= 2
 
 

@@ -31,6 +31,14 @@ VARIABLES = {
     },
 }
 
+# Base map (pipeline/basemap.py) and trend overlay (pipeline/export.py overlay_rgb, mirrored in web/src/rangeMap.ts).
+# Tune the look here; export.py copies these values into every {VAR}_meta.json ("render") and the browser reads them.
+BASEMAP_OCEAN = (150, 190, 220)  # soft blue
+BASEMAP_LAND = (176, 205, 150)   # soft green
+COLOR_FLOOR = 0.30     # colour position starts this far from the colormap centre, so the pale middle is never used
+ALPHA_MAX = 0.92       # opacity of the strongest, certain trend
+ALPHA_FULL_AT = 0.5    # |slope|/vmax at which opacity reaches ALPHA_MAX (weaker trends fade out linearly)
+
 # (name, lat, lon)
 LANDMARKS = [
     ("0N 0E", 0.0, 0.0),

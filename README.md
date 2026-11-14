@@ -104,7 +104,7 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   point API, and for the 2°/5°/10° area choice the POWER monthly regional API, called live from the browser.
 - The underlying data is **MERRA-2** (Modern-Era Retrospective analysis for Research and Applications,
   Version 2), NASA Global Modeling and Assimilation Office.
-- Coastlines: Natural Earth, via the `world-atlas` package.
+- Coastlines and the green-land / blue-water base map (`pipeline/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was

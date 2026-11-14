@@ -7,6 +7,7 @@ import {
   computeChunk,
   extractChunk,
   finishResult,
+  type RenderConfig,
   parseAnnualBin,
   valueAtResult,
   type AnnualMeta,
@@ -73,6 +74,31 @@ function cachePut(key: string, entry: CachedResult) {
   }
 }
 const keyOf = (v: string, p: Period) => `${v}:${p[0]}:${p[1]}`;
+
+const baseCache = new Map<string, Promise<Uint8ClampedArray>>();
+/** basemap.png (same-origin) scaled to the texture size, as RGBA pixels; loaded once. */
+function loadBasemap(render: RenderConfig): Promise<Uint8ClampedArray> {
+  let p = baseCache.get(render.basemap);
+  if (!p) {
+    p = new Promise<Uint8ClampedArray>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = TEX_W;
+        canvas.height = TEX_H;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('2D canvas unavailable'));
+        ctx.drawImage(img, 0, 0, TEX_W, TEX_H);
+        resolve(ctx.getImageData(0, 0, TEX_W, TEX_H).data);
+      };
+      img.onerror = () => reject(new Error('Failed to load the base map'));
+      img.src = dataUrl(render.basemap);
+    });
+    p.catch(() => baseCache.delete(render.basemap));
+    baseCache.set(render.basemap, p);
+  }
+  return p;
+}
 
 function canvasUrl(rgba: Uint8ClampedArray): Promise<string> {
   const canvas = document.createElement('canvas');
@@ -188,12 +214,12 @@ export function useRangeMap(variable: string, period: Period, meta: VariableMeta
     setStatus('loading');
     setProgress(0);
     (async () => {
-      const annual = await loadAnnual(variable);
+      const [annual, base] = await Promise.all([loadAnnual(variable), loadBasemap(meta.render)]);
       if (cancelled) return;
       setStatus('computing');
       const stats = await computeParallel(annual, per, (f) => !cancelled && setProgress(Math.min(f, 1)), workers);
       if (cancelled) return;
-      const result = finishResult(variable, per[0], per[1], annual.meta, stats, meta.colormap_stops);
+      const result = finishResult(variable, per[0], per[1], annual.meta, stats, meta.colormap_stops, base, meta.render);
       const url = await canvasUrl(result.rgba);
       if (cancelled) {
         URL.revokeObjectURL(url);

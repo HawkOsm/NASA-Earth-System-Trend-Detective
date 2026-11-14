@@ -1,3 +1,5 @@
+import type { RenderConfig } from './rangeMap';
+
 export interface GridMeta {
   nlat: number;
   nlon: number;
@@ -17,6 +19,9 @@ export interface VariableMeta {
   years: [number, number];
   vmax: number;
   colormap_stops: string[];
+  render: RenderConfig;
+  /** Overlay colour and opacity at s = t * vmax (significant), t from -1 to 1 in 21 steps, for the legend. */
+  legend_stops: { t: number; rgb: string; alpha: number }[];
   grid: GridMeta;
   frac_significant: number;
   global_mean_slope_decade: number;

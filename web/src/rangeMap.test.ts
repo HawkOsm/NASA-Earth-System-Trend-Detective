@@ -1,10 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { trend } from './stats/trend';
 import {
   bhAdjust,
   bilinearAt,
   bilinearToPixels,
-  colorizeWeighted,
+  overlayPixels,
   computeCells,
   extractChunk,
   finishResult,
@@ -86,17 +88,25 @@ describe('colour interpolation', () => {
     expect(interpStops(stops, -3)).toEqual(stops[0]);
     expect(interpStops(stops, 7)).toEqual(stops[10]);
   });
-  it('colorizeWeighted: significant keeps colour, non-significant is paler, NaN is grey', () => {
+  it('overlayPixels: fixture from the Python pipeline is reproduced within 1 level', () => {
+    const fx = JSON.parse(readFileSync(resolve(__dirname, '../../pipeline/tests/fixtures/overlay_cases.json'), 'utf8')) as {
+      constants: { color_floor: number; alpha_max: number; alpha_full_at: number };
+      cases: { t: number; w: number; base: number[]; colormap_stops: string[]; expected: number[] }[];
+    };
+    expect(fx.cases.length).toBeGreaterThanOrEqual(30);
+    for (const c of fx.cases) {
+      const out = overlayPixels([c.t], [c.w], 1, c.colormap_stops, [...c.base, 255], fx.constants);
+      for (let k = 0; k < 3; k++) expect(Math.abs(out[k] - c.expected[k])).toBeLessThanOrEqual(1);
+      expect(out[3]).toBe(255);
+    }
+  });
+  it('overlayPixels: no trend, no weight or NaN leaves the base map untouched', () => {
     const rd = ['#2166ac', '#4393c3', '#92c5de', '#d1e5f0', '#f7f7f7', '#f7f7f7', '#fddbc7', '#f4a582', '#d6604d', '#b2182b', '#67001f'];
-    const out = colorizeWeighted([1, 1, NaN], [1, 0, 1], 1, rd);
-    expect(Array.from(out.slice(0, 4))).toEqual([103, 0, 31, 255]); // x = 1 -> last stop, w = 1: full colour
-    const pale = Array.from(out.slice(4, 7));
-    expect(pale[1]).toBeGreaterThan(40); // the zero green channel is lifted towards grey
-    expect(Array.from(out.slice(8, 12))).toEqual([128, 128, 128, 255]);
-    // w = 0 and a mid-grey-ish stop: unchanged luminance blend formula
-    const lum = 0.2126 * (103 / 255) + 0.7152 * 0 + 0.0722 * (31 / 255);
-    const grey = 0.6 * lum + 0.4 * 0.82;
-    expect(pale[0]).toBe(Math.round(255 * (0.25 * (103 / 255) + 0.75 * grey)));
+    const cfg = { color_floor: 0.3, alpha_max: 0.92, alpha_full_at: 0.5 };
+    const base = [176, 205, 150, 255, 176, 205, 150, 255, 176, 205, 150, 255, 176, 205, 150, 255];
+    const out = overlayPixels([0, 1, NaN, 1], [1, 0, 1, 1], 1, rd, base, cfg);
+    expect(Array.from(out.slice(0, 12))).toEqual([176, 205, 150, 255, 176, 205, 150, 255, 176, 205, 150, 255]);
+    expect(Array.from(out.slice(12, 15))).not.toEqual([176, 205, 150]);
   });
 });
 
@@ -209,7 +219,9 @@ describe('per-cell computation on a synthetic grid', () => {
   it('finishResult: q, vmax, significance share, texture and valueAt are consistent', () => {
     const stats = computeCells(data, meta, 1995, 2015);
     const stops = ['#000000', '#101010', '#202020', '#303030', '#404040', '#505050', '#606060', '#707070', '#808080', '#909090', '#ffffff'];
-    const r = finishResult('T2M', 1995, 2015, meta, stats, stops);
+    const r = finishResult('T2M', 1995, 2015, meta, stats, stops, new Uint8ClampedArray(1440 * 720 * 4).fill(200), {
+      basemap: 'basemap.png', color_floor: 0.3, alpha_max: 0.92, alpha_full_at: 0.5, ocean: '#96bedc', land: '#b0cd96',
+    });
     expect(r.q.length).toBe(ncells);
     expect(r.vmax).toBe(symmetricVmax(stats.slope));
     expect(r.rgba.length).toBe(1440 * 720 * 4);

@@ -1,7 +1,7 @@
 /**
  * Pure functions for recomputing the trend map in the browser for an arbitrary period, from the coarse annual
  * grid exported by pipeline/export_annual_grid.py. Mirrors pipeline/export.py (bilinear_to_pixels,
- * colorize_weighted, round_up_2sig) and pipeline/trendstats.py (bh_adjust).
+ * overlay_rgb, round_up_2sig) and pipeline/trendstats.py (bh_adjust).
  */
 import { trend } from './stats/trend';
 
@@ -20,7 +20,6 @@ export interface AnnualMeta {
 export const ALPHA = 0.05;
 export const TEX_W = 1440;
 export const TEX_H = 720;
-export const NAN_RGB: [number, number, number] = [128, 128, 128];
 
 /** Parse {VAR}_annual.bin: Int16 little-endian, order [year][lat][lon]. */
 export function parseAnnualBin(buf: ArrayBuffer, meta: AnnualMeta): Int16Array {
@@ -210,38 +209,55 @@ export function bilinearToPixels(
   return out;
 }
 
+/** The `render` block of {VAR}_meta.json: constants of the overlay rule (pipeline/config.py). */
+export interface RenderConfig {
+  basemap: string;
+  color_floor: number;
+  alpha_max: number;
+  alpha_full_at: number;
+  ocean: string;
+  land: string;
+}
+
 /**
- * RGBA pixels, same colour rule as colorize_weighted: colour from the stops (linear interpolation) at
- * (slope + vmax) / (2 vmax), blended with a desaturated version by the significance weight w (1 = significant).
- * Non-finite slope -> grey.
+ * THE overlay rule, mirror of pipeline/export.py overlay_rgb (tied by pipeline/tests/fixtures/overlay_cases.json).
+ * x = min(|s|/vmax, 1); colour position (sign(s) * (floor + (1 - floor) x) + 1) / 2 on the colormap (linear
+ * interpolation between the stops); alpha = alpha_max * w * min(x / alpha_full_at, 1); out = (1 - alpha) base +
+ * alpha colour. `base` is RGBA (alpha ignored); non-finite slope -> base. Returns opaque RGBA pixels.
  */
-export function colorizeWeighted(
+export function overlayPixels(
   slope: ArrayLike<number>,
   w: ArrayLike<number>,
   vmax: number,
   stopsHex: string[],
+  base: ArrayLike<number>,
+  render: Pick<RenderConfig, 'color_floor' | 'alpha_max' | 'alpha_full_at'>,
 ): Uint8ClampedArray {
   const stops = stopsHex.map(hexToRgb);
   const n = slope.length;
   const out = new Uint8ClampedArray(n * 4);
   for (let i = 0; i < n; i++) {
-    const s = slope[i];
     const o = i * 4;
-    out[o + 3] = 255;
-    if (!Number.isFinite(s)) {
-      out[o] = NAN_RGB[0];
-      out[o + 1] = NAN_RGB[1];
-      out[o + 2] = NAN_RGB[2];
-      continue;
+    const s = slope[i];
+    let r = base[o];
+    let g = base[o + 1];
+    let b = base[o + 2];
+    if (Number.isFinite(s) && s !== 0) {
+      const x = Math.min(Math.abs(s) / vmax, 1);
+      const wt = Number.isFinite(w[i]) ? w[i] : 0;
+      const alpha = render.alpha_max * wt * Math.min(x / render.alpha_full_at, 1);
+      if (alpha > 0) {
+        const t = Math.sign(s) * (render.color_floor + (1 - render.color_floor) * x);
+        const [cr, cg, cb] = interpStops(stops, (t + 1) / 2);
+        r = (1 - alpha) * r + alpha * cr * 255;
+        g = (1 - alpha) * g + alpha * cg * 255;
+        b = (1 - alpha) * b + alpha * cb * 255;
+      }
     }
-    const x = Math.min(Math.max((s + vmax) / (2 * vmax), 0), 1);
-    const [r, g, b] = interpStops(stops, x);
-    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    const grey = 0.6 * lum + 0.4 * 0.82;
-    const wt = Number.isFinite(w[i]) ? w[i] : 0;
-    out[o] = Math.round(255 * (wt * r + (1 - wt) * (0.25 * r + 0.75 * grey)));
-    out[o + 1] = Math.round(255 * (wt * g + (1 - wt) * (0.25 * g + 0.75 * grey)));
-    out[o + 2] = Math.round(255 * (wt * b + (1 - wt) * (0.25 * b + 0.75 * grey)));
+    out[o] = Math.floor(r + 0.5);
+    out[o + 1] = Math.floor(g + 0.5);
+    out[o + 2] = Math.floor(b + 0.5);
+    out[o + 3] = 255;
   }
   return out;
 }
@@ -268,12 +284,14 @@ export function finishResult(
   meta: AnnualMeta,
   stats: CellStats,
   stopsHex: string[],
+  base: Uint8ClampedArray,
+  render: RenderConfig,
 ): RangeResult {
   const q = bhAdjust(stats.p);
   const vmax = symmetricVmax(stats.slope);
   const sig = new Float64Array(q.length);
   for (let i = 0; i < q.length; i++) sig[i] = q[i] < ALPHA ? 1 : 0;
-  const rgba = colorizeWeighted(bilinearToPixels(stats.slope, meta), bilinearToPixels(sig, meta), vmax, stopsHex);
+  const rgba = overlayPixels(bilinearToPixels(stats.slope, meta), bilinearToPixels(sig, meta), vmax, stopsHex, base, render);
   return {
     variable,
     start,

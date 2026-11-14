@@ -70,7 +70,8 @@ html, body, #root {
 .legend-bar { height: 12px; border-radius: 2px; }
 .legend-ticks { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .legend-sig { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: #c9cfdb; }
-.legend-grey { flex: 0 0 auto; width: 14px; height: 10px; background: #bdbdbd; border: 1px solid #666; }
+.legend-plain { flex: 0 0 auto; width: 14px; height: 10px; border: 1px solid #666; }
+.legend-note { color: #a8b0c0; margin-left: 2px; }
 .legend-ctx { margin-top: 4px; color: #a8b0c0; }
 .legend-wind { margin-top: 6px; padding-top: 6px; border-top: 1px solid #2a3244; }
 .legend-wind-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e6e9f0; }

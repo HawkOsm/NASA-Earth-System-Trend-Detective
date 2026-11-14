@@ -13,7 +13,6 @@ import config
 from compute import coslat_mean
 
 WIDTH, HEIGHT = 2304, 1152
-NAN_RGB = (128, 128, 128)
 
 
 def pixel_indices(lat, lon, width=WIDTH, height=HEIGHT):
@@ -69,25 +68,89 @@ def round_up_2sig(v):
     return round(math.ceil(round(v / 10 ** e, 9)) * 10 ** e, max(0, -e))
 
 
-def colorize(slope, q, vmax, cmap_name, alpha=config.ALPHA):
-    """RGB uint8 image for a slope field (any 2-D shape); non-significant cells desaturated."""
-    return colorize_weighted(slope, (np.asarray(q) < alpha).astype(np.float64), vmax, cmap_name)
+def hex_to_rgb(h):
+    h = h.lstrip("#")
+    return [int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
 
 
-def colorize_weighted(slope, w, vmax, cmap_name):
-    """Like colorize, but with a significance weight w in [0, 1] per pixel:
-    rgb = w * full colour + (1 - w) * desaturated colour (w=1 significant, w=0 not)."""
-    cmap = colormaps[cmap_name]
-    x = np.clip((np.nan_to_num(slope) + vmax) / (2 * vmax), 0.0, 1.0)
-    rgb = cmap(x)[..., :3]
-    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
-    grey = 0.6 * lum + 0.4 * 0.82
-    pale = 0.25 * rgb + 0.75 * grey[..., None]
-    w = np.asarray(w, dtype=np.float64)[..., None]
-    rgb = w * rgb + (1.0 - w) * pale
-    out = np.round(rgb * 255).astype(np.uint8)
-    out[~np.isfinite(slope)] = NAN_RGB
+def stops_colour(stops_rgb, pos):
+    """Linear interpolation between equally spaced colour stops (rows of 0..1 rgb); pos in [0, 1], any shape."""
+    stops = np.asarray(stops_rgb, dtype=np.float64)
+    n = len(stops) - 1
+    p = np.clip(np.asarray(pos, dtype=np.float64), 0.0, 1.0) * n
+    k = np.minimum(np.floor(p).astype(np.int64), n - 1)
+    f = (p - k)[..., None]
+    return stops[k] * (1 - f) + stops[k + 1] * f
+
+
+def overlay_rgb(slope, w, vmax, stops_hex, base, floor=config.COLOR_FLOOR, alpha_max=config.ALPHA_MAX,
+                alpha_full_at=config.ALPHA_FULL_AT):
+    """THE overlay rule (mirrored by overlayPixels in web/src/rangeMap.ts, tied by tests/fixtures/overlay_cases.json).
+    slope (any shape, per decade), significance weight w in [0, 1], base-map colour (..., 3) uint8 or 0..255 floats.
+      x = min(|s|/vmax, 1);  t = sign(s) * (floor + (1 - floor) * x)  -> colormap position (t + 1) / 2
+      alpha = alpha_max * w * min(x / alpha_full_at, 1);  out = (1 - alpha) * base + alpha * colour
+    Colormap = linear interpolation between the stops. Non-finite slope -> base. Returns uint8 (..., 3)."""
+    s = np.asarray(slope, dtype=np.float64)
+    wt = np.nan_to_num(np.asarray(w, dtype=np.float64), nan=0.0)
+    ok = np.isfinite(s)
+    s = np.where(ok, s, 0.0)
+    x = np.minimum(np.abs(s) / vmax, 1.0)
+    t = np.sign(s) * (floor + (1.0 - floor) * x)
+    colour = stops_colour([hex_to_rgb(h) for h in stops_hex], (t + 1.0) / 2.0) * 255.0
+    alpha = np.where(ok, alpha_max * wt * np.minimum(x / alpha_full_at, 1.0), 0.0)[..., None]
+    out = (1.0 - alpha) * np.asarray(base, dtype=np.float64) + alpha * colour
+    return np.clip(np.floor(out + 0.5), 0, 255).astype(np.uint8)
+
+
+def rgb_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(*(int(v) for v in rgb))
+
+
+def legend_stops(stops_hex, floor=config.COLOR_FLOOR, alpha_max=config.ALPHA_MAX, alpha_full_at=config.ALPHA_FULL_AT):
+    """21 {t, rgb, alpha}: overlay colour and opacity at s = t * vmax with w = 1, for the web legend."""
+    out = []
+    for i in range(21):
+        t = round(-1.0 + i / 10.0, 10)
+        x = abs(t)
+        pos = (math.copysign(floor + (1.0 - floor) * x, t) + 1.0) / 2.0 if t != 0 else 0.5
+        c = stops_colour([hex_to_rgb(h) for h in stops_hex], pos) * 255.0
+        out.append({"t": t, "rgb": rgb_hex(np.floor(c + 0.5)),
+                    "alpha": round(alpha_max * min(x / alpha_full_at, 1.0), 4)})
     return out
+
+
+def load_basemap():
+    path = os.path.join(config.WEB_DATA_DIR, "basemap.png")
+    if not os.path.exists(path):
+        raise SystemExit("basemap.png missing: run basemap.py first")
+    img = np.asarray(Image.open(path).convert("RGB"))
+    if img.shape != (HEIGHT, WIDTH, 3):
+        raise SystemExit(f"basemap.png has shape {img.shape}, expected {(HEIGHT, WIDTH, 3)}")
+    return img
+
+
+def write_overlay_fixture(path):
+    """Test cases for the browser mirror: t = s / vmax (may exceed +-1), w, base colour, colormap, expected colour."""
+    rng = np.random.default_rng(10)
+    cmaps = {n: [to_hex(colormaps[v["colormap"]](q)) for q in np.linspace(0.0, 1.0, 11)]
+             for n, v in config.VARIABLES.items()}
+    names = sorted(cmaps)
+    grid_t = [-1.6, -1.0, -0.75, -0.5, -0.25, -0.1, -0.01, 0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 1.0, 1.6]
+    cases = []
+    for i in range(32):
+        if i < len(grid_t):
+            t, w = grid_t[i], 1.0
+        else:
+            t, w = float(np.round(rng.uniform(-1.4, 1.4), 3)), float(np.round(rng.uniform(0, 1), 3))
+        base = list(config.BASEMAP_LAND if i % 2 == 0 else config.BASEMAP_OCEAN) if i < 24 else \
+            [int(v) for v in rng.integers(0, 256, 3)]
+        stops = cmaps[names[i % 3]]
+        exp = overlay_rgb(np.array([t]), np.array([w]), 1.0, stops, np.array([base]))[0]
+        cases.append({"t": t, "w": w, "base": [int(v) for v in base], "colormap_stops": stops,
+                      "expected": [int(v) for v in exp]})
+    with open(path, "w") as f:
+        json.dump({"constants": {"color_floor": config.COLOR_FLOOR, "alpha_max": config.ALPHA_MAX,
+                                 "alpha_full_at": config.ALPHA_FULL_AT}, "cases": cases}, f, indent=1)
 
 
 def geo_to_pixel(lat, lon, width=WIDTH, height=HEIGHT):
@@ -128,15 +191,16 @@ def main():
     vmax = round_up_2sig(float(np.percentile(np.abs(slope[fin]), 98)))
 
     sig_field = (q < config.ALPHA).astype(np.float64)  # 1 where significant, else 0 (NaN q -> 0)
-    rgb = colorize_weighted(bilinear_to_pixels(slope, lat, lon), bilinear_to_pixels(sig_field, lat, lon),
-                            vmax, meta_cfg["colormap"])
+    cmap = colormaps[meta_cfg["colormap"]]
+    stops_hex = [to_hex(cmap(v)) for v in np.linspace(0.0, 1.0, 11)]
+    rgb = overlay_rgb(bilinear_to_pixels(slope, lat, lon), bilinear_to_pixels(sig_field, lat, lon),
+                      vmax, stops_hex, load_basemap())
     os.makedirs(config.WEB_DATA_DIR, exist_ok=True)
     img = Image.fromarray(rgb, "RGB")
     tex_path = os.path.join(config.WEB_DATA_DIR, f"{args.var}_trend.png")
     img.save(tex_path)
 
     sig = np.where(fin, (q < config.ALPHA).astype(np.float64), np.nan)
-    cmap = colormaps[meta_cfg["colormap"]]
     meta = {
         "variable": args.var,
         "label": meta_cfg["label"],
@@ -145,9 +209,13 @@ def main():
         "definition": meta_cfg["definition"],
         "years": [config.YEARS[0], config.YEARS[-1]],
         "vmax": vmax,
-        "colormap_stops": [to_hex(cmap(v)) for v in np.linspace(0.0, 1.0, 11)],
+        "colormap_stops": stops_hex,
         "grid": {"nlat": int(len(lat)), "nlon": int(len(lon)), "lat0": float(lat[0]),
                  "dlat": float(lat[1] - lat[0]), "lon0": float(lon[0]), "dlon": float(lon[1] - lon[0])},
+        "render": {"basemap": "basemap.png", "color_floor": config.COLOR_FLOOR, "alpha_max": config.ALPHA_MAX,
+                   "alpha_full_at": config.ALPHA_FULL_AT, "ocean": rgb_hex(config.BASEMAP_OCEAN),
+                   "land": rgb_hex(config.BASEMAP_LAND)},
+        "legend_stops": legend_stops(stops_hex),
         "frac_significant": coslat_mean(sig, lat),
         "global_mean_slope_decade": coslat_mean(slope, lat),
     }
@@ -155,6 +223,7 @@ def main():
     with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2)
 
+    write_overlay_fixture(os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "overlay_cases.json"))
     lm_img, positions = draw_landmarks(img)
     lm_path = os.path.join(config.WEB_DATA_DIR, f"{args.var}_landmarks.png")
     lm_img.save(lm_path)
