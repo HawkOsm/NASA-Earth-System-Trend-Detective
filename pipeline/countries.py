@@ -22,6 +22,7 @@ from matplotlib.path import Path as MPath
 
 import basemap
 import config
+import products
 from trendstats import trend_1d
 
 COUNTRIES_JSON = os.path.join(os.path.dirname(config.PIPELINE_DIR), "web", "node_modules", "world-atlas",
@@ -261,18 +262,14 @@ def assign_cities(countries, mask, recs):
 # ---- series --------------------------------------------------------------------------------------------------------
 
 def load_grid(var):
-    """float64 [45][361][576], rounded to 2 decimals exactly as compute.py does."""
-    return np.round(np.load(os.path.join(config.CACHE_DIR, f"{var}_annual.npy")).astype(np.float64), 2)
+    """float64 [45][361][576] in the displayed unit, missing values NaN, rounded exactly as compute.py does
+    (products.py: fill values, 'never any snow / ice' cells, percent scaling)."""
+    return products.load_grid(var)
 
 
-def to_int16(values):
-    """values [n][45] float -> Int16 round(v*100), NaN -> -32768. Raises if anything would overflow."""
-    v = np.asarray(values, dtype=np.float64)
-    nan = np.isnan(v)
-    q = np.rint(np.where(nan, 0.0, v) * 100.0)
-    if np.abs(q).max() > 32767:
-        raise ValueError("Int16 overflow")
-    return np.where(nan, MISSING, q).astype("<i2")
+def to_int16(values, offset=0):
+    """values [n][45] float -> Int16 round((v - offset) * 100), NaN -> -32768. Raises if anything would overflow."""
+    return products.to_int16(values, offset)
 
 
 def write_all(countries, mask, recs, cities):
@@ -288,16 +285,20 @@ def write_all(countries, mask, recs, cities):
     sizes = {}
     for var in config.VARIABLES:
         grid = load_grid(var)
+        offset = products.rules(var)[1]
         d = os.path.join(out, "countries", var)
-        os.makedirs(d, exist_ok=True)
         total, files = 0, 0
-        for rec in recs:
+        if products.has_pieces(var, sea=False):
+            os.makedirs(d, exist_ok=True)
+        else:
+            print(f"{var}: surface '{products.surface(var)}', skipping the country pieces (no data over land)")
+        for rec in (recs if products.has_pieces(var, sea=False) else []):
             i, j = country_cell_indices(mask, rec)
-            arr = to_int16(grid[:, i, j].T)
+            arr = to_int16(grid[:, i, j].T, offset)
             arr.tofile(os.path.join(d, f"{rec['idx']}.bin"))
             total += arr.nbytes
             files += 1
-        carr = to_int16(grid[:, ci[0], ci[1]].T)
+        carr = to_int16(grid[:, ci[0], ci[1]].T, offset)
         carr.tofile(os.path.join(out, f"{var}_cities.bin"))
         sizes[var] = (files, total, carr.nbytes)
         print(f"{var}: {files} country files, {total} bytes ({total / 1e6:.2f} MB); "
@@ -322,10 +323,10 @@ def build_fixture(recs, mask):
     years = list(range(1981, 2026))
     for name in names:
         rec = next(r for r in recs if r["name"] == name)
-        for var in config.VARIABLES:
+        for var in config.FIXTURE_VARIABLES:  # fixed list: the committed expected values do not change
             raw = np.fromfile(os.path.join(config.WEB_DATA_DIR, "countries", var, f"{rec['idx']}.bin"), dtype="<i2")
             raw = raw.reshape(rec["nCells"], 45)
-            vals = np.where(raw == MISSING, np.nan, raw / 100.0)
+            vals = products.from_int16(raw, products.rules(var)[1])
             i, _ = country_cell_indices(mask, rec)
             lat = LATS[i]
             ser, nk = weighted_mean_series(lat, vals)

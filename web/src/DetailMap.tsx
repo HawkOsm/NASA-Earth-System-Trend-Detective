@@ -23,7 +23,7 @@ import {
 import type { RegionBox } from './region';
 import type { VariableMeta } from './data';
 import { signedRate } from './analysis';
-import { displayUnits, formatLatLng } from './format';
+import { formatLatLng, rateUnits } from './format';
 import { fmtPValue } from './stats/trend';
 
 let landPromise: Promise<LandPolygon[]> | null = null;
@@ -92,7 +92,7 @@ export default function DetailMap({ meta, box, cells, vmax, center, selected, on
   const stops = useMemo(() => parseStops(meta.colormap_stops), [meta]);
   const pr = useMemo(() => (width > 0 ? makeProjection(box, width) : null), [box, width]);
   const summary = useMemo(() => summarize(cells), [cells]);
-  const units = displayUnits(meta.units);
+  const units = rateUnits(meta.units);
 
   useEffect(() => {
     const canvas = canvasRef.current;

@@ -14,6 +14,8 @@ interface Props {
   failed?: boolean;
   /** Sits in the normal flow (inside the country overlay) instead of floating over the globe. */
   inline?: boolean;
+  /** Heading text (default "Period"); the menu shows the chosen years here. */
+  title?: string;
 }
 
 function Slider({
@@ -62,12 +64,12 @@ function Slider({
   );
 }
 
-export default function PeriodBar({ period, full, onChange, onCommit, onReset, recomputing, failed, inline }: Props) {
+export default function PeriodBar({ period, full, onChange, onCommit, onReset, recomputing, failed, inline, title }: Props) {
   const isFull = isFullPeriod(period, full);
   return (
     <div className={`period-bar${inline ? ' period-bar-inline' : ''}`} role="group" aria-label="Period">
       <div className="period-head">
-        <span className="period-title">Period</span>
+        <span className="period-title">{title ?? 'Period'}</span>
         <span className="period-status" aria-live="polite">
           {recomputing !== null
             ? `Recomputing map… ${Math.round(recomputing * 100)}%`

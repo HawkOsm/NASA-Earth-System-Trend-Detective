@@ -6,6 +6,7 @@ import time
 import numpy as np
 
 import config
+from products import load_grid
 from trendstats import bh_adjust, trend_grid
 
 
@@ -20,7 +21,9 @@ def main():
     ap.add_argument("var", choices=sorted(config.VARIABLES))
     args = ap.parse_args()
 
-    data = np.load(os.path.join(config.CACHE_DIR, f"{args.var}_annual.npy"))
+    # Missing values (fill, land-only / ocean-only, 'never any snow / ice') are NaN: trend_grid leaves those cells NaN and
+    # bh_adjust, the fractions and the means below use finite cells only. Fractions are in percent (products.py).
+    data = load_grid(args.var)
     lat = np.load(os.path.join(config.CACHE_DIR, "lat.npy"))
     lon = np.load(os.path.join(config.CACHE_DIR, "lon.npy"))
     years = np.load(os.path.join(config.CACHE_DIR, "years.npy"))
@@ -28,7 +31,7 @@ def main():
     t0 = time.time()
     # The source is quantised to 0.01; rounding the float32 cache back to 2 decimals makes the
     # grid numerically identical to what the browser computes from the POWER point API.
-    res = trend_grid(np.round(data.astype(np.float64), 2), years.astype(np.float64))
+    res = trend_grid(data, years.astype(np.float64))
     q = bh_adjust(res["p"])
     secs = time.time() - t0
 
@@ -42,6 +45,7 @@ def main():
     print(f"variable: {args.var}")
     print(f"seconds: {secs:.1f}")
     print(f"cells: {fin.sum()} finite of {fin.size}")
+    print(f"cells with data (percent): {100.0 * fin.sum() / fin.size:.2f}")
     print(f"fraction p<0.05: {np.mean(res['p'][fin] < 0.05):.4f}")
     print(f"fraction q<0.05: {np.mean(q[fin] < 0.05):.4f}")
     print(f"fraction factor>1: {np.mean(res['factor'][fin] > 1):.4f}")

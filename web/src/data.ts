@@ -15,6 +15,18 @@ export interface VariableMeta {
   label: string;
   units: string;
   units_per_decade: string;
+  /** Short per-decade units for tight places; informational. */
+  units_short?: string;
+  /** Picker group (Temperature / Water / Ice & snow / Air). */
+  group?: string;
+  /** 100 for a fraction shown as percent; 1 otherwise. The API values are multiplied by it and rounded. */
+  display_scale?: number;
+  /** Int16 files store round((value - int16_offset) * 100). */
+  int16_offset?: number;
+  /** Snow / sea ice: a cell that is 0 in every year has no data. */
+  zero_means_absent?: boolean;
+  /** Where the variable has values: land-only and sea-only variables have no sea / country pieces (no files). */
+  surface?: 'land' | 'sea' | 'any';
   definition: string;
   years: [number, number];
   vmax: number;

@@ -77,6 +77,9 @@ def test_file_sizes_match_ncells(recs):
             continue
         assert os.path.getsize(cells) == n * 8
         for var in config.VARIABLES:
+            if config.VARIABLES[var].get("surface") == "land":  # land-only variable: no sea files (products.has_pieces)
+                assert not os.path.exists(os.path.join(D, "seas", var))
+                continue
             assert os.path.getsize(os.path.join(D, "seas", var, f"{r['idx']}.bin")) == n * 45 * 2
 
 

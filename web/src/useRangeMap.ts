@@ -138,7 +138,7 @@ function computeParallel(
     return new Promise((resolve) => {
       // Fallback: single thread, yielding between slices is not needed for correctness.
       const chunk = extractChunk(data, ncells, yi0, yi1, 0, ncells);
-      resolve(computeChunk(chunk, years, ncells, meta.scale, (n) => onProgress(n / ncells)));
+      resolve(computeChunk(chunk, years, ncells, meta.scale, (n) => onProgress(n / ncells), meta.offset ?? 0));
     });
   }
 
@@ -165,7 +165,7 @@ function computeParallel(
       };
       worker.onerror = (e) => reject(new Error(e.message || 'worker failed'));
       const chunk = extractChunk(data, ncells, yi0, yi1, c0, c1);
-      const req: WorkerRequest = { id: w, chunk, years, nc: c1 - c0, scale: meta.scale };
+      const req: WorkerRequest = { id: w, chunk, years, nc: c1 - c0, scale: meta.scale, offset: meta.offset ?? 0 };
       worker.postMessage(req, [chunk.buffer]);
     }
   });

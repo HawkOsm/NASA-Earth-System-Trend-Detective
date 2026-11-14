@@ -3,6 +3,12 @@
   "label": "Air temperature",
   "units": "C",
   "units_per_decade": "C per decade",
+  "units_short": "C",
+  "group": "Temperature",
+  "display_scale": 1,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "any",
   "definition": "Average air temperature 2 metres above the ground over the year.",
   "years": [
     1981,

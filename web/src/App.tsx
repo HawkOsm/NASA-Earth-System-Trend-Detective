@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import GlobeArea, { hasWebGL } from './GlobeArea';
 import { prefersReducedMotion } from './wind/WindLayer';
 import type { LatLng, PointOfView } from './Globe';
-import Picker from './Picker';
-import Legend from './Legend';
+import Menu from './Menu';
 import HowToRead from './HowToRead';
+import Detective, { type LiftTarget } from './Detective';
 import { VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
@@ -43,12 +43,12 @@ import {
 import { splitLines, type LngLat } from './coastlines';
 import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
+import { rulesFromMeta, surfaceMessage } from './noData';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
 import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
 import DetailMap from './DetailMap';
-import { POINT_DETAIL_SIZE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './detail';
+import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './detail';
 import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data';
-import PeriodBar from './PeriodBar';
 import { useRangeMap } from './useRangeMap';
 import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './period';
 
@@ -167,13 +167,20 @@ export default function App() {
   const [period, setPeriodState] = useState<Period>(FULL_PERIOD);
   const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
   const [detail, setDetail] = useState<DetailState>({ status: 'idle' });
-  const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
+  // Wind streaks: the user's choice from the menu, or (until they choose) on for wind speed unless reduced motion is asked for.
+  const [windChoice, setWindChoice] = useState<boolean | null>(null);
+  /** Mirrors liftRef for the menu's Click row. */
+  const [lift, setLiftState] = useState(true);
   // Country view: Area = Country is a mode on top of the numeric sizes; the country panel replaces the point panel.
   const [countryPanel, setCountryPanelState] = useState<CountryPanelState | null>(null);
   const [outlines, setOutlines] = useState<number[][][][][] | null>(null);
   const [outlineError, setOutlineError] = useState(false);
   const [seaOutlines, setSeaOutlines] = useState<Record<string, number[][][][]> | null>(null);
   const [spotCountry, setSpotCountry] = useState<{ key: string; rec: CountryRec | null } | null>(null);
+  // Detective chat panel: while it is open and visible, a globe click is answered by it instead of lifting a country.
+  const [detectiveOpen, setDetectiveOpen] = useState(false);
+  const [detectiveMarker, setDetectiveMarker] = useState<LatLng | null>(null);
+  const detectiveClickRef = useRef<((pos: LatLng) => void) | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const detailAbortRef = useRef<AbortController | null>(null);
@@ -271,19 +278,21 @@ export default function App() {
     setPanel({ ...base, status: 'loading' });
     setDetail(box ? { status: 'loading', sizeDeg: size } : { status: 'idle' });
     const request: Promise<{ series: PointSeries; cells: [number, number][]; region?: RegionData }> = box
-      ? fetchRegionSeries(v, box, ctrl.signal, m.years).then((data) => {
+      ? fetchRegionSeries(v, box, ctrl.signal, m.years, rulesFromMeta(m)).then((data) => {
           const mean = areaMeanSeries(data);
           return { series: mean.series, cells: mean.cells.map((c): [number, number] => [c.lat, c.lng]), region: data };
         })
-      : fetchPointSeries(v, cell.lat, cell.lng, ctrl.signal, m.years).then((series) => ({
+      : fetchPointSeries(v, cell.lat, cell.lng, ctrl.signal, m.years, rulesFromMeta(m)).then((series) => ({
           series,
           cells: [[cell.lat, cell.lng]] as [number, number][],
         }));
     request
       .then(({ series, cells, region }) => {
         if (ctrl.signal.aborted) return;
-        fetchedRef.current = { base, series, cells, variable: v };
-        showResult(base, series, cells, v, periodRef.current);
+        // A box: remember how many grid cells the response had, so the panel can say how many have data.
+        const b = region ? { ...base, nTotal: region.cells.length } : base;
+        fetchedRef.current = { base: b, series, cells, variable: v };
+        showResult(b, series, cells, v, periodRef.current);
         if (region && box) setDetail({ status: 'ready', sizeDeg: size, box, data: region });
         else loadDetail(center, v);
       })
@@ -361,15 +370,26 @@ export default function App() {
     if (alt !== undefined) flyTo({ lat: rec.centre[0], lng: rec.centre[1] }, alt);
     const nYears = m.years[1] - m.years[0] + 1;
     const years = Array.from({ length: nYears }, (_, k) => m.years[0] + k);
+    const off = m.int16_offset ?? 0; // ozone is stored minus an offset to fit Int16
     // A sea reads its own files and takes the cities that lie in its frame; a country is unchanged.
-    const piece: Promise<Pick<CountryData, 'cells' | 'values' | 'cities' | 'cityValues'>> = rec.sea
-      ? Promise.all([loadSeaCells(rec.idx), loadSeaSeries(v, rec.idx, nYears), loadCities(), loadCitySeries(v, nYears)]).then(
+    // A sea piece of a land-only variable (or a country piece of a sea-only variable) is "no data": its files are not
+    // shipped, so nothing is requested; the cells are all-NaN and the overlay shows the surface message.
+    const noValues = (n: number) => Array.from({ length: n }, () => new Array<number>(nYears).fill(NaN));
+    const piece: Promise<Pick<CountryData, 'cells' | 'values' | 'cities' | 'cityValues'>> = surfaceMessage(m.label, m.surface, !!rec.sea)
+      ? (rec.sea
+          ? loadSeaCells(rec.idx).then((cells) => ({ cells, values: noValues(cells.length), cities: [], cityValues: [] }))
+          : loadMask().then((mask) => {
+              const cells = countryCells(mask, rec);
+              return { cells, values: noValues(cells.length), cities: [], cityValues: [] };
+            }))
+      : rec.sea
+      ? Promise.all([loadSeaCells(rec.idx), loadSeaSeries(v, rec.idx, nYears, off), loadCities(), loadCitySeries(v, nYears, off)]).then(
           ([cells, values, allCities, cityAll]) => {
             const cities = citiesInFrame(allCities, seaFrame(rec), seaWrapRef(rec));
             return { cells, values, cities, cityValues: cities.map((c) => cityAll[c.id]) };
           },
         )
-      : Promise.all([loadMask(), loadCities(), loadCountrySeries(v, rec.idx, nYears), loadCitySeries(v, nYears)]).then(
+      : Promise.all([loadMask(), loadCities(), loadCountrySeries(v, rec.idx, nYears, off), loadCitySeries(v, nYears, off)]).then(
           ([mask, allCities, values, cityAll]) => {
             const cities = allCities.filter((c) => c.country === rec.idx);
             return { cells: countryCells(mask, rec), values, cities, cityValues: cities.map((c) => cityAll[c.id]) };
@@ -430,6 +450,7 @@ export default function App() {
 
   const selectCountryArea = () => {
     liftRef.current = true;
+    setLiftState(true);
     setCountryMode(true);
     const p = panelRef.current;
     if (p) pickCountryAt(p.center);
@@ -474,7 +495,7 @@ export default function App() {
     detailAbortRef.current = ctrl;
     const box = regionBox(center.lat, center.lng, POINT_DETAIL_SIZE);
     setDetail({ status: 'loading', sizeDeg: POINT_DETAIL_SIZE });
-    fetchRegionSeries(v, box, ctrl.signal, m.years)
+    fetchRegionSeries(v, box, ctrl.signal, m.years, rulesFromMeta(m))
       .then((data) => {
         if (ctrl.signal.aborted) return;
         setDetail({ status: 'ready', sizeDeg: POINT_DETAIL_SIZE, box, data });
@@ -493,6 +514,10 @@ export default function App() {
 
   const handlePick = (pos: LatLng, forcePoint = false) => {
     window.__lastPick = { lat: pos.lat, lng: pos.lng };
+    if (!forcePoint && detectiveClickRef.current) {
+      detectiveClickRef.current(pos);
+      return;
+    }
     if (!forcePoint && (countryModeRef.current || liftRef.current)) {
       setCountryMode(true);
       pickCountryAt(pos);
@@ -575,6 +600,7 @@ export default function App() {
   /** The user explicitly chose Point or a box in the Area row: clicks stop lifting countries until "Country" is chosen. */
   const chooseArea = (size: number) => {
     liftRef.current = false;
+    setLiftState(false);
     selectArea(size);
   };
 
@@ -813,7 +839,8 @@ export default function App() {
     [],
   );
 
-  const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
+  const windAvailable = !forceFlat && hasWebGL();
+  const windOn = windChoice ?? (variable === 'WS2M' && !prefersReducedMotion());
 
   const textureUrl =
     debugLandmarks && !range.shown.recomputed ? landmarksTextureUrl(variable) : range.textureUrl;
@@ -828,7 +855,7 @@ export default function App() {
           How to read this
         </button>
       </header>
-      <main className={`globe-wrap${panel || waterPanel ? ' has-panel' : ''}${overlayOpen ? ' country-open' : ''}`}>
+      <main className={`globe-wrap${panel || waterPanel ? ' has-panel' : ''}${overlayOpen ? ' country-open' : ''}${detectiveOpen ? ' detective-open' : ''}`}>
         <div className="globe-area">
           <GlobeArea
             forceFlat={forceFlat}
@@ -836,35 +863,60 @@ export default function App() {
             initialView={initialView}
             onPick={handlePick}
             landmarks={debugLandmarks ? LANDMARKS : undefined}
-            marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : null}
+            marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : detectiveOpen ? detectiveMarker : null}
             box={panel?.box ?? null}
             countryOutline={globeOutline}
             flyRef={flyRef}
             wind={windAvailable && windOn}
             mapLines={mapLines}
           />
-          <div className="overlay-tl">
-            <Picker metas={metas} value={variable} onChange={(v) => selectVariable(v, true)} />
-          </div>
-          {meta && (
-            <Legend
-              meta={meta}
-              wind={windAvailable ? { on: windOn, onChange: setWindOn } : undefined}
-              mapLines={{ on: mapLines, onChange: setMapLines }}
-              shown={range.shown}
-            />
-          )}
-          {meta && !overlayOpen && (
-            <PeriodBar
-              period={period}
-              full={fullYears}
-              onChange={changePeriod}
-              onCommit={() => commitPeriod()}
-              onReset={resetPeriod}
-              recomputing={recomputing}
-              failed={range.status === 'error'}
-            />
-          )}
+          <Menu
+            metas={metas}
+            meta={meta}
+            variable={variable}
+            onVariable={(v) => selectVariable(v, true)}
+            period={period}
+            fullYears={fullYears}
+            onPeriodChange={changePeriod}
+            onPeriodCommit={() => commitPeriod()}
+            onPeriodReset={resetPeriod}
+            recomputing={recomputing}
+            mapFailed={range.status === 'error'}
+            shown={range.shown}
+            wind={{ available: windAvailable, on: windAvailable && windOn, onChange: setWindChoice }}
+            click={{ lift, sizeDeg, onLift: selectCountryArea, onSize: chooseArea }}
+            mapLines={mapLines}
+            onMapLines={setMapLines}
+            onWholeGlobe={() => {
+              const v = window.__view?.();
+              if (v) flyTo({ lat: v.lat, lng: v.lng }, WHOLE_GLOBE_ALTITUDE);
+            }}
+            onAbout={() => setShowHelp(true)}
+            panelOpen={!!panel || waterPanel}
+            overlayOpen={overlayOpen}
+            footerExtra={
+              <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
+                Detective
+              </button>
+            }
+          />
+          <Detective
+            open={detectiveOpen}
+            hidden={!!panel || waterPanel || overlayOpen}
+            onOpen={() => setDetectiveOpen(true)}
+            onClose={() => {
+              setDetectiveOpen(false);
+              setDetectiveMarker(null);
+            }}
+            variable={variable}
+            onShowVariable={(v) => selectVariable(v, true)}
+            onFly={(lat, lng) => {
+              setDetectiveMarker({ lat, lng });
+              flyTo({ lat, lng }, pickAltitude(window.__view?.().altitude, 5));
+            }}
+            onLift={(t: LiftTarget) => (t.kind === 'sea' ? handlersRef.current.pickSeaByName(t.idx) : handlersRef.current.pickCountryByName(t.idx))}
+            clickRef={detectiveClickRef}
+          />
         </div>
         {waterPanel && meta && (
           <CountryPanel

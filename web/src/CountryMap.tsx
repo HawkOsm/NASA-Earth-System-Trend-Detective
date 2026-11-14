@@ -43,7 +43,7 @@ function loadSeaLand(): Promise<LandPolygon[]> {
 /** Overlay weight of a cell that is not significant on its own (a significant cell is 1). */
 const FADED_WEIGHT = 0.3;
 import { signedRate } from './analysis';
-import { displayUnits, formatLatLng } from './format';
+import { formatLatLng, rateUnits } from './format';
 import { fmtPValue } from './stats/trend';
 
 export interface CityTrend extends CityRec {
@@ -130,7 +130,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
   }, []);
 
   const stops = useMemo(() => parseStops(meta.colormap_stops), [meta]);
-  const units = displayUnits(meta.units);
+  const units = rateUnits(meta.units);
   const pr = useMemo(() => (width > 0 && polys.length ? fitCountryProjection(polys, width, maxHeight) : null), [polys, width, maxHeight]);
   const fcells = useMemo(() => cells.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cells, wrapRef]);
   const fcities = useMemo(() => cities.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cities, wrapRef]);

@@ -35,13 +35,8 @@ def map_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
     return np.asarray(grid)[lat_idx[:, None], lon_idx[None, :]]
 
 
-def bilinear_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
-    """Resample a (nlat, nlon) grid to a (height, width) image by bilinear interpolation between the
-    four surrounding grid points, evaluated at pixel centres. Longitude wraps, latitude clamps at the
-    poles. Row 0 is north, column 0 starts at lon -180."""
-    grid = np.asarray(grid, dtype=np.float64)
-    lat = np.asarray(lat, dtype=np.float64)
-    lon = np.asarray(lon, dtype=np.float64)
+def _bilinear_plain(grid, lat, lon, width, height):
+    """The plain bilinear resample (no NaN handling), see bilinear_to_pixels."""
     nlat, nlon = len(lat), len(lon)
     dlat = lat[1] - lat[0]
     dlon = lon[1] - lon[0]
@@ -58,7 +53,32 @@ def bilinear_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
     i0c, i1c = i0[:, None], (i0 + 1)[:, None]
     top = grid[i0c, j0[None, :]] * (1 - wj) + grid[i0c, j1[None, :]] * wj
     bot = grid[i1c, j0[None, :]] * (1 - wj) + grid[i1c, j1[None, :]] * wj
-    return top * (1 - wi) + bot * wi
+    return top * (1 - wi) + bot * wi, (fi, fj)
+
+
+def bilinear_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
+    """Resample a (nlat, nlon) grid to a (height, width) image by bilinear interpolation between the
+    four surrounding grid points, evaluated at pixel centres. Longitude wraps, latitude clamps at the
+    poles. Row 0 is north, column 0 starts at lon -180.
+    NaN (no data): a pixel whose four surrounding points are all valid is the plain bilinear value (unchanged); a
+    pixel next to missing points is the mean of the valid points among the four (weighted as bilinear), and NaN when
+    its nearest grid point is missing, so no-data areas keep their edge and data is not smeared past it."""
+    grid = np.asarray(grid, dtype=np.float64)
+    lat = np.asarray(lat, dtype=np.float64)
+    lon = np.asarray(lon, dtype=np.float64)
+    ok = np.isfinite(grid)
+    if ok.all():
+        return _bilinear_plain(grid, lat, lon, width, height)[0]
+    plain, (fi, fj) = _bilinear_plain(np.where(ok, grid, 0.0), lat, lon, width, height)
+    wsum, _ = _bilinear_plain(ok.astype(np.float64), lat, lon, width, height)
+    touched = wsum < 1.0 - 1e-12  # some corner is missing
+    nearest_i = np.clip(np.floor(fi + 0.5).astype(np.int64), 0, len(lat) - 1)
+    nearest_j = np.floor(fj + 0.5).astype(np.int64) % len(lon)
+    near_ok = ok[nearest_i[:, None], nearest_j[None, :]]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        renorm = np.where(wsum > 0, plain / np.where(wsum > 0, wsum, 1.0), np.nan)
+    out = np.where(touched, renorm, plain)
+    return np.where(touched & ~near_ok, np.nan, out)
 
 
 def round_up_2sig(v):
@@ -132,8 +152,8 @@ def load_basemap():
 def write_overlay_fixture(path):
     """Test cases for the browser mirror: t = s / vmax (may exceed +-1), w, base colour, colormap, expected colour."""
     rng = np.random.default_rng(10)
-    cmaps = {n: [to_hex(colormaps[v["colormap"]](q)) for q in np.linspace(0.0, 1.0, 11)]
-             for n, v in config.VARIABLES.items()}
+    cmaps = {n: [to_hex(colormaps[config.VARIABLES[n]["colormap"]](q)) for q in np.linspace(0.0, 1.0, 11)]
+             for n in config.FIXTURE_VARIABLES}  # fixed list: the fixture must not change when variables are added
     names = sorted(cmaps)
     grid_t = [-1.6, -1.0, -0.75, -0.5, -0.25, -0.1, -0.01, 0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 1.0, 1.6]
     cases = []
@@ -190,7 +210,8 @@ def main():
     fin = np.isfinite(slope)
     vmax = round_up_2sig(float(np.percentile(np.abs(slope[fin]), 98)))
 
-    sig_field = (q < config.ALPHA).astype(np.float64)  # 1 where significant, else 0 (NaN q -> 0)
+    # 1 where significant, 0 where not, NaN where there is no data (so the pale rim next to no-data areas is not blended in)
+    sig_field = np.where(np.isfinite(q), (q < config.ALPHA).astype(np.float64), np.nan)
     cmap = colormaps[meta_cfg["colormap"]]
     stops_hex = [to_hex(cmap(v)) for v in np.linspace(0.0, 1.0, 11)]
     rgb = overlay_rgb(bilinear_to_pixels(slope, lat, lon), bilinear_to_pixels(sig_field, lat, lon),
@@ -206,6 +227,12 @@ def main():
         "label": meta_cfg["label"],
         "units": meta_cfg["units"],
         "units_per_decade": meta_cfg["units_per_decade"],
+        "units_short": meta_cfg.get("units_short", meta_cfg["units"]),
+        "group": meta_cfg["group"],
+        "display_scale": meta_cfg.get("display_scale", 1),
+        "int16_offset": meta_cfg.get("int16_offset", 0),
+        "zero_means_absent": bool(meta_cfg.get("zero_means_absent", False)),
+        "surface": meta_cfg.get("surface", "any"),
         "definition": meta_cfg["definition"],
         "years": [config.YEARS[0], config.YEARS[-1]],
         "vmax": vmax,

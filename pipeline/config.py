@@ -14,6 +14,7 @@ VARIABLES = {
         "units_per_decade": "C per decade",
         "definition": "Average air temperature 2 metres above the ground over the year.",
         "colormap": "RdBu_r",
+        "group": "Temperature",
     },
     "PRECTOTCORR": {
         "label": "Precipitation",
@@ -21,6 +22,7 @@ VARIABLES = {
         "units_per_decade": "mm/day per decade",
         "definition": "Average amount of rain and snow (as water) falling per day over the year.",
         "colormap": "BrBG",
+        "group": "Water",
     },
     "WS2M": {
         "label": "Wind speed",
@@ -28,8 +30,88 @@ VARIABLES = {
         "units_per_decade": "m/s per decade",
         "definition": "Average wind speed 2 metres above the ground over the year.",
         "colormap": "PuOr_r",
+        "group": "Air",
+    },
+    "T2M_MAX": {
+        "label": "Hottest temperature of the year",
+        "units": "C",
+        "units_per_decade": "C per decade",
+        "definition": "The highest air temperature (2 metres above the ground, measured every hour) reached at any moment of the year.",
+        "colormap": "RdBu_r",
+        "group": "Temperature",
+    },
+    "GWETROOT": {
+        "label": "Soil moisture",
+        "units": "%",
+        "units_per_decade": "percentage points per decade",
+        "units_short": "% pts",
+        "definition": "How wet the soil is in the root zone (the top metre), from 0% (bone dry) to 100% (soaked), averaged over the year; land only.",
+        "colormap": "BrBG",
+        "group": "Water",
+        "display_scale": 100,
+        "surface": "land",
+    },
+    "EVLAND": {
+        "label": "Evaporation from land",
+        "units": "mm/day",
+        "units_per_decade": "mm/day per decade",
+        "definition": "How much water evaporates from soil, plants and puddles into the air each day, averaged over the year; land only.",
+        "colormap": "PRGn",
+        "group": "Water",
+        "surface": "land",
+    },
+    "RH2M": {
+        "label": "Humidity",
+        "units": "%",
+        "units_per_decade": "percentage points per decade",
+        "units_short": "% pts",
+        "definition": "How much water vapour the air 2 metres above the ground holds compared with the most it could hold, averaged over the year.",
+        "colormap": "PiYG",
+        "group": "Water",
+    },
+    "FRSNO": {
+        "label": "Snow cover",
+        "units": "%",
+        "units_per_decade": "percentage points per decade",
+        "units_short": "% pts",
+        "definition": "The share of the land surface covered by snow, averaged over the year; places that never have snow show no data.",
+        "colormap": "RdBu",
+        "group": "Ice & snow",
+        "display_scale": 100,
+        "zero_means_absent": True,
+        "surface": "land",
+    },
+    "FRSEAICE": {
+        "label": "Sea ice",
+        "units": "%",
+        "units_per_decade": "percentage points per decade",
+        "units_short": "% pts",
+        "definition": "The share of the sea surface covered by ice, averaged over the year; places that never have sea ice show no data.",
+        "colormap": "RdBu",
+        "group": "Ice & snow",
+        "display_scale": 100,
+        "zero_means_absent": True,
+        "surface": "sea",
+    },
+    "TO3": {
+        "label": "Ozone layer",
+        "units": "Dobson units",
+        "units_per_decade": "Dobson units per decade",
+        "units_short": "DU",
+        "definition": "How much ozone there is in the whole column of air above you (the layer that blocks harmful sunlight), averaged over the year.",
+        "colormap": "PuOr",
+        "group": "Air",
+        "int16_offset": 300,
     },
 }
+
+# "surface": "land" (no honest value over open water), "sea" (none over land) or "any" (default). A sea piece of a land
+# variable and a country piece of a sea variable are "no data" and have no files (seas.py / countries.py skip them).
+# Optional per-variable keys (see products.py): "display_scale" (100: a 0..1 fraction is shown as a whole percent),
+# "int16_offset" (Int16 files store round((value - offset) * 100)), "zero_means_absent" (a cell that is 0 in every
+# year has no data), "units_short" (short form of the per-decade units), "group" (picker group).
+# Variables whose figures are used as test fixtures (country_cases.json, sea_cases.json, overlay_cases.json):
+FIXTURE_VARIABLES = ["T2M", "PRECTOTCORR", "WS2M"]
 
 # Base map (pipeline/basemap.py) and trend overlay (pipeline/export.py overlay_rgb, mirrored in web/src/rangeMap.ts).
 # Tune the look here; export.py copies these values into every {VAR}_meta.json ("render") and the browser reads them.

@@ -5,14 +5,15 @@ import type { CountryPanelState } from './CountryPanel';
 import { cityMark, provinceHeading, sortProvinces, type ProvinceTrend } from './country';
 import type { VariableMeta } from './data';
 import { summarize, type DetailCell, type Ring } from './detail';
-import { VARIABLES } from './demos';
-import { displayUnits } from './format';
+import { VARIABLE_GROUPS } from './demos';
+import { rateUnits } from './format';
 import { formatTick, overlayBarCss } from './legend';
 import { MIN_YEARS } from './analysis';
 import PeriodBar from './PeriodBar';
 import { ResultChart, ResultSummary } from './Panel';
 import { periodText, type Period } from './period';
 import { cellKm } from './sea';
+import { surfaceMessage } from './noData';
 
 export type OverlayState = Exclude<CountryPanelState, { status: 'water' }>;
 
@@ -48,7 +49,7 @@ const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabin
 /** The selected country lifted to the whole screen: the piece in the middle, its data in cards around it. */
 export default function CountryOverlay(p: Props) {
   const { state, meta } = p;
-  const units = displayUnits(meta.units);
+  const units = rateUnits(meta.units);
   const rec = state.status === 'ready' ? state.data.rec : state.rec;
   const rootRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLButtonElement>(null);
@@ -117,11 +118,13 @@ export default function CountryOverlay(p: Props) {
 
   const sea = rec.sea ?? null;
   const what = sea ? 'sea' : 'country';
+  // How many of the piece's cells have data for this variable (a land-only variable has none over a sea, and so on).
+  const dropped = state.status === 'ready' && state.nCellsUsed < rec.nCells ? ` ${state.nCellsUsed.toLocaleString('en-US')} of them have data for this variable.` : '';
   const sub = sea
-    ? `Average over the whole sea (${rec.nCells.toLocaleString('en-US')} grid cells of about ${cellKm(sea)} km, weighted by area)`
+    ? `Average over the whole sea (${rec.nCells.toLocaleString('en-US')} grid cells of about ${cellKm(sea)} km, weighted by area).${dropped}`
     : rec.tiny
-      ? 'This country is smaller than one grid cell; values are for the single cell that covers it.'
-      : `Average over the whole country (${rec.nCells.toLocaleString('en-US')} grid cells of about 50 km, weighted by area)`;
+      ? `This country is smaller than one grid cell; values are for the single cell that covers it.${dropped}`
+      : `Average over the whole country (${rec.nCells.toLocaleString('en-US')} grid cells of about 50 km, weighted by area).${dropped}`;
 
   const summary = useMemo(() => (p.trends ? summarize(p.trends.cells) : null), [p.trends]);
   const bare = (e: React.MouseEvent) => {
@@ -151,12 +154,19 @@ export default function CountryOverlay(p: Props) {
           <button ref={backRef} className="co-back" onClick={p.onClose}>
             ← Back to the globe
           </button>
-          <div className="co-vars" role="group" aria-label="Variable">
-            {VARIABLES.map((v) => (
-              <button key={v} className={`co-var${v === p.variable ? ' active' : ''}`} aria-pressed={v === p.variable} onClick={() => p.onVariable(v)}>
-                {p.metas[v] ? p.metas[v].label : v}
-              </button>
-            ))}
+          <div className="co-vars">
+            <label htmlFor="co-var-select">Variable</label>
+            <select id="co-var-select" className="co-var-select" value={p.variable} onChange={(e) => p.onVariable(e.target.value)}>
+              {VARIABLE_GROUPS.map((g) => (
+                <optgroup key={g.name} label={g.name}>
+                  {g.variables.map((v) => (
+                    <option key={v} value={v}>
+                      {p.metas[v] ? p.metas[v].label : v}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -166,7 +176,7 @@ export default function CountryOverlay(p: Props) {
               {rec.name}
             </h2>
             <p className="co-sub">{sub}</p>
-            {sea && meta.variable === 'T2M' && (
+            {sea && (meta.variable === 'T2M' || meta.variable === 'T2M_MAX') && (
               <p className="co-sub">This is the air temperature 2 m above the water, not the water temperature.</p>
             )}
             {state.status === 'loading' && <p className="panel-msg detail-msg">Loading {state.rec.name}…</p>}
@@ -228,8 +238,11 @@ export default function CountryOverlay(p: Props) {
                 <section className="co-card" aria-label={sea ? 'Whole sea' : 'Whole country'}>
                   <h3 className="co-card-title">{sea ? 'Whole sea' : 'Whole country'}</h3>
                   <p className="panel-msg">
-                    Not enough data: only {ready.nYears} years have values for this {what}
-                    {p.fullPeriod ? '' : ` in ${periodText(p.period)}`} (at least {MIN_YEARS} are needed).
+                    {surfaceMessage(meta.label, meta.surface, !!sea)
+                      ? `No data: ${surfaceMessage(meta.label, meta.surface, !!sea)}`
+                      : ready.nCellsUsed === 0
+                      ? `No data: ${meta.label} has no values for this ${what}. Either it is not measured here (some variables exist only over land, or only over the sea) or it is always zero here (no snow or ice ever).`
+                      : `Not enough data: only ${ready.nYears} years have values for this ${what}${p.fullPeriod ? '' : ` in ${periodText(p.period)}`} (at least ${MIN_YEARS} are needed).`}
                   </p>
                 </section>
               )}

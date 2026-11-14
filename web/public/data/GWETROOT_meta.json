@@ -1,0 +1,156 @@
+{
+  "variable": "GWETROOT",
+  "label": "Soil moisture",
+  "units": "%",
+  "units_per_decade": "percentage points per decade",
+  "units_short": "% pts",
+  "group": "Water",
+  "display_scale": 100,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "land",
+  "definition": "How wet the soil is in the root zone (the top metre), from 0% (bone dry) to 100% (soaked), averaged over the year; land only.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 4.5,
+  "colormap_stops": [
+    "#543005",
+    "#8b500a",
+    "#bf812d",
+    "#dec17b",
+    "#f6e8c3",
+    "#f4f5f5",
+    "#c7eae5",
+    "#7fccc0",
+    "#35978f",
+    "#01655d",
+    "#003c30"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "render": {
+    "basemap": "basemap.png",
+    "color_floor": 0.3,
+    "alpha_max": 0.92,
+    "alpha_full_at": 0.5,
+    "ocean": "#96bedc",
+    "land": "#b0cd96"
+  },
+  "legend_stops": [
+    {
+      "t": -1.0,
+      "rgb": "#543005",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.9,
+      "rgb": "#673b07",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.8,
+      "rgb": "#7b4609",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.7,
+      "rgb": "#8e520c",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.6,
+      "rgb": "#a06418",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.5,
+      "rgb": "#b27524",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.4,
+      "rgb": "#c28735",
+      "alpha": 0.736
+    },
+    {
+      "t": -0.3,
+      "rgb": "#cd9e50",
+      "alpha": 0.552
+    },
+    {
+      "t": -0.2,
+      "rgb": "#d8b46b",
+      "alpha": 0.368
+    },
+    {
+      "t": -0.1,
+      "rgb": "#e2c786",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.0,
+      "rgb": "#f4f5f5",
+      "alpha": 0.0
+    },
+    {
+      "t": 0.1,
+      "rgb": "#8ad1c6",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.2,
+      "rgb": "#70c1b6",
+      "alpha": 0.368
+    },
+    {
+      "t": 0.3,
+      "rgb": "#56afa5",
+      "alpha": 0.552
+    },
+    {
+      "t": 0.4,
+      "rgb": "#3c9c94",
+      "alpha": 0.736
+    },
+    {
+      "t": 0.5,
+      "rgb": "#288b83",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.6,
+      "rgb": "#167971",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.7,
+      "rgb": "#046860",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.8,
+      "rgb": "#015950",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.9,
+      "rgb": "#004a40",
+      "alpha": 0.92
+    },
+    {
+      "t": 1.0,
+      "rgb": "#003c30",
+      "alpha": 0.92
+    }
+  ],
+  "frac_significant": 0.1963657614876127,
+  "global_mean_slope_decade": 0.10050357550395814
+}

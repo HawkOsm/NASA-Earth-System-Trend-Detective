@@ -96,8 +96,11 @@ export function countryCells(mask: Uint8Array, rec: Pick<CountryRec, 'idx' | 'ti
   return out;
 }
 
-/** Int16 little-endian [nCells][nYears] (value = round(v*100), -32768 = missing) -> rows of numbers, NaN for missing. */
-export function parseInt16Series(buf: ArrayBuffer, nYears: number): number[][] {
+/**
+ * Int16 little-endian [nCells][nYears] (stored = round((v - offset) * 100), -32768 = missing) -> rows of numbers
+ * (v = stored / 100 + offset), NaN for missing. The offset is 0 except for ozone (pipeline config int16_offset).
+ */
+export function parseInt16Series(buf: ArrayBuffer, nYears: number, offset = 0): number[][] {
   const n = Math.floor(buf.byteLength / 2 / nYears);
   const dv = new DataView(buf);
   const rows: number[][] = [];
@@ -105,7 +108,7 @@ export function parseInt16Series(buf: ArrayBuffer, nYears: number): number[][] {
     const row = new Array<number>(nYears);
     for (let y = 0; y < nYears; y++) {
       const v = dv.getInt16((c * nYears + y) * 2, true);
-      row[y] = v === MISSING_INT16 ? NaN : v / 100;
+      row[y] = v === MISSING_INT16 ? NaN : v / 100 + offset;
     }
     rows.push(row);
   }
@@ -480,12 +483,12 @@ export const loadCities = once(async () => (await (await fetchOk('cities.json'))
 
 const cityCache = new Map<string, Promise<number[][]>>();
 /** Series of every city's grid cell for one variable. */
-export function loadCitySeries(variable: string, nYears: number): Promise<number[][]> {
+export function loadCitySeries(variable: string, nYears: number, offset = 0): Promise<number[][]> {
   let p = cityCache.get(variable);
   if (!p) {
     p = fetchOk(`${variable}_cities.bin`)
       .then((r) => r.arrayBuffer())
-      .then((b) => parseInt16Series(b, nYears));
+      .then((b) => parseInt16Series(b, nYears, offset));
     p.catch(() => cityCache.delete(variable));
     cityCache.set(variable, p);
   }
@@ -494,13 +497,13 @@ export function loadCitySeries(variable: string, nYears: number): Promise<number
 
 const seriesCache = new Map<string, Promise<number[][]>>();
 /** Series of every cell of a country (mask order) for one variable. */
-export function loadCountrySeries(variable: string, idx: number, nYears: number): Promise<number[][]> {
+export function loadCountrySeries(variable: string, idx: number, nYears: number, offset = 0): Promise<number[][]> {
   const key = `${variable}/${idx}`;
   let p = seriesCache.get(key);
   if (!p) {
     p = fetchOk(`countries/${variable}/${idx}.bin`)
       .then((r) => r.arrayBuffer())
-      .then((b) => parseInt16Series(b, nYears));
+      .then((b) => parseInt16Series(b, nYears, offset));
     p.catch(() => seriesCache.delete(key));
     seriesCache.set(key, p);
   }

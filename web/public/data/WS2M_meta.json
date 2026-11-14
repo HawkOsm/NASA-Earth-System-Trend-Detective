@@ -3,6 +3,12 @@
   "label": "Wind speed",
   "units": "m/s",
   "units_per_decade": "m/s per decade",
+  "units_short": "m/s",
+  "group": "Air",
+  "display_scale": 1,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "any",
   "definition": "Average wind speed 2 metres above the ground over the year.",
   "years": [
     1981,

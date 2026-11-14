@@ -10,3 +10,13 @@ export function formatLatLng({ lat, lng }: LatLng): string {
 export function displayUnits(units: string): string {
   return units === 'C' ? '°C' : units;
 }
+
+/** Units of a rate per decade, short: "% pts" for a percent variable (percentage points), else the display units. */
+export function rateUnits(units: string): string {
+  return units === '%' ? '% pts' : displayUnits(units);
+}
+
+/** The same in words for a sentence: "percentage points" for a percent variable. */
+export function rateUnitsLong(units: string): string {
+  return units === '%' ? 'percentage points' : displayUnits(units);
+}

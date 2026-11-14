@@ -1,0 +1,156 @@
+{
+  "variable": "RH2M",
+  "label": "Humidity",
+  "units": "%",
+  "units_per_decade": "percentage points per decade",
+  "units_short": "% pts",
+  "group": "Water",
+  "display_scale": 1,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "any",
+  "definition": "How much water vapour the air 2 metres above the ground holds compared with the most it could hold, averaged over the year.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 1.9,
+  "colormap_stops": [
+    "#8e0152",
+    "#c41a7c",
+    "#de77ae",
+    "#f1b5d9",
+    "#fde0ef",
+    "#f7f7f6",
+    "#e6f5d0",
+    "#b7e085",
+    "#7fbc41",
+    "#4c9121",
+    "#276419"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "render": {
+    "basemap": "basemap.png",
+    "color_floor": 0.3,
+    "alpha_max": 0.92,
+    "alpha_full_at": 0.5,
+    "ocean": "#96bedc",
+    "land": "#b0cd96"
+  },
+  "legend_stops": [
+    {
+      "t": -1.0,
+      "rgb": "#8e0152",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.9,
+      "rgb": "#a10a61",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.8,
+      "rgb": "#b4136f",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.7,
+      "rgb": "#c51f7f",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.6,
+      "rgb": "#ce3f90",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.5,
+      "rgb": "#d860a2",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.4,
+      "rgb": "#e07db2",
+      "alpha": 0.736
+    },
+    {
+      "t": -0.3,
+      "rgb": "#e793c1",
+      "alpha": 0.552
+    },
+    {
+      "t": -0.2,
+      "rgb": "#eda9d0",
+      "alpha": 0.368
+    },
+    {
+      "t": -0.1,
+      "rgb": "#f3bbdc",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.0,
+      "rgb": "#f7f7f6",
+      "alpha": 0.0
+    },
+    {
+      "t": 0.1,
+      "rgb": "#bee390",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.2,
+      "rgb": "#acd977",
+      "alpha": 0.368
+    },
+    {
+      "t": 0.3,
+      "rgb": "#98cc60",
+      "alpha": 0.552
+    },
+    {
+      "t": 0.4,
+      "rgb": "#85c048",
+      "alpha": 0.736
+    },
+    {
+      "t": 0.5,
+      "rgb": "#72b139",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.6,
+      "rgb": "#60a22e",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.7,
+      "rgb": "#4f9323",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.8,
+      "rgb": "#41841f",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.9,
+      "rgb": "#34741c",
+      "alpha": 0.92
+    },
+    {
+      "t": 1.0,
+      "rgb": "#276419",
+      "alpha": 0.92
+    }
+  ],
+  "frac_significant": 0.28018590063779186,
+  "global_mean_slope_decade": 0.05804038917024347
+}

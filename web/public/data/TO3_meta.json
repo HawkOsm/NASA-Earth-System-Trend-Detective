@@ -1,0 +1,156 @@
+{
+  "variable": "TO3",
+  "label": "Ozone layer",
+  "units": "Dobson units",
+  "units_per_decade": "Dobson units per decade",
+  "units_short": "DU",
+  "group": "Air",
+  "display_scale": 1,
+  "int16_offset": 300,
+  "zero_means_absent": false,
+  "surface": "any",
+  "definition": "How much ozone there is in the whole column of air above you (the layer that blocks harmful sunlight), averaged over the year.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 3.1,
+  "colormap_stops": [
+    "#7f3b08",
+    "#b25706",
+    "#e08214",
+    "#fcb761",
+    "#fee0b6",
+    "#f6f6f7",
+    "#d8daeb",
+    "#b1aad1",
+    "#8073ac",
+    "#532687",
+    "#2d004b"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "render": {
+    "basemap": "basemap.png",
+    "color_floor": 0.3,
+    "alpha_max": 0.92,
+    "alpha_full_at": 0.5,
+    "ocean": "#96bedc",
+    "land": "#b0cd96"
+  },
+  "legend_stops": [
+    {
+      "t": -1.0,
+      "rgb": "#7f3b08",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.9,
+      "rgb": "#914507",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.8,
+      "rgb": "#a34f07",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.7,
+      "rgb": "#b45907",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.6,
+      "rgb": "#c4680c",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.5,
+      "rgb": "#d57711",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.4,
+      "rgb": "#e3871c",
+      "alpha": 0.736
+    },
+    {
+      "t": -0.3,
+      "rgb": "#ed9a37",
+      "alpha": 0.552
+    },
+    {
+      "t": -0.2,
+      "rgb": "#f6ac52",
+      "alpha": 0.368
+    },
+    {
+      "t": -0.1,
+      "rgb": "#fcbd6e",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.0,
+      "rgb": "#f6f6f7",
+      "alpha": 0.0
+    },
+    {
+      "t": 0.1,
+      "rgb": "#b7b1d5",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.2,
+      "rgb": "#a79fca",
+      "alpha": 0.368
+    },
+    {
+      "t": 0.3,
+      "rgb": "#968cbd",
+      "alpha": 0.552
+    },
+    {
+      "t": 0.4,
+      "rgb": "#8578b0",
+      "alpha": 0.736
+    },
+    {
+      "t": 0.5,
+      "rgb": "#7560a3",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.6,
+      "rgb": "#654596",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.7,
+      "rgb": "#552a89",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.8,
+      "rgb": "#481b75",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.9,
+      "rgb": "#3a0d60",
+      "alpha": 0.92
+    },
+    {
+      "t": 1.0,
+      "rgb": "#2d004b",
+      "alpha": 0.92
+    }
+  ],
+  "frac_significant": 0.1413050674831181,
+  "global_mean_slope_decade": -0.30589818915323386
+}

@@ -1,0 +1,156 @@
+{
+  "variable": "FRSEAICE",
+  "label": "Sea ice",
+  "units": "%",
+  "units_per_decade": "percentage points per decade",
+  "units_short": "% pts",
+  "group": "Ice & snow",
+  "display_scale": 100,
+  "int16_offset": 0,
+  "zero_means_absent": true,
+  "surface": "sea",
+  "definition": "The share of the sea surface covered by ice, averaged over the year; places that never have sea ice show no data.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 6.6,
+  "colormap_stops": [
+    "#67001f",
+    "#b1182b",
+    "#d6604d",
+    "#f3a481",
+    "#fddbc7",
+    "#f6f7f7",
+    "#d1e5f0",
+    "#90c4dd",
+    "#4393c3",
+    "#2065ab",
+    "#053061"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "render": {
+    "basemap": "basemap.png",
+    "color_floor": 0.3,
+    "alpha_max": 0.92,
+    "alpha_full_at": 0.5,
+    "ocean": "#96bedc",
+    "land": "#b0cd96"
+  },
+  "legend_stops": [
+    {
+      "t": -1.0,
+      "rgb": "#67001f",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.9,
+      "rgb": "#810823",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.8,
+      "rgb": "#9b1127",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.7,
+      "rgb": "#b31c2d",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.6,
+      "rgb": "#c03539",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.5,
+      "rgb": "#cd4e45",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.4,
+      "rgb": "#d96752",
+      "alpha": 0.736
+    },
+    {
+      "t": -0.3,
+      "rgb": "#e37f64",
+      "alpha": 0.552
+    },
+    {
+      "t": -0.2,
+      "rgb": "#ed9677",
+      "alpha": 0.368
+    },
+    {
+      "t": -0.1,
+      "rgb": "#f4ac8b",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.0,
+      "rgb": "#f6f7f7",
+      "alpha": 0.0
+    },
+    {
+      "t": 0.1,
+      "rgb": "#9ac9e0",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.2,
+      "rgb": "#81bad8",
+      "alpha": 0.368
+    },
+    {
+      "t": 0.3,
+      "rgb": "#66a9cf",
+      "alpha": 0.552
+    },
+    {
+      "t": 0.4,
+      "rgb": "#4b98c6",
+      "alpha": 0.736
+    },
+    {
+      "t": 0.5,
+      "rgb": "#3a88bd",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.6,
+      "rgb": "#2e77b5",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.7,
+      "rgb": "#2267ac",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.8,
+      "rgb": "#185595",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.9,
+      "rgb": "#0e437b",
+      "alpha": 0.92
+    },
+    {
+      "t": 1.0,
+      "rgb": "#053061",
+      "alpha": 0.92
+    }
+  ],
+  "frac_significant": 0.3763088997106137,
+  "global_mean_slope_decade": -0.21619121774005393
+}

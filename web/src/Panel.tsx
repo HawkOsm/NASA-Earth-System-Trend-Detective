@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Chart from './Chart';
 import { signedRate, type Analysis, MIN_YEARS } from './analysis';
 import { periodText, type Period } from './period';
-import { formatLatLng } from './format';
+import { formatLatLng, rateUnits } from './format';
 import type { Cell } from './power';
 import type { RegionBox } from './region';
 import type { LatLng } from './Globe';
@@ -16,6 +16,8 @@ interface PanelBase {
   /** 0 = single grid cell, otherwise box side in degrees. */
   sizeDeg: number;
   box: RegionBox | null;
+  /** Box only: grid cells in the response (some may have no data for this variable). */
+  nTotal?: number;
 }
 
 export type PanelState =
@@ -23,6 +25,12 @@ export type PanelState =
   | (PanelBase & { status: 'error'; message: string })
   | (PanelBase & { status: 'insufficient'; nYears: number; nCells: number })
   | (PanelBase & { status: 'ready'; analysis: Analysis; nCells: number });
+
+/** "4 grid cells", or "4 of 9 grid cells have data" when some cells of the box have no data for the variable. */
+export function cellsText(nCells: number, nTotal?: number): string {
+  if (nTotal !== undefined && nTotal > nCells) return `${nCells} of ${nTotal} grid cells have data`;
+  return `${nCells} grid cell${nCells === 1 ? '' : 's'}`;
+}
 
 export const AREA_OPTIONS: { size: number; label: string }[] = [
   { size: 0, label: 'Point (~50 km)' },
@@ -107,7 +115,7 @@ export default function Panel({
           <p className="panel-cell">
             {sizeDeg > 0
               ? `Average over a ${sizeDeg}° × ${sizeDeg}° area${
-                  'nCells' in state ? ` (${state.nCells} grid cell${state.nCells === 1 ? '' : 's'})` : ''
+                  'nCells' in state ? ` (${cellsText(state.nCells, state.nTotal)})` : ''
                 } centred at ${formatLatLng(state.center)}`
               : `Grid cell centred at ${formatLatLng({ lat: cell.lat, lng: cell.lng })}`}
           </p>
@@ -146,8 +154,9 @@ export default function Panel({
 
       {state.status === 'insufficient' && (
         <p className="panel-msg">
-          Not enough data: only {state.nYears} years have values here
-          {fullPeriod ? '' : ` in ${periodText(period)}`} (at least {MIN_YEARS} are needed).
+          {state.nYears === 0
+            ? 'No data here: this variable has no values at this spot (it is only measured over land or only over the sea, or it is always zero here, like snow in a desert).'
+            : `Not enough data: only ${state.nYears} years have values here${fullPeriod ? '' : ` in ${periodText(period)}`} (at least ${MIN_YEARS} are needed).`}
         </p>
       )}
 
@@ -185,7 +194,7 @@ export function ResultSummary({ a, area, country = false }: { a: Analysis; area:
         <div className="tile">
           <div className="tile-label">Rate</div>
           <div className="tile-value">{signedRate(a.slopeDecade)}</div>
-          <div className="tile-sub">{a.units} per decade</div>
+          <div className="tile-sub">{rateUnits(a.units)} per decade</div>
         </div>
         <div className="tile">
           <div className="tile-label">p-value</div>
@@ -197,7 +206,7 @@ export function ResultSummary({ a, area, country = false }: { a: Analysis; area:
           <div className="tile-value tile-range">
             {signedRate(a.ciLowDecade)} to {signedRate(a.ciHighDecade)}
           </div>
-          <div className="tile-sub">{a.units} per decade</div>
+          <div className="tile-sub">{rateUnits(a.units)} per decade</div>
         </div>
       </div>
       {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}

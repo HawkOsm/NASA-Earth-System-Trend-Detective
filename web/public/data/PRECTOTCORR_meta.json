@@ -3,6 +3,12 @@
   "label": "Precipitation",
   "units": "mm/day",
   "units_per_decade": "mm/day per decade",
+  "units_short": "mm/day",
+  "group": "Water",
+  "display_scale": 1,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "any",
   "definition": "Average amount of rain and snow (as water) falling per day over the year.",
   "years": [
     1981,

@@ -1,0 +1,156 @@
+{
+  "variable": "EVLAND",
+  "label": "Evaporation from land",
+  "units": "mm/day",
+  "units_per_decade": "mm/day per decade",
+  "units_short": "mm/day per decade",
+  "group": "Water",
+  "display_scale": 1,
+  "int16_offset": 0,
+  "zero_means_absent": false,
+  "surface": "land",
+  "definition": "How much water evaporates from soil, plants and puddles into the air each day, averaged over the year; land only.",
+  "years": [
+    1981,
+    2025
+  ],
+  "vmax": 0.29,
+  "colormap_stops": [
+    "#40004b",
+    "#752982",
+    "#9970ab",
+    "#c1a4ce",
+    "#e7d4e8",
+    "#f6f7f6",
+    "#d9f0d3",
+    "#a5da9f",
+    "#5aae61",
+    "#1a7736",
+    "#00441b"
+  ],
+  "grid": {
+    "nlat": 361,
+    "nlon": 576,
+    "lat0": -90.0,
+    "dlat": 0.5,
+    "lon0": -180.0,
+    "dlon": 0.625
+  },
+  "render": {
+    "basemap": "basemap.png",
+    "color_floor": 0.3,
+    "alpha_max": 0.92,
+    "alpha_full_at": 0.5,
+    "ocean": "#96bedc",
+    "land": "#b0cd96"
+  },
+  "legend_stops": [
+    {
+      "t": -1.0,
+      "rgb": "#40004b",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.9,
+      "rgb": "#530e5e",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.8,
+      "rgb": "#651d72",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.7,
+      "rgb": "#772d84",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.6,
+      "rgb": "#834592",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.5,
+      "rgb": "#905ea1",
+      "alpha": 0.92
+    },
+    {
+      "t": -0.4,
+      "rgb": "#9d75af",
+      "alpha": 0.736
+    },
+    {
+      "t": -0.3,
+      "rgb": "#ab87bb",
+      "alpha": 0.552
+    },
+    {
+      "t": -0.2,
+      "rgb": "#b99ac7",
+      "alpha": 0.368
+    },
+    {
+      "t": -0.1,
+      "rgb": "#c7abd2",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.0,
+      "rgb": "#f6f7f6",
+      "alpha": 0.0
+    },
+    {
+      "t": 0.1,
+      "rgb": "#addda7",
+      "alpha": 0.184
+    },
+    {
+      "t": 0.2,
+      "rgb": "#96d193",
+      "alpha": 0.368
+    },
+    {
+      "t": 0.3,
+      "rgb": "#7cc27d",
+      "alpha": 0.552
+    },
+    {
+      "t": 0.4,
+      "rgb": "#61b267",
+      "alpha": 0.736
+    },
+    {
+      "t": 0.5,
+      "rgb": "#4aa056",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.6,
+      "rgb": "#348d47",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.7,
+      "rgb": "#1d7a38",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.8,
+      "rgb": "#12682e",
+      "alpha": 0.92
+    },
+    {
+      "t": 0.9,
+      "rgb": "#095624",
+      "alpha": 0.92
+    },
+    {
+      "t": 1.0,
+      "rgb": "#00441b",
+      "alpha": 0.92
+    }
+  ],
+  "frac_significant": 0.23755522478201288,
+  "global_mean_slope_decade": 0.00032520906161917013
+}

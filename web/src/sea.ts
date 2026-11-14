@@ -210,11 +210,11 @@ export function loadSeaCells(idx: number): Promise<[number, number][]> {
 }
 
 const seriesCache = new Map<string, Promise<number[][]>>();
-export function loadSeaSeries(variable: string, idx: number, nYears: number): Promise<number[][]> {
+export function loadSeaSeries(variable: string, idx: number, nYears: number, offset = 0): Promise<number[][]> {
   const key = `${variable}/${idx}`;
   let p = seriesCache.get(key);
   if (!p) {
-    p = fetchOk(`seas/${variable}/${idx}.bin`).then((r) => r.arrayBuffer()).then((b) => parseInt16Series(b, nYears));
+    p = fetchOk(`seas/${variable}/${idx}.bin`).then((r) => r.arrayBuffer()).then((b) => parseInt16Series(b, nYears, offset));
     p.catch(() => seriesCache.delete(key));
     seriesCache.set(key, p);
   }

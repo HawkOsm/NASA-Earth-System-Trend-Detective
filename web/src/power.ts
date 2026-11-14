@@ -1,5 +1,6 @@
 import type { GridMeta } from './data';
 import type { RegionBox, RegionData } from './region';
+import { PLAIN_RULES, cleanApiValue, neverPresent, type VariableRules } from './noData';
 
 export interface Cell {
   lat: number;
@@ -31,22 +32,26 @@ interface PowerJson {
   properties?: { parameter?: Record<string, Record<string, number>> };
 }
 
-/** Parse a POWER monthly/point response. Month "13" is POWER's own annual value. */
-export function parsePowerResponse(json: unknown, variable: string): PointSeries {
+/**
+ * Parse a POWER monthly/point response. Month "13" is POWER's own annual value. `rules` (from the variable's meta) say
+ * how to read the values: fill values / <= -900 are NaN, a percent variable is scaled to whole percent, and for snow
+ * and sea ice a cell that is 0 in every year has no data (all NaN). Without rules the values are used as they are.
+ */
+export function parsePowerResponse(json: unknown, variable: string, rules: VariableRules = PLAIN_RULES): PointSeries {
   const j = json as PowerJson | null;
   const values = j?.properties?.parameter?.[variable];
   if (!values || typeof values !== 'object') {
     throw new Error(`NASA POWER response has no data for ${variable}.`);
   }
   const fill = j?.header?.fill_value ?? -999;
-  const units = j?.parameters?.[variable]?.units ?? '';
+  const units = rules.units ?? j?.parameters?.[variable]?.units ?? '';
   const years = new Set<number>();
   for (const key of Object.keys(values)) {
     if (/^\d{6}$/.test(key)) years.add(Number(key.slice(0, 4)));
   }
   const yearList = [...years].sort((a, b) => a - b);
   if (yearList.length === 0) throw new Error('NASA POWER response contained no yearly data.');
-  const clean = (v: unknown): number => (typeof v === 'number' && v !== fill && Number.isFinite(v) ? v : NaN);
+  const clean = (v: unknown): number => cleanApiValue(v, fill, rules.displayScale);
   const annual: number[] = [];
   const monthly: number[] = [];
   const monthlyT: number[] = [];
@@ -56,6 +61,10 @@ export function parsePowerResponse(json: unknown, variable: string): PointSeries
       monthly.push(clean(values[`${y}${String(m).padStart(2, '0')}`]));
       monthlyT.push(y + (m - 0.5) / 12);
     }
+  }
+  if (rules.zeroMeansAbsent && neverPresent(annual)) {
+    annual.fill(NaN);
+    monthly.fill(NaN);
   }
   return { years: yearList, annual, monthlyT, monthly, units };
 }
@@ -68,6 +77,7 @@ export async function fetchPointSeries(
   cellLng: number,
   signal?: AbortSignal,
   yearRange: [number, number] = [1981, 2025],
+  rules: VariableRules = PLAIN_RULES,
 ): Promise<PointSeries> {
   // Cell centres are unique per cell, so lat/lng identify the cell (same as its grid indices).
   const key = `${variable}|${cellLat}|${cellLng}|${yearRange[0]}-${yearRange[1]}`;
@@ -93,7 +103,7 @@ export async function fetchPointSeries(
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
     throw new Error('NASA POWER returned a response that could not be read.');
   }
-  const series = parsePowerResponse(json, variable);
+  const series = parsePowerResponse(json, variable, rules);
   cache.set(key, series);
   return series;
 }
@@ -108,7 +118,7 @@ interface RegionalJson {
 }
 
 /** Parse a POWER monthly/regional response (GeoJSON, one feature per grid cell). */
-export function parseRegionalResponse(json: unknown, variable: string): RegionData {
+export function parseRegionalResponse(json: unknown, variable: string, rules: VariableRules = PLAIN_RULES): RegionData {
   const j = json as RegionalJson | null;
   if (!j || !Array.isArray(j.features) || j.features.length === 0) {
     throw new Error(`NASA POWER response has no grid cells for ${variable}.`);
@@ -119,7 +129,7 @@ export function parseRegionalResponse(json: unknown, variable: string): RegionDa
     if (typeof lng !== 'number' || typeof lat !== 'number') {
       throw new Error('NASA POWER response contained a grid cell without coordinates.');
     }
-    const s = parsePowerResponse({ header: j.header, parameters: j.parameters, properties: f.properties }, variable);
+    const s = parsePowerResponse({ header: j.header, parameters: j.parameters, properties: f.properties }, variable, rules);
     if (!first) first = s;
     else if (s.years.length !== first.years.length || s.years[0] !== first.years[0]) {
       throw new Error('NASA POWER response had grid cells covering different years.');
@@ -137,6 +147,7 @@ export async function fetchRegionSeries(
   box: RegionBox,
   signal?: AbortSignal,
   yearRange: [number, number] = [1981, 2025],
+  rules: VariableRules = PLAIN_RULES,
 ): Promise<RegionData> {
   const key = `${variable}|${box.latMin},${box.latMax},${box.lngMin},${box.lngMax}|${yearRange[0]}-${yearRange[1]}`;
   const hit = regionCache.get(key);
@@ -173,7 +184,7 @@ export async function fetchRegionSeries(
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
     throw new Error('NASA POWER returned a response that could not be read.');
   }
-  const data = parseRegionalResponse(json, variable);
+  const data = parseRegionalResponse(json, variable, rules);
   regionCache.set(key, data);
   return data;
 }

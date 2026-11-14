@@ -6,6 +6,8 @@ export interface WorkerRequest {
   years: number[];
   nc: number;
   scale: number;
+  /** Added back to each stored value (ozone). */
+  offset?: number;
 }
 export type WorkerMessage =
   | { id: number; type: 'progress'; done: number }
@@ -18,7 +20,7 @@ interface WorkerScope {
 const ctx = self as unknown as WorkerScope;
 
 ctx.onmessage = (e: MessageEvent<WorkerRequest>) => {
-  const { id, chunk, years, nc, scale } = e.data;
+  const { id, chunk, years, nc, scale, offset } = e.data;
   let lastPost = 0;
   const stats = computeChunk(chunk, years, nc, scale, (done) => {
     const now = performance.now();
@@ -26,7 +28,7 @@ ctx.onmessage = (e: MessageEvent<WorkerRequest>) => {
       lastPost = now;
       ctx.postMessage({ id, type: 'progress', done } satisfies WorkerMessage);
     }
-  });
+  }, offset ?? 0);
   ctx.postMessage({ id, type: 'done', slope: stats.slope, p: stats.p } satisfies WorkerMessage, [
     stats.slope.buffer,
     stats.p.buffer,

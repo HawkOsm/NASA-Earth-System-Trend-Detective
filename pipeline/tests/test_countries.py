@@ -85,6 +85,9 @@ def test_turkey_bin_and_first_cell(mask, recs):
 
 def test_all_bins_exist_with_right_size(recs):
     for var in config.VARIABLES:
+        if config.VARIABLES[var].get("surface") == "sea":  # sea-only variable: no country files (products.has_pieces)
+            assert not os.path.exists(os.path.join(D, "countries", var))
+            continue
         for r in recs:
             assert os.path.getsize(os.path.join(D, "countries", var, f"{r['idx']}.bin")) == r["nCells"] * 90
 

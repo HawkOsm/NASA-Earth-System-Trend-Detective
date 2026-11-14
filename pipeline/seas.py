@@ -25,7 +25,8 @@ import numpy as np
 import basemap
 import config
 import countries as C
-from export_wind import DLAT as CDLAT, DLON as CDLON, NLAT as CNLAT, NLON as CNLON, block_average
+import products
+from export_wind import DLAT as CDLAT, DLON as CDLON, NLAT as CNLAT, NLON as CNLON
 from trendstats import trend_1d
 
 MARINE_JSON = os.path.join(config.PIPELINE_DIR, "data", "ne_50m_geography_marine_polys.geojson")
@@ -204,7 +205,7 @@ def coarse_grid(grid):
     key = id(grid)
     if key not in _coarse:
         _coarse.clear()
-        _coarse[key] = np.stack([block_average(grid[k], None, None) for k in range(grid.shape[0])])
+        _coarse[key] = products.coarse_stack(grid)  # missing-aware block mean, shared with export_annual_grid.py
     return _coarse[key]
 
 
@@ -219,17 +220,21 @@ def write_all(recs, cells, sea_mask, outlines):
         if len(lat):
             np.column_stack([lat, lng]).astype("<f4").tofile(os.path.join(OUT, "seas", f"{idx}.cells.bin"))
     for var in config.VARIABLES:
+        if not products.has_pieces(var, sea=True):
+            print(f"{var}: surface '{products.surface(var)}', skipping the sea pieces (no data over open water)")
+            continue
         d = os.path.join(OUT, "seas", var)
         os.makedirs(d, exist_ok=True)
         grid = C.load_grid(var)
+        offset = products.rules(var)[1]
         for idx, mc in enumerate(cells):
             if len(mc[0]):
-                C.to_int16(series_for(var, grid, mc)).tofile(os.path.join(d, f"{idx}.bin"))
+                C.to_int16(series_for(var, grid, mc), offset).tofile(os.path.join(d, f"{idx}.bin"))
 
 
 def read_values(var, rec):
     raw = np.fromfile(os.path.join(OUT, "seas", var, f"{rec['idx']}.bin"), dtype="<i2").reshape(rec["nCells"], 45)
-    return np.where(raw == MISSING, np.nan, raw / 100.0)
+    return products.from_int16(raw, products.rules(var)[1])
 
 
 def read_cells(rec):
@@ -242,7 +247,7 @@ def build_fixture(recs):
     for name in FIXTURE_SEAS:
         rec = next(r for r in recs if r["name"] == name)
         lat = read_cells(rec)[:, 0].astype(np.float64)
-        for var in config.VARIABLES:
+        for var in config.FIXTURE_VARIABLES:  # fixed list: the committed expected values do not change
             ser, nk = C.weighted_mean_series(lat, read_values(var, rec))
             t = trend_1d(ser, np.array(years, dtype=np.float64)) if nk else None
             cases.append({

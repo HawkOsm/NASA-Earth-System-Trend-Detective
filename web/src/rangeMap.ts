@@ -4,6 +4,7 @@
  * overlay_rgb, round_up_2sig) and pipeline/trendstats.py (bh_adjust).
  */
 import { trend } from './stats/trend';
+import { MISSING_INT16 } from './noData';
 
 export interface AnnualMeta {
   nlat: number;
@@ -15,6 +16,8 @@ export interface AnnualMeta {
   years: [number, number];
   scale: number;
   units: string;
+  /** Added back to the stored value (ozone is stored minus 300 to fit Int16). Default 0. */
+  offset?: number;
 }
 
 export const ALPHA = 0.05;
@@ -59,20 +62,27 @@ export interface CellStats {
   p: Float64Array;
 }
 
-/** trend() on every cell of a [year][cell] chunk. `years` are the calendar years of the chunk's rows. */
+/**
+ * trend() on every cell of a [year][cell] chunk. `years` are the calendar years of the chunk's rows. A stored value is
+ * chunk * scale + offset; -32768 is "no data" (NaN), and a cell with a missing year has no trend (NaN slope and p).
+ */
 export function computeChunk(
   chunk: Int16Array,
   years: number[],
   nc: number,
   scale: number,
   onProgress?: (done: number) => void,
+  offset = 0,
 ): CellStats {
   const ny = years.length;
   const slope = new Float64Array(nc);
   const p = new Float64Array(nc);
   const y = new Array<number>(ny);
   for (let c = 0; c < nc; c++) {
-    for (let k = 0; k < ny; k++) y[k] = chunk[k * nc + c] * scale;
+    for (let k = 0; k < ny; k++) {
+      const v = chunk[k * nc + c];
+      y[k] = v === MISSING_INT16 ? NaN : offset === 0 ? v * scale : v * scale + offset;
+    }
     const r = trend(y, years);
     slope[c] = r.slope * 10;
     p[c] = r.p;
@@ -89,7 +99,7 @@ export function computeCells(data: Int16Array, meta: AnnualMeta, start: number, 
   const yi1 = end - meta.years[0];
   const years: number[] = [];
   for (let yr = start; yr <= end; yr++) years.push(yr);
-  return computeChunk(extractChunk(data, ncells, yi0, yi1, 0, ncells), years, ncells, meta.scale);
+  return computeChunk(extractChunk(data, ncells, yi0, yi1, 0, ncells), years, ncells, meta.scale, undefined, meta.offset ?? 0);
 }
 
 /** Benjamini-Hochberg adjusted p-values over all finite entries; NaN stays NaN (pipeline/trendstats.py bh_adjust). */
@@ -191,7 +201,12 @@ export function bilinearAt(
   return top * (1 - wi) + bot * wi;
 }
 
-/** Bilinear resample of a [lat][lon] grid to a width x height image (row 0 = north, column 0 starts at -180). */
+/**
+ * Bilinear resample of a [lat][lon] grid to a width x height image (row 0 = north, column 0 starts at -180).
+ * NaN (no data), mirror of pipeline/export.py: a pixel whose four surrounding points are all valid is the plain
+ * bilinear value; a pixel next to missing points is the mean of the valid ones among the four (weighted as bilinear),
+ * and NaN when its nearest grid point is missing.
+ */
 export function bilinearToPixels(
   grid: ArrayLike<number>,
   meta: Pick<AnnualMeta, 'nlat' | 'nlon' | 'lat0' | 'dlat' | 'lon0' | 'dlon'>,
@@ -199,11 +214,44 @@ export function bilinearToPixels(
   height = TEX_H,
 ): Float64Array {
   const out = new Float64Array(width * height);
+  let anyMissing = false;
+  for (let i = 0; i < grid.length; i++) {
+    if (!Number.isFinite(grid[i])) {
+      anyMissing = true;
+      break;
+    }
+  }
+  if (!anyMissing) {
+    for (let y = 0; y < height; y++) {
+      const lat = 90 - ((y + 0.5) * 180) / height;
+      for (let x = 0; x < width; x++) {
+        const lng = -180 + ((x + 0.5) * 360) / width;
+        out[y * width + x] = bilinearAt(grid, meta, lat, lng);
+      }
+    }
+    return out;
+  }
+  const { nlat, nlon, lat0, dlat, lon0, dlon } = meta;
+  const ok = new Float64Array(grid.length);
+  const filled = new Float64Array(grid.length);
+  for (let i = 0; i < grid.length; i++) {
+    const fin = Number.isFinite(grid[i]);
+    ok[i] = fin ? 1 : 0;
+    filled[i] = fin ? grid[i] : 0;
+  }
   for (let y = 0; y < height; y++) {
     const lat = 90 - ((y + 0.5) * 180) / height;
+    const fi = Math.min(Math.max((lat - lat0) / dlat, 0), nlat - 1);
+    const ni = Math.min(Math.max(Math.floor(fi + 0.5), 0), nlat - 1);
     for (let x = 0; x < width; x++) {
       const lng = -180 + ((x + 0.5) * 360) / width;
-      out[y * width + x] = bilinearAt(grid, meta, lat, lng);
+      const w = bilinearAt(ok, meta, lat, lng);
+      if (w >= 1 - 1e-12) {
+        out[y * width + x] = bilinearAt(grid, meta, lat, lng);
+        continue;
+      }
+      const nj = ((Math.floor((lng - lon0) / dlon + 0.5) % nlon) + nlon) % nlon;
+      out[y * width + x] = ok[ni * nlon + nj] === 0 || w <= 0 ? NaN : bilinearAt(filled, meta, lat, lng) / w;
     }
   }
   return out;
@@ -290,7 +338,7 @@ export function finishResult(
   const q = bhAdjust(stats.p);
   const vmax = symmetricVmax(stats.slope);
   const sig = new Float64Array(q.length);
-  for (let i = 0; i < q.length; i++) sig[i] = q[i] < ALPHA ? 1 : 0;
+  for (let i = 0; i < q.length; i++) sig[i] = Number.isNaN(q[i]) ? NaN : q[i] < ALPHA ? 1 : 0; // NaN = no data
   const rgba = overlayPixels(bilinearToPixels(stats.slope, meta), bilinearToPixels(sig, meta), vmax, stopsHex, base, render);
   return {
     variable,

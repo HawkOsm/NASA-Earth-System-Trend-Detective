@@ -1,6 +1,6 @@
 import { monthlyAnomalies, type PointSeries } from './power';
 import { fmtRate, senIntercept, trend, verdict, verdictKind, type TrendResult, type VerdictKind } from './stats/trend';
-import { displayUnits } from './format';
+import { displayUnits, rateUnitsLong } from './format';
 import { filterToPeriod, isFullPeriod, type Period } from './period';
 
 export const MIN_YEARS = 10;
@@ -93,7 +93,7 @@ export function analyze(series: PointSeries, period?: Period): Analysis | null {
     ciLowDecade: result.ciLow * 10,
     ciHighDecade: result.ciHigh * 10,
     p: result.p,
-    verdict: verdict(slopeDecade, result.p, units),
+    verdict: verdict(slopeDecade, result.p, rateUnitsLong(units)),
     kind: verdictKind(result.p),
     chart,
     result,
