@@ -5,11 +5,32 @@ An entry for the NASA Space Apps Challenge 2026, challenge **"Be An Earth System
 **Live site:** https://hawkosm.github.io/NASA-Earth-System-Trend-Detective/
 
 Trend Detective is a 3D globe coloured by how fast an Earth science variable has changed between 1981 and
-2025. Pick a variable, click any place, and a side panel shows that location's time series, the trend line,
+2025. Pick one of ten variables and click a place: the site shows that place's time series, the trend line,
 the rate of change per decade, a p-value, a 95% confidence range and a one-sentence plain-English verdict.
+It answers the challenge's four questions for any place on Earth: what is changing, where, by how much, and
+whether the change is statistically significant.
 
-It is a static website: there is no backend. The map is precomputed offline; the click panel fetches the
-selected location's data live from NASA POWER and computes the same statistics in the browser.
+It is a static website: there is no backend. The map, the country and sea views and the Detective's answers
+are precomputed offline; the point panel fetches the selected location's data live from NASA POWER and
+computes the same statistics in the browser.
+
+## Using the site
+
+- **Start here card.** On first load a card offers three findings that open with one click: Istanbul is warming
+  (+0.54 °C per decade), Cebu is getting wetter (+0.87 mm/day per decade) and the Amazon near Porto Velho is
+  drying (soil moisture -3.33 percentage points per decade). The numbers are the ones the panel shows
+  (`web/src/findings.ts`).
+- **Click the globe.** A click on land lifts the country as a piece of its own, with its trend, chart, provinces
+  and cities; a click on water lifts the sea or ocean. Choosing Point, 2°, 5° or 10° in the menu's Click row
+  gives the side panel for a single ~50 km grid cell or for a box around the click instead.
+- **Menu** (bottom left): the variable (in four groups), the period (two sliders), the colour scale, wind
+  streaks, the click behaviour, borders and labels, and the whole-globe view.
+- **Detective** (top right): type a city, a country, a continent, a sea, a pair of coordinates or a whole
+  question ("what is changing in Europe?"). It finds the place in the sentence and lists the variables there
+  from the strongest significant trend to the weakest. Continents and the world are answered from
+  continent-wide trends (`pipeline/regions.py`, `web/public/data/regions.json`). There is no AI in it: every
+  number is looked up from the precomputed trends (`web/src/detective.ts`).
+- **How to read this** (top right of the header) explains the colours, the statistics and the limits.
 
 ## Variables
 
@@ -65,7 +86,7 @@ The statistics are implemented twice — Python (`pipeline/trendstats.py`) for t
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series
 (`pipeline/tests/fixtures/`) so the two agree to 1e-12.
 
-**Country view.** With Area = Country a click picks the country under it, which is then shown alone, in its own
+**Country view.** A click on land (Click = Lift, the default) picks the country under it, which is then shown alone, in its own
 shape, with each ~50 km grid cell inside it coloured by its own trend and its main cities marked. The pipeline
 (`pipeline/countries.py`) assigns every grid cell to the country whose Natural Earth outline contains the cell centre
 and writes each country's cell series (`web/public/data/countries/<VAR>/<index>.bin`, Int16, hundredths), so nothing
@@ -128,7 +149,7 @@ web/public/data/   Exported textures and metadata (committed, so the site builds
 ## Running the pipeline
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No login or API key is needed; the data is read
-anonymously from NASA POWER's public archive on AWS (about 10 MB per variable). The exported `web/public/data` is about 183 MB for the ten variables (about 17-19 MB per variable: country series, sea series, period-map grid, textures).
+anonymously from NASA POWER's public archive on AWS (about 10 MB per variable). The exported `web/public/data` is about 164 MB for the ten variables (about 16 MB per variable: country series, sea series, period-map grid, textures).
 
 ```bash
 cd pipeline
@@ -145,6 +166,10 @@ done
 .venv/bin/python countries.py            # country masks, cities, per-country series (all variables)
 .venv/bin/python seas.py                 # seas and oceans (all variables)
 .venv/bin/python export_summary.py       # summary.bin: slope / p / BH-adjusted p of every variable in every coarse cell
+.venv/bin/python regions.py              # regions.json: continents and the world, for the Detective (needs countries.py)
+.venv/bin/python export_wind.py          # wind_mean.bin: the 1981-2025 mean wind for the streaks
+.venv/bin/python basemap.py              # basemap.png: land and water (needs `npm install` in web/ first)
+.venv/bin/python provinces.py /path/to/ne_10m_admin_1_states_provinces.geojson   # province outlines (see credits)
 ```
 
 ## Running the site
@@ -158,6 +183,9 @@ npm run dev
 
 `npm run build` writes the static site to `web/dist/`. Pushing to `main` deploys it to GitHub Pages through
 `.github/workflows/deploy.yml`.
+
+The reports written at the end of the first four build phases are kept in `docs/history/`. They describe the
+site as it was then, not as it is now.
 
 Adding `?debug=landmarks` to the URL shows a texture with known landmarks painted on it, plus the same
 landmarks drawn by the globe from their real coordinates, to check that the map is aligned.
