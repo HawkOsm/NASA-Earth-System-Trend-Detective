@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import FlatMap from './FlatMap';
+import FlatMap from './FlatMap.tsx';
 import Globe, { type LatLng, type PointOfView } from './Globe';
 import type { RegionBox } from './region';
 import type { Landmark } from './landmarks';
