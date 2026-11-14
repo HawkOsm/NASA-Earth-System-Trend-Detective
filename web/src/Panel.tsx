@@ -2,23 +2,44 @@ import Chart from './Chart';
 import { signedRate, type Analysis, MIN_YEARS } from './analysis';
 import { formatLatLng } from './format';
 import type { Cell } from './power';
+import type { RegionBox } from './region';
+import type { LatLng } from './Globe';
 import { fmtPValue } from './stats/trend';
 
+interface PanelBase {
+  /** Snapped grid cell of the click (marker position). */
+  cell: Cell;
+  /** Raw clicked position; the box is centred here. */
+  center: LatLng;
+  /** 0 = single grid cell, otherwise box side in degrees. */
+  sizeDeg: number;
+  box: RegionBox | null;
+}
+
 export type PanelState =
-  | { cell: Cell; status: 'loading' }
-  | { cell: Cell; status: 'error'; message: string }
-  | { cell: Cell; status: 'insufficient'; nYears: number }
-  | { cell: Cell; status: 'ready'; analysis: Analysis };
+  | (PanelBase & { status: 'loading' })
+  | (PanelBase & { status: 'error'; message: string })
+  | (PanelBase & { status: 'insufficient'; nYears: number; nCells: number })
+  | (PanelBase & { status: 'ready'; analysis: Analysis; nCells: number });
+
+export const AREA_OPTIONS: { size: number; label: string }[] = [
+  { size: 0, label: 'Point (~50 km)' },
+  { size: 2, label: '2° box (~200 km)' },
+  { size: 5, label: '5° box (~500 km)' },
+  { size: 10, label: '10° box (~1000 km)' },
+];
 
 interface PanelProps {
   state: PanelState;
   label: string;
   yearsText: string;
   onClose: () => void;
+  sizeDeg: number;
+  onAreaChange: (size: number) => void;
   onRetry: () => void;
 }
 
-export default function Panel({ state, label, yearsText, onClose, onRetry }: PanelProps) {
+export default function Panel({ state, label, yearsText, sizeDeg, onAreaChange, onClose, onRetry }: PanelProps) {
   const { cell } = state;
   return (
     <aside className="panel" aria-label="Trend details">
@@ -26,7 +47,11 @@ export default function Panel({ state, label, yearsText, onClose, onRetry }: Pan
         <div>
           <h2>{label}</h2>
           <p className="panel-cell">
-            Grid cell centred at {formatLatLng({ lat: cell.lat, lng: cell.lng })}
+            {sizeDeg > 0
+              ? `Average over a ${sizeDeg}° × ${sizeDeg}° area${
+                  'nCells' in state ? ` (${state.nCells} grid cell${state.nCells === 1 ? '' : 's'})` : ''
+                } centred at ${formatLatLng(state.center)}`
+              : `Grid cell centred at ${formatLatLng({ lat: cell.lat, lng: cell.lng })}`}
           </p>
         </div>
         <button className="panel-close" onClick={onClose} aria-label="Close panel">
@@ -34,7 +59,27 @@ export default function Panel({ state, label, yearsText, onClose, onRetry }: Pan
         </button>
       </div>
 
-      {state.status === 'loading' && <p className="panel-msg">Fetching {yearsText} years of data from NASA POWER…</p>}
+      <div className="area-picker" role="group" aria-label="Area">
+        <span className="area-label">Area</span>
+        {AREA_OPTIONS.map((o) => (
+          <button
+            key={o.size}
+            className={`area-btn${o.size === sizeDeg ? ' active' : ''}`}
+            aria-pressed={o.size === sizeDeg}
+            onClick={() => onAreaChange(o.size)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      {state.status === 'loading' && (
+        <p className="panel-msg">
+          {sizeDeg > 0
+            ? `Fetching ${yearsText} years of data for this area from NASA POWER…`
+            : `Fetching ${yearsText} years of data from NASA POWER…`}
+        </p>
+      )}
 
       {state.status === 'error' && (
         <div className="panel-msg panel-error">
@@ -51,12 +96,12 @@ export default function Panel({ state, label, yearsText, onClose, onRetry }: Pan
         </p>
       )}
 
-      {state.status === 'ready' && <Result a={state.analysis} />}
+      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} />}
     </aside>
   );
 }
 
-function Result({ a }: { a: Analysis }) {
+function Result({ a, area }: { a: Analysis; area: boolean }) {
   return (
     <>
       <Chart data={a.chart} units={a.units} />
@@ -84,6 +129,7 @@ function Result({ a }: { a: Analysis }) {
           <div className="tile-sub">{a.units} per decade</div>
         </div>
       </div>
+      {area && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
     </>
   );

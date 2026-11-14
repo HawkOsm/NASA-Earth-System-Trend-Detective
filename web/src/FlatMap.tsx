@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LatLng } from './Globe';
 import { buildGraticule, buildGraticuleLabels } from './graticule';
+import type { RegionBox } from './region';
 import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatmap';
 
 interface FlatMapProps {
   textureUrl: string;
   onPick: (pos: LatLng) => void;
   marker?: LatLng | null;
+  box?: RegionBox | null;
   mapLines?: boolean;
 }
 
@@ -18,7 +20,7 @@ const FLAT_LINES = buildGraticule().map((g) => ({
 const FLAT_LABELS = buildGraticuleLabels();
 
 /** Equirectangular fallback used when WebGL is unavailable. */
-export default function FlatMap({ textureUrl, onPick, marker, mapLines = true }: FlatMapProps) {
+export default function FlatMap({ textureUrl, onPick, marker, box: selBox, mapLines = true }: FlatMapProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -99,6 +101,26 @@ export default function FlatMap({ textureUrl, onPick, marker, mapLines = true }:
                 </text>
               );
             })}
+          </svg>
+        )}
+        {selBox && (
+          <svg
+            viewBox="0 0 360 180"
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+            aria-hidden="true"
+          >
+            <rect
+              className="flat-box-outline"
+              x={selBox.lngMin + 180}
+              y={90 - selBox.latMax}
+              width={selBox.lngMax - selBox.lngMin}
+              height={selBox.latMax - selBox.latMin}
+              fill="none"
+              stroke="#fff"
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+            />
           </svg>
         )}
         {dot && <span className="flat-dot" style={{ left: `${dot.fx * 100}%`, top: `${dot.fy * 100}%` }} />}

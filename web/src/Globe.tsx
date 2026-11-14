@@ -3,6 +3,7 @@ import GlobeGL, { type GlobeMethods } from 'react-globe.gl';
 import type { Landmark } from './landmarks';
 import { buildBorders, buildCoastlines } from './coastlines';
 import { buildGraticule, buildGraticuleLabels, type MapLabel } from './graticule';
+import { boxOutline, type RegionBox } from './region';
 import { PLACES } from './places';
 import { dataUrl } from './data';
 import { createWindLayer } from './wind/WindLayer';
@@ -25,6 +26,8 @@ interface GlobeProps {
   landmarks?: Landmark[];
   /** Selected grid-cell centre, drawn as a small white point. */
   marker?: LatLng | null;
+  /** Selected analysis box, outlined in white. */
+  box?: RegionBox | null;
   /** Filled with a camera-fly function once the globe is ready (null in flat mode). */
   flyRef?: { current: ((v: PointOfView) => void) | null };
   /** Draw the animated mean-wind streaks. */
@@ -57,7 +60,8 @@ const WHITE = '#ffffff';
 const SLATE = 'rgba(15,20,35,0.85)';
 
 interface PathDatum {
-  coords: [number, number][];
+  /** [lng, lat] or [lng, lat, altitude]. */
+  coords: number[][];
   color: string;
   stroke: number;
 }
@@ -93,7 +97,7 @@ interface PointDatum {
   radius: number;
 }
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, flyRef, wind, mapLines = true }: GlobeProps) {
+export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, box, flyRef, wind, mapLines = true }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [ready, setReady] = useState(false);
@@ -120,10 +124,16 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     return list;
   }, [landmarks, marker]);
 
-  const paths = useMemo<PathDatum[]>(
-    () => (mapLines ? [...GRATICULE_PATHS, ...BORDER_PATHS, ...COAST_PATHS] : COAST_PATHS),
-    [mapLines],
-  );
+  const paths = useMemo<PathDatum[]>(() => {
+    const base = mapLines ? [...GRATICULE_PATHS, ...BORDER_PATHS, ...COAST_PATHS] : COAST_PATHS;
+    if (!box) return base;
+    const outline: PathDatum = {
+      coords: boxOutline(box).map(([lng, lat]) => [lng, lat, 0.004]),
+      color: WHITE,
+      stroke: 1.0,
+    };
+    return [...base, outline];
+  }, [mapLines, box]);
 
   const labels = useMemo<LabelDatum[]>(() => {
     const debug: LabelDatum[] = (landmarks ?? []).map((l) => ({
@@ -212,9 +222,9 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           onPointClick={(d) => onPick({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
           pathsData={paths}
           pathPoints={(d) => (d as PathDatum).coords}
-          pathPointLat={(p) => (p as [number, number])[1]}
-          pathPointLng={(p) => (p as [number, number])[0]}
-          pathPointAlt={0.002}
+          pathPointLat={(p) => (p as number[])[1]}
+          pathPointLng={(p) => (p as number[])[0]}
+          pathPointAlt={(p) => (p as number[])[2] ?? 0.002}
           pathColor={(d: object) => (d as PathDatum).color}
           pathStroke={(d) => (d as PathDatum).stroke}
           pathDashLength={1}

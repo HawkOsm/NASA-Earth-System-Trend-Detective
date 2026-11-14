@@ -1,4 +1,5 @@
 import type { GridMeta } from './data';
+import type { RegionBox, RegionData } from './region';
 
 export interface Cell {
   lat: number;
@@ -95,6 +96,86 @@ export async function fetchPointSeries(
   const series = parsePowerResponse(json, variable);
   cache.set(key, series);
   return series;
+}
+
+interface RegionalJson {
+  header?: { fill_value?: number };
+  parameters?: Record<string, { units?: string }>;
+  features?: {
+    geometry?: { coordinates?: number[] };
+    properties?: { parameter?: Record<string, Record<string, number>> };
+  }[];
+}
+
+/** Parse a POWER monthly/regional response (GeoJSON, one feature per grid cell). */
+export function parseRegionalResponse(json: unknown, variable: string): RegionData {
+  const j = json as RegionalJson | null;
+  if (!j || !Array.isArray(j.features) || j.features.length === 0) {
+    throw new Error(`NASA POWER response has no grid cells for ${variable}.`);
+  }
+  let first: PointSeries | null = null;
+  const cells = j.features.map((f) => {
+    const [lng, lat] = f.geometry?.coordinates ?? [];
+    if (typeof lng !== 'number' || typeof lat !== 'number') {
+      throw new Error('NASA POWER response contained a grid cell without coordinates.');
+    }
+    const s = parsePowerResponse({ header: j.header, parameters: j.parameters, properties: f.properties }, variable);
+    if (!first) first = s;
+    else if (s.years.length !== first.years.length || s.years[0] !== first.years[0]) {
+      throw new Error('NASA POWER response had grid cells covering different years.');
+    }
+    return { lat, lng, annual: s.annual, monthly: s.monthly };
+  });
+  const ref = first as unknown as PointSeries;
+  return { years: ref.years, monthlyT: ref.monthlyT, units: ref.units, cells };
+}
+
+const regionCache = new Map<string, RegionData>();
+
+export async function fetchRegionSeries(
+  variable: string,
+  box: RegionBox,
+  signal?: AbortSignal,
+  yearRange: [number, number] = [1981, 2025],
+): Promise<RegionData> {
+  const key = `${variable}|${box.latMin},${box.latMax},${box.lngMin},${box.lngMax}|${yearRange[0]}-${yearRange[1]}`;
+  const hit = regionCache.get(key);
+  if (hit) return hit;
+  const url =
+    'https://power.larc.nasa.gov/api/temporal/monthly/regional' +
+    `?parameters=${encodeURIComponent(variable)}&community=AG` +
+    `&latitude-min=${box.latMin}&latitude-max=${box.latMax}` +
+    `&longitude-min=${box.lngMin}&longitude-max=${box.lngMax}` +
+    `&start=${yearRange[0]}&end=${yearRange[1]}&format=JSON`;
+  let res: Response;
+  try {
+    res = await fetch(url, { signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new Error('Could not reach NASA POWER. Check your connection and try again.');
+  }
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = (await res.json()) as { messages?: unknown };
+      if (Array.isArray(body.messages)) {
+        detail = body.messages.map((m) => (typeof m === 'string' ? m : JSON.stringify(m))).join(' ');
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    }
+    throw new Error(`NASA POWER returned an error (HTTP ${res.status}).${detail ? ` ${detail}` : ''}`);
+  }
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new Error('NASA POWER returned a response that could not be read.');
+  }
+  const data = parseRegionalResponse(json, variable);
+  regionCache.set(key, data);
+  return data;
 }
 
 /** Each value minus the mean of its calendar month over all years. NaN-safe. */

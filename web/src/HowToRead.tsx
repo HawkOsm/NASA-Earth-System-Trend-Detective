@@ -40,6 +40,10 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           For each place we take one average per year (45 values) and find the typical year-to-year slope
           (Theil–Sen: the median of the slopes between every pair of years, so one odd year cannot dominate).
         </p>
+        <p>
+          Choosing a larger area averages many grid cells, which smooths out local noise and can make a regional
+          trend clearer.
+        </p>
         <h3>&ldquo;Statistically significant&rdquo;</h3>
         <p>
           The Mann–Kendall test asks how likely such a consistent rise or fall would be if the years were just

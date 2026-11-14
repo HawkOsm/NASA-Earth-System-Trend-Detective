@@ -94,7 +94,7 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
 - **NASA POWER** (Prediction Of Worldwide Energy Resources), NASA Langley Research Center —
   https://power.larc.nasa.gov. Map data: the POWER annual Zarr archive on AWS
   (`s3://nasa-power/merra2/temporal/power_merra2_annual_temporal_lst.zarr`). Click panel: the POWER monthly
-  point API.
+  point API, and for the 2°/5°/10° area choice the POWER monthly regional API, called live from the browser.
 - The underlying data is **MERRA-2** (Modern-Era Retrospective analysis for Research and Applications,
   Version 2), NASA Global Modeling and Assimilation Office.
 - Coastlines: Natural Earth, via the `world-atlas` package.
