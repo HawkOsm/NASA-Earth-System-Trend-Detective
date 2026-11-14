@@ -72,6 +72,9 @@ html, body, #root {
 .legend-sig { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: #c9cfdb; }
 .legend-grey { flex: 0 0 auto; width: 14px; height: 10px; background: #bdbdbd; border: 1px solid #666; }
 .legend-ctx { margin-top: 4px; color: #a8b0c0; }
+.legend-wind { margin-top: 6px; padding-top: 6px; border-top: 1px solid #2a3244; }
+.legend-wind-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e6e9f0; }
+.legend-wind-note { margin-top: 3px; color: #a8b0c0; }
 .howto-btn {
   margin-left: auto; padding: 5px 12px; font-size: 0.85rem; color: #e6e9ef; cursor: pointer;
   background: #1c2a44; border: 1px solid #3a4a6a; border-radius: 4px;

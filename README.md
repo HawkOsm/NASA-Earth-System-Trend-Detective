@@ -99,6 +99,10 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   Version 2), NASA Global Modeling and Assimilation Office.
 - Coastlines: Natural Earth, via the `world-atlas` package.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
+- Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
+  trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was
+  read for the idea only. The implementation is original CPU code and no third-party code was copied. The
+  streaks show the 1981–2025 mean NASA POWER U2M/V2M wind, not the trend.
 
 These data were obtained from the NASA Langley Research Center (LaRC) POWER Project funded through the NASA
 Earth Science/Applied Science Program. This project is not affiliated with or endorsed by NASA.

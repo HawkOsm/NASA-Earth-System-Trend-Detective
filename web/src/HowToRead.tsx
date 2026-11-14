@@ -29,6 +29,10 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           Each ~50 km grid cell is coloured by how fast its yearly average changed per decade, 1981–2025.
           The colour shows the direction, and a stronger colour means faster change.
         </p>
+        <p>
+          For wind speed, the moving white streaks show the average wind over 1981–2025 (direction and speed),
+          not the trend. The colours underneath show how wind speed is changing.
+        </p>
         <h3>What a &ldquo;trend&rdquo; is here</h3>
         <p>
           For each place we take one average per year (45 values) and find the typical year-to-year slope

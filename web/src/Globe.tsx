@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL, { type GlobeMethods } from 'react-globe.gl';
 import type { Landmark } from './landmarks';
 import { buildCoastlines } from './coastlines';
+import { dataUrl } from './data';
+import { createWindLayer } from './wind/WindLayer';
+import { loadWindField, type WindField } from './wind/windField';
 
 export interface LatLng {
   lat: number;
@@ -22,6 +25,19 @@ interface GlobeProps {
   marker?: LatLng | null;
   /** Filled with a camera-fly function once the globe is ready (null in flat mode). */
   flyRef?: { current: ((v: PointOfView) => void) | null };
+  /** Draw the animated mean-wind streaks. */
+  wind?: boolean;
+}
+
+let windPromise: Promise<WindField> | null = null;
+function getWindField(): Promise<WindField> {
+  if (!windPromise) {
+    windPromise = loadWindField(dataUrl);
+    windPromise.catch(() => {
+      windPromise = null; // allow a retry next time
+    });
+  }
+  return windPromise;
 }
 
 declare global {
@@ -42,9 +58,10 @@ interface PointDatum {
   radius: number;
 }
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, flyRef }: GlobeProps) {
+export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, flyRef, wind }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const [ready, setReady] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   // Track the container size (follows window resizes via flex layout).
@@ -74,7 +91,26 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     g.pointOfView(initialView, 0);
     window.__globe = g;
     if (flyRef) flyRef.current = (v) => g.pointOfView(v, 1500);
+    setReady(true);
   };
+
+  // Wind streaks: created when wanted, fully disposed when switched off or on unmount.
+  useEffect(() => {
+    const g = globeRef.current;
+    if (!wind || !ready || !g) return;
+    let cancelled = false;
+    let handle: { dispose: () => void } | null = null;
+    getWindField()
+      .then((field) => {
+        if (cancelled) return;
+        handle = createWindLayer(g, field);
+      })
+      .catch((err) => console.error('Wind layer unavailable', err));
+    return () => {
+      cancelled = true;
+      handle?.dispose();
+    };
+  }, [wind, ready]);
 
   useEffect(
     () => () => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import GlobeArea from './GlobeArea';
+import GlobeArea, { hasWebGL } from './GlobeArea';
+import { prefersReducedMotion } from './wind/WindLayer';
 import type { LatLng, PointOfView } from './Globe';
 import Picker from './Picker';
 import Legend from './Legend';
@@ -59,6 +60,7 @@ export default function App() {
   const [variable, setVariableState] = useState<string>(DEFAULT_VARIABLE);
   const [panel, setPanel] = useState<PanelState | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
 
   const abortRef = useRef<AbortController | null>(null);
   const flyRef = useRef<((v: PointOfView) => void) | null>(null);
@@ -165,6 +167,8 @@ export default function App() {
     ? `How has ${meta.label.toLowerCase()} changed, ${meta.years[0]}–${meta.years[1]}?`
     : '';
 
+  const windAvailable = variable === 'WS2M' && !forceFlat && hasWebGL();
+
   const textureUrl = debugLandmarks ? landmarksTextureUrl(variable) : trendTextureUrl(variable);
 
   return (
@@ -186,12 +190,18 @@ export default function App() {
             landmarks={debugLandmarks ? LANDMARKS : undefined}
             marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : null}
             flyRef={flyRef}
+            wind={windAvailable && windOn}
           />
           <div className="overlay-tl">
             <Picker metas={metas} value={variable} onChange={(v) => selectVariable(v, true)} />
             <Demos onRun={runDemo} />
           </div>
-          {meta && <Legend meta={meta} />}
+          {meta && (
+            <Legend
+              meta={meta}
+              wind={windAvailable ? { on: windOn, onChange: setWindOn } : undefined}
+            />
+          )}
         </div>
         {panel && meta && (
           <Panel

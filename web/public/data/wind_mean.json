@@ -1,0 +1,16 @@
+{
+  "nlat": 181,
+  "nlon": 288,
+  "lat0": -90.0,
+  "dlat": 1.0,
+  "lon0": -180.0,
+  "dlon": 1.25,
+  "scale": 0.01,
+  "units": "m/s",
+  "years": [
+    1981,
+    2025
+  ],
+  "source": "NASA POWER U2M/V2M annual means",
+  "max_speed": 13.01
+}

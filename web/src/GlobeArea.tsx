@@ -33,11 +33,12 @@ interface Props {
   landmarks?: Landmark[];
   marker: LatLng | null;
   flyRef: { current: ((v: PointOfView) => void) | null };
+  wind?: boolean;
 }
 
 const webgl = typeof document !== 'undefined' ? hasWebGL() : false;
 
-export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, flyRef }: Props) {
+export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, flyRef, wind }: Props) {
   const flat = <FlatMap textureUrl={textureUrl} onPick={onPick} marker={marker} />;
   if (forceFlat || !webgl) return flat;
   return (
@@ -49,6 +50,7 @@ export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, 
         landmarks={landmarks}
         marker={marker}
         flyRef={flyRef}
+        wind={wind}
       />
     </Boundary>
   );
