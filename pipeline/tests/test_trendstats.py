@@ -10,7 +10,7 @@ from scipy.stats import false_discovery_control, theilslopes
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from export import colorize, map_to_pixels, WIDTH, HEIGHT  # noqa: E402
+from export import bilinear_to_pixels, colorize, map_to_pixels, WIDTH, HEIGHT  # noqa: E402
 from trendstats import KEYS, bh_adjust, trend_1d, trend_grid, verdict  # noqa: E402
 
 T45 = np.arange(1981, 2026, dtype=np.float64)
@@ -162,9 +162,10 @@ def test_texture_orientation(lat, lon):
     io = int(np.argmin(np.abs(LON - lon)))
     grid = np.zeros((361, 576))
     grid[ia, io] = 1.0
-    img = map_to_pixels(grid, LAT, LON)
+    img = bilinear_to_pixels(grid, LAT, LON)
     assert img.shape == (HEIGHT, WIDTH)
-    ys, xs = np.nonzero(img == 1.0)
+    assert 0.8 < img.max() <= 1.0  # tent peak (pixel centres straddle the grid point)
+    ys, xs = np.nonzero(img > 0)
     ex = (LON[io] + 180) / 360 * WIDTH
     ey = (90 - LAT[ia]) / 180 * HEIGHT
     print(f"({lat},{lon}) cell ({LAT[ia]},{LON[io]}): centroid x={xs.mean() + 0.5:.2f} y={ys.mean() + 0.5:.2f}, "
@@ -175,6 +176,37 @@ def test_texture_orientation(lat, lon):
     bg = colorize(np.zeros((1, 1)), np.zeros((1, 1)), 1.0, "RdBu_r")[0, 0]
     ys2, xs2 = np.nonzero(np.any(rgb != bg, axis=-1))
     assert abs(xs2.mean() + 0.5 - ex) <= 2 and abs(ys2.mean() + 0.5 - ey) <= 2
+
+
+def test_bilinear_linear_ramp_and_wrap():
+    # field linear in longitude (over the grid's own lon values, which span -180..179.375)
+    grid = np.tile(LON[None, :], (361, 1))
+    img = bilinear_to_pixels(grid, LAT, LON)
+    px_lon = -180.0 + (np.arange(WIDTH) + 0.5) * 360.0 / WIDTH
+    dlon = LON[1] - LON[0]
+    # interior pixels (before the wrap column) match the analytic ramp at pixel centres
+    inner = px_lon <= LON[-1]
+    row = img[500]
+    assert np.max(np.abs(row[inner] - px_lon[inner])) < 1e-9
+    assert np.all(np.diff(row[inner]) > 0)  # strictly monotonic: no blocky steps
+    assert len(np.unique(np.round(row[inner], 9))) == inner.sum()
+    # wrap: pixels right of lon=179.375 interpolate between that column and the lon=-180 column
+    wrap = px_lon > LON[-1]
+    assert wrap.sum() > 0
+    t = (px_lon[wrap] - LON[-1]) / dlon
+    expected = LON[-1] * (1 - t) + LON[0] * t
+    assert np.max(np.abs(row[wrap] - expected)) < 1e-9
+    assert np.all(np.diff(row[wrap]) < 0)  # heading from 179.375 down towards -180
+
+
+def test_bilinear_latitude_clamps_and_constant():
+    grid = np.full((361, 576), 3.5)
+    img = bilinear_to_pixels(grid, LAT, LON)
+    assert np.allclose(img, 3.5, atol=1e-12)
+    ramp = np.tile(LAT[:, None], (1, 576))
+    img = bilinear_to_pixels(ramp, LAT, LON)
+    py = 90.0 - (np.arange(HEIGHT) + 0.5) * 180.0 / HEIGHT
+    assert np.max(np.abs(img[:, 7] - py)) < 1e-9
 
 
 def test_verdict_fixture_reproduces():

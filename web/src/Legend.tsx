@@ -7,7 +7,15 @@ interface WindControl {
   onChange: (on: boolean) => void;
 }
 
-export default function Legend({ meta, wind }: { meta: VariableMeta; wind?: WindControl }) {
+export default function Legend({
+  meta,
+  wind,
+  mapLines,
+}: {
+  meta: VariableMeta;
+  wind?: WindControl;
+  mapLines?: WindControl;
+}) {
   return (
     <div className="legend" aria-label="Legend">
       <div className="legend-title">Change per decade ({displayUnits(meta.units)})</div>
@@ -21,6 +29,14 @@ export default function Legend({ meta, wind }: { meta: VariableMeta; wind?: Wind
         <span className="legend-grey" /> Pale / grey: no statistically significant trend
       </div>
       <div className="legend-ctx">{significantText(meta.frac_significant)}</div>
+      {mapLines && (
+        <div className="legend-wind">
+          <label className="legend-wind-toggle">
+            <input type="checkbox" checked={mapLines.on} onChange={(e) => mapLines.onChange(e.target.checked)} /> Map
+            lines &amp; labels
+          </label>
+        </div>
+      )}
       {wind && (
         <div className="legend-wind">
           <label className="legend-wind-toggle">

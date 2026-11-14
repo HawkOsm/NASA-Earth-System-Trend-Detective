@@ -36,6 +36,32 @@ def map_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
     return np.asarray(grid)[lat_idx[:, None], lon_idx[None, :]]
 
 
+def bilinear_to_pixels(grid, lat, lon, width=WIDTH, height=HEIGHT):
+    """Resample a (nlat, nlon) grid to a (height, width) image by bilinear interpolation between the
+    four surrounding grid points, evaluated at pixel centres. Longitude wraps, latitude clamps at the
+    poles. Row 0 is north, column 0 starts at lon -180."""
+    grid = np.asarray(grid, dtype=np.float64)
+    lat = np.asarray(lat, dtype=np.float64)
+    lon = np.asarray(lon, dtype=np.float64)
+    nlat, nlon = len(lat), len(lon)
+    dlat = lat[1] - lat[0]
+    dlon = lon[1] - lon[0]
+    px_lon = -180.0 + (np.arange(width) + 0.5) * 360.0 / width
+    px_lat = 90.0 - (np.arange(height) + 0.5) * 180.0 / height
+    fi = np.clip((px_lat - lat[0]) / dlat, 0.0, nlat - 1.0)
+    i0 = np.minimum(np.floor(fi).astype(np.int64), nlat - 2)
+    wi = (fi - i0)[:, None]
+    fj = (px_lon - lon[0]) / dlon
+    j0f = np.floor(fj)
+    wj = (fj - j0f)[None, :]
+    j0 = j0f.astype(np.int64) % nlon
+    j1 = (j0 + 1) % nlon
+    i0c, i1c = i0[:, None], (i0 + 1)[:, None]
+    top = grid[i0c, j0[None, :]] * (1 - wj) + grid[i0c, j1[None, :]] * wj
+    bot = grid[i1c, j0[None, :]] * (1 - wj) + grid[i1c, j1[None, :]] * wj
+    return top * (1 - wi) + bot * wi
+
+
 def round_up_2sig(v):
     if not v > 0:
         return 1.0
@@ -45,14 +71,20 @@ def round_up_2sig(v):
 
 def colorize(slope, q, vmax, cmap_name, alpha=config.ALPHA):
     """RGB uint8 image for a slope field (any 2-D shape); non-significant cells desaturated."""
+    return colorize_weighted(slope, (np.asarray(q) < alpha).astype(np.float64), vmax, cmap_name)
+
+
+def colorize_weighted(slope, w, vmax, cmap_name):
+    """Like colorize, but with a significance weight w in [0, 1] per pixel:
+    rgb = w * full colour + (1 - w) * desaturated colour (w=1 significant, w=0 not)."""
     cmap = colormaps[cmap_name]
     x = np.clip((np.nan_to_num(slope) + vmax) / (2 * vmax), 0.0, 1.0)
     rgb = cmap(x)[..., :3]
     lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
     grey = 0.6 * lum + 0.4 * 0.82
     pale = 0.25 * rgb + 0.75 * grey[..., None]
-    nonsig = ~(q < alpha)
-    rgb = np.where(nonsig[..., None], pale, rgb)
+    w = np.asarray(w, dtype=np.float64)[..., None]
+    rgb = w * rgb + (1.0 - w) * pale
     out = np.round(rgb * 255).astype(np.uint8)
     out[~np.isfinite(slope)] = NAN_RGB
     return out
@@ -95,7 +127,9 @@ def main():
     fin = np.isfinite(slope)
     vmax = round_up_2sig(float(np.percentile(np.abs(slope[fin]), 98)))
 
-    rgb = colorize(map_to_pixels(slope, lat, lon), map_to_pixels(q, lat, lon), vmax, meta_cfg["colormap"])
+    sig_field = (q < config.ALPHA).astype(np.float64)  # 1 where significant, else 0 (NaN q -> 0)
+    rgb = colorize_weighted(bilinear_to_pixels(slope, lat, lon), bilinear_to_pixels(sig_field, lat, lon),
+                            vmax, meta_cfg["colormap"])
     os.makedirs(config.WEB_DATA_DIR, exist_ok=True)
     img = Image.fromarray(rgb, "RGB")
     tex_path = os.path.join(config.WEB_DATA_DIR, f"{args.var}_trend.png")

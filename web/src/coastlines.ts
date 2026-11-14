@@ -1,6 +1,7 @@
 import { mesh } from 'topojson-client';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import land from 'world-atlas/land-110m.json';
+import countries from 'world-atlas/countries-110m.json';
 
 export type LngLat = [number, number];
 
@@ -41,5 +42,13 @@ export function buildCoastlines(): LngLat[][] {
   const topo = land as unknown as Topology;
   const geom = topo.objects.land as GeometryCollection;
   const m = mesh(topo, geom);
+  return splitLines(m.coordinates as LngLat[][]);
+}
+
+/** Interior country borders (shared edges only; coastlines are drawn separately). */
+export function buildBorders(): LngLat[][] {
+  const topo = countries as unknown as Topology;
+  const geom = topo.objects.countries as GeometryCollection;
+  const m = mesh(topo, geom, (a, b) => a !== b);
   return splitLines(m.coordinates as LngLat[][]);
 }

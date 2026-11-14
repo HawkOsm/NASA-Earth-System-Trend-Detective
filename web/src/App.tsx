@@ -60,6 +60,7 @@ export default function App() {
   const [variable, setVariableState] = useState<string>(DEFAULT_VARIABLE);
   const [panel, setPanel] = useState<PanelState | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [mapLines, setMapLines] = useState(true);
   const [windOn, setWindOn] = useState(() => !prefersReducedMotion());
 
   const abortRef = useRef<AbortController | null>(null);
@@ -191,6 +192,7 @@ export default function App() {
             marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : null}
             flyRef={flyRef}
             wind={windAvailable && windOn}
+            mapLines={mapLines}
           />
           <div className="overlay-tl">
             <Picker metas={metas} value={variable} onChange={(v) => selectVariable(v, true)} />
@@ -200,6 +202,7 @@ export default function App() {
             <Legend
               meta={meta}
               wind={windAvailable ? { on: windOn, onChange: setWindOn } : undefined}
+              mapLines={{ on: mapLines, onChange: setMapLines }}
             />
           )}
         </div>

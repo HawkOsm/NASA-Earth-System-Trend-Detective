@@ -27,7 +27,9 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         <h3>What the map shows</h3>
         <p>
           Each ~50 km grid cell is coloured by how fast its yearly average changed per decade, 1981–2025.
-          The colour shows the direction, and a stronger colour means faster change.
+          The colour shows the direction, and a stronger colour means faster change. Colours are blended
+          smoothly between grid points that are about 50 km apart, so fine detail smaller than that is not
+          real.
         </p>
         <p>
           For wind speed, the moving white streaks show the average wind over 1981–2025 (direction and speed),
