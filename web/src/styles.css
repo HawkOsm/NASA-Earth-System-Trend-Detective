@@ -30,24 +30,80 @@ html, body, #root {
   min-height: 0;
   overflow: hidden;
 }
-.readout {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  padding: 4px 10px;
-  background: rgba(10, 14, 24, 0.8);
-  border: 1px solid #2a3244;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-}
 .footer {
   flex: 0 0 auto;
   padding: 6px 16px;
   font-size: 0.75rem;
   color: #7d8597;
   border-top: 1px solid #1c2230;
+}
+
+/* ---- globe area & overlays ---- */
+.globe-area { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+.overlay-tl {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  display: flex; flex-direction: column; gap: 8px; max-width: min(300px, calc(100% - 24px));
+}
+.picker { display: flex; flex-direction: column; gap: 4px; }
+.picker-opt {
+  display: block; position: relative; padding: 6px 10px; cursor: pointer;
+  background: rgba(10, 14, 24, 0.85); border: 1px solid #2a3244; border-radius: 6px;
+}
+.picker-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.picker-opt.selected { border-color: #6aa3ff; background: rgba(26, 42, 72, 0.92); }
+.picker-opt:focus-within { outline: 2px solid #6aa3ff; outline-offset: 1px; }
+.picker-label { font-weight: 600; font-size: 0.95rem; }
+.picker-def { display: block; margin-top: 2px; font-size: 0.8rem; color: #a8b0c0; }
+.demos { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.demos-label { font-size: 0.8rem; color: #a8b0c0; }
+.demo-btn {
+  padding: 5px 10px; font-size: 0.82rem; text-align: left; color: #e6e9ef; cursor: pointer;
+  background: rgba(28, 42, 68, 0.9); border: 1px solid #3a4a6a; border-radius: 14px;
+}
+.demo-btn:hover { background: #26375a; }
+.legend {
+  position: absolute; left: 12px; bottom: 12px; z-index: 5; width: 260px; max-width: calc(100% - 24px);
+  padding: 8px 10px; box-sizing: border-box; font-size: 0.8rem;
+  background: rgba(10, 14, 24, 0.88); border: 1px solid #2a3244; border-radius: 6px;
+}
+.legend-title { font-weight: 600; margin-bottom: 4px; }
+.legend-bar { height: 12px; border-radius: 2px; }
+.legend-ticks { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.legend-sig { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: #c9cfdb; }
+.legend-grey { flex: 0 0 auto; width: 14px; height: 10px; background: #bdbdbd; border: 1px solid #666; }
+.legend-ctx { margin-top: 4px; color: #a8b0c0; }
+.howto-btn {
+  margin-left: auto; padding: 5px 12px; font-size: 0.85rem; color: #e6e9ef; cursor: pointer;
+  background: #1c2a44; border: 1px solid #3a4a6a; border-radius: 4px;
+}
+.howto-btn:hover { background: #26375a; }
+
+/* ---- modal ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.modal {
+  width: 560px; max-width: 100%; max-height: 90vh; overflow-y: auto; box-sizing: border-box;
+  padding: 16px 20px 20px; background: #0e1422; border: 1px solid #2a3244; border-radius: 8px;
+  line-height: 1.45; font-size: 0.95rem;
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; }
+.modal h2 { margin: 0; font-size: 1.2rem; }
+.modal h3 { margin: 14px 0 2px; font-size: 0.95rem; color: #9ec1ff; }
+.modal p { margin: 0; color: #d3d8e3; }
+
+/* ---- flat-map fallback ---- */
+.flat-host {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #05070d;
+}
+.flat-note { position: absolute; bottom: 8px; right: 12px; text-align: right; max-width: 45%; font-size: 0.8rem; color: #a8b0c0; pointer-events: none; }
+.flat-box { position: relative; cursor: crosshair; }
+.flat-box img { width: 100%; height: 100%; display: block; user-select: none; }
+.flat-dot {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+  background: #fff; border: 1px solid #000; pointer-events: none;
 }
 
 /* ---- side panel ---- */
@@ -124,6 +180,10 @@ html, body, #root {
 .verdict-possible { background: rgba(230, 170, 40, 0.14); border-color: #e6aa28; }
 .verdict-none { background: rgba(140, 150, 170, 0.14); border-color: #8c96aa; }
 
+@media (min-width: 1100px) {
+  .globe-wrap.has-panel .globe-area { right: 400px; }
+}
+
 @media (max-width: 760px) {
   .panel {
     top: auto;
@@ -135,4 +195,20 @@ html, body, #root {
   }
   .tiles { grid-template-columns: 1fr 1fr; }
   .tile:last-child { grid-column: 1 / -1; }
+}
+
+/* Narrow screens: compact controls so the globe stays visible. */
+@media (max-width: 760px) {
+  .header { padding: 8px 12px; gap: 8px; }
+  .header h1 { font-size: 1.1rem; }
+  .overlay-tl { top: 8px; left: 8px; right: 8px; max-width: none; gap: 6px; }
+  .picker { flex-direction: row; flex-wrap: wrap; }
+  .picker-opt { flex: 1 1 auto; padding: 5px 8px; text-align: center; }
+  .picker-opt.selected { flex-basis: 100%; order: -1; text-align: left; }
+  .picker-label { font-size: 0.85rem; }
+  .demos { flex-direction: row; align-items: center; overflow-x: auto; white-space: nowrap; padding-bottom: 2px; }
+  .demo-btn { flex: 0 0 auto; }
+  .legend-ctx { display: none; }
+  .globe-wrap.has-panel .demos,
+  .globe-wrap.has-panel .legend { display: none; }
 }

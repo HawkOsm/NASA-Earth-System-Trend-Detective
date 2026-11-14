@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL, { type GlobeMethods } from 'react-globe.gl';
 import type { Landmark } from './landmarks';
+import { buildCoastlines } from './coastlines';
 
 export interface LatLng {
   lat: number;
@@ -19,8 +20,8 @@ interface GlobeProps {
   landmarks?: Landmark[];
   /** Selected grid-cell centre, drawn as a small white point. */
   marker?: LatLng | null;
-  /** Expose the react-globe.gl ref as window.__globe (debug/testing). */
-  exposeRef?: boolean;
+  /** Filled with a camera-fly function once the globe is ready (null in flat mode). */
+  flyRef?: { current: ((v: PointOfView) => void) | null };
 }
 
 declare global {
@@ -32,6 +33,7 @@ declare global {
 
 const CYAN = '#00ffff';
 const WHITE = '#ffffff';
+const COASTLINES = buildCoastlines();
 
 interface PointDatum {
   lat: number;
@@ -40,7 +42,7 @@ interface PointDatum {
   radius: number;
 }
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, exposeRef }: GlobeProps) {
+export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, flyRef }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -70,8 +72,16 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     const g = globeRef.current;
     if (!g) return;
     g.pointOfView(initialView, 0);
-    if (exposeRef) window.__globe = g;
+    window.__globe = g;
+    if (flyRef) flyRef.current = (v) => g.pointOfView(v, 1500);
   };
+
+  useEffect(
+    () => () => {
+      if (flyRef) flyRef.current = null;
+    },
+    [flyRef],
+  );
 
   return (
     <div ref={wrapRef} style={{ position: 'absolute', inset: 0 }}>
@@ -93,6 +103,17 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           pointAltitude={0.01}
           pointsMerge={false}
           onPointClick={(d) => onPick({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
+          pathsData={COASTLINES}
+          pathPointLat={(p) => (p as [number, number])[1]}
+          pathPointLng={(p) => (p as [number, number])[0]}
+          pathPointAlt={0.002}
+          pathColor={() => 'rgba(20,20,30,0.75)'}
+          pathStroke={0.6}
+          pathDashLength={1}
+          pathDashGap={0}
+          pathDashAnimateTime={0}
+          pathTransitionDuration={0}
+          onPathClick={(_path, _ev, { lat, lng }) => onPick({ lat, lng })}
           labelsData={landmarks ?? []}
           labelLat="lat"
           labelLng="lng"
