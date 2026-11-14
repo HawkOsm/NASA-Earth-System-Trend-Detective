@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatmap';
+import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatMapMath';
 import { formatTick, gradientCss, significantText } from './legend';
 import { buildCoastlines, splitLines, type LngLat } from './coastlines';
 

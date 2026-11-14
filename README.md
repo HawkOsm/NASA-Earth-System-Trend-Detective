@@ -11,6 +11,24 @@ the rate of change per decade, a p-value, a 95% confidence range and a one-sente
 It is a static website: there is no backend. The map is precomputed offline; the click panel fetches the
 selected location's data live from NASA POWER and computes the same statistics in the browser.
 
+## What you can do on the site
+
+1. **Start with a confirmed finding.** A strip at the top offers three places to open with one click: Istanbul is
+   getting warmer (+0.54 °C per decade), Shanghai is getting wetter (+0.36 mm/day per decade) and the Amazon at
+   Porto Velho is getting drier (-0.67 mm/day per decade). They were picked because an independent observation
+   record shows the same change, not only because MERRA-2 does (`web/src/startFindings.ts`).
+2. **Click the globe.** By default a click lifts the country, sea or ocean under it into a full-screen view of its
+   own: the trend for the whole area, every grid cell inside it, its provinces and its cities.
+3. **Use the menu** at the bottom left. Its rows choose the variable (ten, in four groups), the years (two sliders,
+   any span of ten years or more), what a click does (lift the area, or a single ~50 km point, or a 2°, 5° or 10°
+   box), wind streaks, and borders and labels. The Scale row shows the colour bar and how much of the map is
+   significant, robust and independently confirmed.
+4. **Ask the Detective.** Type a city, country, sea, continent or a whole question ("what is changing in Europe?").
+   It lists what is changing there, strongest first, with a button on each line that switches the map. It uses no
+   AI: it looks up precomputed trends.
+5. **Read the grade.** Every verdict comes with a grade (Robust, Use with caution, Doubtful) and, for air temperature
+   and rainfall, a line saying whether an independent record confirms the trend. See "Evaluation layer".
+
 ## Variables
 
 | Name | What it is | Units |
@@ -235,7 +253,7 @@ web/public/data/   Exported textures and metadata (committed, so the site builds
 ## Running the pipeline
 
 Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No login or API key is needed; the data is read
-anonymously from NASA POWER's public archive on AWS (about 10 MB per variable). The exported `web/public/data` is about 183 MB for the ten variables (about 17-19 MB per variable: country series, sea series, period-map grid, textures).
+anonymously from NASA POWER's public archive on AWS (about 10 MB per variable). The exported `web/public/data` is about 168 MB for the ten variables (about 17-19 MB per variable: country series, sea series, period-map grid, textures).
 
 ```bash
 cd pipeline
@@ -252,6 +270,9 @@ done
 .venv/bin/python countries.py            # country masks, cities, per-country series (all variables)
 .venv/bin/python seas.py                 # seas and oceans (all variables)
 .venv/bin/python export_summary.py       # summary.bin: slope / p / BH-adjusted p of every variable in every coarse cell
+.venv/bin/python regions.py              # continents and the world, for the Detective
+.venv/bin/python export_quality.py       # pattern checks and grades (after export.py: it adds to the meta files)
+.venv/bin/python reference.py            # comparison with GISTEMP and GPCP (needs the GISTEMP file, see docs/EVALUATION.md)
 ```
 
 ## Running the site

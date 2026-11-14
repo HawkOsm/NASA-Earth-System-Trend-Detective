@@ -8,7 +8,7 @@ import {
   triedText,
   type NamedPlace,
   type PlaceIndex,
-} from './detective';
+} from './detectiveLogic';
 
 const DATA = new URL('../public/data/', import.meta.url);
 const json = (f: string) => JSON.parse(readFileSync(new URL(f, DATA), 'utf8'));

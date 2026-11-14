@@ -20,7 +20,7 @@ import {
   type NamedPlace,
   type PlaceIndex,
   type Theme,
-} from './detective';
+} from './detectiveLogic';
 import { formatLatLng } from './format';
 import { loadSeaMask, loadSeas, pickSea } from './sea';
 import { loadRegions, regionRank, type RegionRec } from './regions';

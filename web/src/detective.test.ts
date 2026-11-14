@@ -15,7 +15,7 @@ import {
   themeHeader,
   wasFuzzy,
   type PlaceIndex,
-} from './detective';
+} from './detectiveLogic';
 import { VARIABLES } from './demos';
 import type { RankResult, RankedEntry } from './whatsChanging';
 

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildAnswer, lastSummary, placeHeader, type NamedPlace } from './detective';
+import { buildAnswer, lastSummary, placeHeader, type NamedPlace } from './detectiveLogic';
 import { groupDigits, regionRank, shareSentence, type RegionRec } from './regions';
 import { plainLine, type SummaryMeta } from './whatsChanging';
 

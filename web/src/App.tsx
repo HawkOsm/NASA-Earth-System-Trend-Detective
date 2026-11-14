@@ -5,6 +5,8 @@ import type { LatLng, PointOfView } from './Globe';
 import Menu from './Menu';
 import HowToRead from './HowToRead';
 import Detective, { type LiftTarget } from './Detective';
+import StartCard from './StartCard';
+import type { StartFinding } from './startFindings';
 import { VARIABLES } from './demos';
 import { LANDMARKS } from './landmarks';
 import Panel, { type PanelState } from './Panel';
@@ -666,6 +668,13 @@ export default function App() {
     handlePick({ lat, lng }, true);
   };
 
+  /** Start card: show one finding in the ordinary point panel, for the whole period. */
+  const openStartFinding = (f: StartFinding) => {
+    resetPeriod();
+    selectVariable(f.variable, false);
+    selectDetailCell(f.lat, f.lng);
+  };
+
   const closePanel = () => {
     abortRef.current?.abort();
     detailAbortRef.current?.abort();
@@ -984,6 +993,7 @@ export default function App() {
               </button>
             }
           />
+          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} />
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}

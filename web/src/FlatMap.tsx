@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { LatLng } from './Globe';
 import { buildGraticule, buildGraticuleLabels } from './graticule';
 import type { RegionBox } from './region';
-import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatmap';
+import { fitTwoToOne, latLngToFraction, pixelToLatLng } from './flatMapMath';
 
 interface FlatMapProps {
   textureUrl: string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnswer } from './detective';
+import { buildAnswer } from './detectiveLogic';
 import { decodeCell, parseQuality, qualityAt } from './qualityData';
 import type { VarQuality } from './quality';
 import { regionRank, type RegionRec } from './regions';
