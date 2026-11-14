@@ -8,6 +8,7 @@ import { formatLatLng } from './format';
 import type { RankResult, RankedEntry } from './whatsChanging';
 import { plainLine } from './whatsChanging';
 import type { SeaRec } from './sea';
+import { REGION_CELL_KM, groupDigits, type RegionRec } from './regions';
 
 // ---- places ---------------------------------------------------------------------------------------------------------
 
@@ -15,9 +16,11 @@ export interface PlaceIndex {
   cities: CityRec[];
   countries: CountryRec[];
   seas: SeaRec[];
+  /** Continents and the World (regions.json). Optional: without it only cities, countries and seas are known. */
+  regions?: RegionRec[];
 }
 
-export type PlaceKind = 'city' | 'country' | 'sea';
+export type PlaceKind = 'city' | 'country' | 'sea' | 'region';
 
 /** Something the user named: where to fly and which rank cell to read. */
 export interface NamedPlace {
@@ -32,6 +35,9 @@ export interface NamedPlace {
   countryIdx: number | null;
   seaIdx: number | null;
   pop?: number;
+  /** A region (continent or the World): camera altitude and number of land cells. */
+  altitude?: number;
+  nCells?: number;
 }
 
 /** Lower case, accents and punctuation removed, single spaces: "São Paulo" -> "sao paulo", "İstanbul" -> "istanbul". */
@@ -125,7 +131,15 @@ export function editDistance(a: string, b: string, max = 2): number {
 }
 
 export type MatchResult =
-  | { kind: 'place'; place: NamedPlace }
+  | {
+      kind: 'place';
+      place: NamedPlace;
+      /** The words to quote in "I read “…” as …" when the match was not the exact name (typo, prefix, alias), else null. */
+      read?: string | null;
+      /** Other, different places the text also named (after the first one, in text order): offered as buttons. */
+      others?: NamedPlace[];
+    }
+  | { kind: 'choose'; phrase: string; options: NamedPlace[] }
   | { kind: 'point'; lat: number; lng: number }
   | { kind: 'bad-coordinates' }
   | { kind: 'none'; suggestions: string[] };
@@ -143,7 +157,7 @@ function cityPlace(c: CityRec, idx: PlaceIndex): NamedPlace {
     pop: c.pop,
   };
 }
-const countryPlace = (r: CountryRec): NamedPlace => ({
+export const countryPlace = (r: CountryRec): NamedPlace => ({
   kind: 'country',
   name: r.name,
   lat: r.centre[0],
@@ -161,11 +175,22 @@ const seaPlace = (r: SeaRec): NamedPlace => ({
   countryIdx: null,
   seaIdx: r.idx,
 });
+const regionPlace = (r: RegionRec): NamedPlace => ({
+  kind: 'region',
+  name: r.name,
+  lat: r.centre[0],
+  lng: r.centre[1],
+  country: null,
+  countryIdx: null,
+  seaIdx: null,
+  altitude: r.altitude,
+  nCells: r.nCells,
+});
 
 const byPop = (a: CityRec, b: CityRec) => b.pop - a.pop || a.id - b.id;
 
 /** Look one candidate up: exact city, exact country, exact sea, then names that start with it, then names containing it. */
-function lookup(q: string, idx: PlaceIndex, cityN: string[], countryN: string[], seaN: string[]): NamedPlace | null {
+function lookup(q: string, idx: PlaceIndex, cityN: string[], countryN: string[], seaN: string[], regionN: string[]): NamedPlace | null {
   const pickCity = (test: (n: string) => boolean): NamedPlace | null => {
     let best: CityRec | null = null;
     idx.cities.forEach((c, k) => {
@@ -182,6 +207,8 @@ function lookup(q: string, idx: PlaceIndex, cityN: string[], countryN: string[],
   for (const test of tiers) {
     const c = pickCity(test);
     if (c) return c;
+    const g = pickRec(idx.regions ?? [], regionN, test);
+    if (g) return regionPlace(g);
     const r = pickRec(idx.countries, countryN, test);
     if (r) return countryPlace(r);
     const s = pickRec(idx.seas, seaN, test);
@@ -202,6 +229,7 @@ export function suggest(text: string, idx: PlaceIndex): string[] {
     if (!cur || d < cur.d) found.set(name, { d, pop });
   };
   idx.cities.forEach((c) => consider(c.name, c.pop));
+  (idx.regions ?? []).forEach((r) => consider(r.name, 2e12));
   idx.countries.forEach((r) => consider(r.name, 1e12));
   idx.seas.forEach((r) => r.nCells > 0 && consider(r.name, 5e11));
   return [...found.entries()]
@@ -210,21 +238,282 @@ export function suggest(text: string, idx: PlaceIndex): string[] {
     .map(([name]) => name);
 }
 
+// ---- names inside a sentence ---------------------------------------------------------------------------------------
+
+/**
+ * Names that are also ordinary words (or first names) and therefore never win from INSIDE a sentence. They are still found
+ * when they are the whole text ("Perm"). This is the list of the real cities.json names that were excluded; the other
+ * guard is length: a single-word city name shorter than 4 letters is never taken from inside a sentence either.
+ */
+export const CITY_STOP_WORDS = new Set([
+  'male', // Maldives
+  'perm', // Russia
+  'mary', // Turkmenistan
+  'george', // South Africa
+  'regina', // Canada
+  'victoria', // Canada, Seychelles ...
+  'stanley', // Falkland Is.
+  'douglas', // Isle of Man
+  'david', // Panama
+  'florence', // Italy
+  'hamilton', // Bermuda, Canada, New Zealand
+  'leon', // Mexico, Nicaragua, Spain
+  'cali', // Colombia
+  'surat', // India
+  'bern', // Switzerland
+  // not in cities.json today, kept so a longer list of places cannot bring them back:
+  'nice', 'bath', 'reading', 'split', 'mobile', 'bar', 'york', 'of', 'mesa', 'orange', 'hope', 'bend', 'kent',
+]);
+
+/** Sea names without their generic word ("mediterranean"): never for these (ordinary words, adjectives, or a country). */
+export const SEA_ALIAS_STOP = new Set(['indian', 'southern', 'northern', 'yellow', 'norwegian', 'arabian', 'solomon', 'philippine', 'greenland']);
+
+/** Words of a question that are never part of a place name for the typo step (the exact step needs no such list). */
+const QUESTION_WORDS = new Set(
+  (
+    'what whats is are the in of at for how has have changing change changes changed trend trends climate weather show me ' +
+    'tell about okay ok please and there here hot cold rain snow wind ice sea land big city country world compare between ' +
+    'getting hotter colder warmer wetter drier happening going doing today lately recently years year since over time'
+  ).split(' '),
+);
+
+/** Alternative names of countries: [what the user may type, country name as in countries.json, usable inside a sentence]. */
+export const COUNTRY_ALIASES: [string, string, boolean][] = [
+  ['usa', 'United States of America', true],
+  ['us', 'United States of America', false], // "tell us about ..." must not mean the USA
+  ['u s', 'United States of America', false],
+  ['u s a', 'United States of America', true],
+  ['united states', 'United States of America', true],
+  ['america', 'United States of America', true],
+  ['uk', 'United Kingdom', true],
+  ['u k', 'United Kingdom', false],
+  ['britain', 'United Kingdom', true],
+  ['great britain', 'United Kingdom', true],
+  ['england', 'United Kingdom', true],
+  ['turkiye', 'Turkey', true],
+  ['uae', 'United Arab Emirates', true],
+  ['korea', 'South Korea', true],
+  ['south korea', 'South Korea', true],
+  ['czech republic', 'Czechia', true],
+  ['ivory coast', "Côte d'Ivoire", true],
+  ['burma', 'Myanmar', true],
+  ['holland', 'Netherlands', true],
+  ['swaziland', 'eSwatini', true],
+  ['east timor', 'Timor-Leste', true],
+  ['cape verde', 'Cabo Verde', true],
+  ['bosnia', 'Bosnia and Herz.', true],
+];
+/** The World entry of regions.json and what the user may call it. 'global' is weak: only used when nothing else is named. */
+const WORLD_ALIASES: [string, boolean][] = [
+  ['world', false],
+  ['the world', false],
+  ['earth', false],
+  ['globe', false],
+  ['global', true],
+];
+
+type Group = 'region' | 'alias' | 'stripped' | 'country' | 'sea' | 'city';
+const KIND_RANK: Record<Group, number> = { region: 0, alias: 1, country: 1, sea: 2, stripped: 2, city: 3 };
+
+interface NameEntry {
+  key: string;
+  words: number;
+  group: Group;
+  pop: number;
+  /** More than one place: the user must choose ("pacific"). */
+  places: NamedPlace[];
+  /** May be taken from inside a sentence. */
+  sentence: boolean;
+  /** Only used when nothing else in the sentence is a place. */
+  weak: boolean;
+  /** Matching it is not worth an "I read … as …" note. */
+  quiet: boolean;
+}
+
+interface NameIndex {
+  byKey: Map<string, NameEntry[]>;
+  all: NameEntry[];
+}
+
+const nameCache = new WeakMap<PlaceIndex, NameIndex>();
+
+function buildNames(idx: PlaceIndex): NameIndex {
+  const cached = nameCache.get(idx);
+  if (cached) return cached;
+  const all: NameEntry[] = [];
+  const add = (key: string, group: Group, places: NamedPlace[], o: Partial<NameEntry> = {}) => {
+    if (!key) return;
+    all.push({ key, words: key.split(' ').length, group, pop: 0, places, sentence: true, weak: false, quiet: false, ...o });
+  };
+  const regionKeys = new Set<string>();
+  for (const g of idx.regions ?? []) {
+    const key = normalise(g.name);
+    regionKeys.add(key);
+    add(key, 'region', [regionPlace(g)]);
+    if (g.name === 'World') for (const [alias, weak] of WORLD_ALIASES) if (alias !== key) add(alias, 'alias', [regionPlace(g)], { weak, quiet: true });
+  }
+  const countryKeys = new Set<string>();
+  const byCountryName = new Map<string, CountryRec>();
+  for (const r of idx.countries) {
+    if (r.nCells <= 0) continue;
+    const key = normalise(r.name);
+    countryKeys.add(key);
+    byCountryName.set(r.name, r);
+    add(key, 'country', [countryPlace(r)]);
+  }
+  for (const [alias, target, sentence] of COUNTRY_ALIASES) {
+    const r = byCountryName.get(target);
+    if (r && !countryKeys.has(alias)) add(alias, 'alias', [countryPlace(r)], { sentence });
+  }
+  const seaKeys = new Set<string>();
+  const stripped = new Map<string, NamedPlace[]>();
+  for (const r of idx.seas) {
+    if (r.nCells <= 0) continue;
+    const key = normalise(r.name);
+    seaKeys.add(key);
+    add(key, 'sea', [seaPlace(r)], { pop: 5e11 });
+    // "mediterranean", "arctic", "pacific" (North/South Pacific Ocean: two places), without "sea" / "ocean".
+    const m = /^(?:(?:north|south|east|west) )?([a-z]+) (?:sea|ocean)$/.exec(key);
+    if (m && m[1].length >= 6 && !SEA_ALIAS_STOP.has(m[1])) stripped.set(m[1], [...(stripped.get(m[1]) ?? []), seaPlace(r)]);
+  }
+  for (const [key, places] of stripped) {
+    if (countryKeys.has(key) || regionKeys.has(key) || seaKeys.has(key)) continue;
+    add(key, 'stripped', places, { quiet: true });
+  }
+  for (const c of idx.cities) {
+    const key = normalise(c.name);
+    const single = !key.includes(' ');
+    add(key, 'city', [cityPlace(c, idx)], { pop: c.pop, sentence: !(single && (key.length < 4 || CITY_STOP_WORDS.has(key))) });
+  }
+  const byKey = new Map<string, NameEntry[]>();
+  for (const e of all) byKey.set(e.key, [...(byKey.get(e.key) ?? []), e]);
+  const out = { byKey, all };
+  nameCache.set(idx, out);
+  return out;
+}
+
+/** The better of two entries: continent, country / alias, sea, then city by population. */
+const entryOrder = (a: NameEntry, b: NameEntry) => KIND_RANK[a.group] - KIND_RANK[b.group] || b.pop - a.pop;
+
+const MAX_RUN = 5;
+
+interface Hit {
+  start: number;
+  n: number;
+  entry: NameEntry;
+  typed: string;
+}
+
+/** Every run of 1..5 consecutive words that is a known name (exact), each run with its best entry. */
+function exactHits(words: string[], names: NameIndex): Hit[] {
+  const hits: Hit[] = [];
+  for (let n = 1; n <= MAX_RUN; n++) {
+    for (let start = 0; start + n <= words.length; start++) {
+      const key = words.slice(start, start + n).join(' ');
+      const es = (names.byKey.get(key) ?? []).filter((e) => e.sentence);
+      if (es.length) hits.push({ start, n, entry: es.sort(entryOrder)[0], typed: key });
+    }
+  }
+  return hits;
+}
+
+/** Longest name first (words, then letters), then continent / country / sea / city by population; overlapping runs lose. */
+function chooseHits(hits: Hit[]): Hit[] {
+  const strong = hits.filter((h) => !h.entry.weak);
+  const pool = strong.length ? strong : hits;
+  const sorted = [...pool].sort(
+    (a, b) => b.n - a.n || b.typed.length - a.typed.length || entryOrder(a.entry, b.entry) || a.start - b.start,
+  );
+  const taken = new Set<number>();
+  const kept: Hit[] = [];
+  for (const h of sorted) {
+    let free = true;
+    for (let k = h.start; k < h.start + h.n; k++) if (taken.has(k)) free = false;
+    if (!free) continue;
+    for (let k = h.start; k < h.start + h.n; k++) taken.add(k);
+    kept.push(h);
+  }
+  return kept.sort((a, b) => a.start - b.start);
+}
+
+/** One typo (edit distance 1) in a name of 6+ letters, found as a word or word run that is not the whole text. */
+function typoHit(words: string[], names: NameIndex): Hit | null {
+  const found: Hit[] = [];
+  for (let n = 1; n <= Math.min(MAX_RUN, words.length - 1); n++) {
+    for (let start = 0; start + n <= words.length; start++) {
+      const run = words.slice(start, start + n);
+      if (run.every((w) => QUESTION_WORDS.has(w))) continue;
+      const typed = run.join(' ');
+      if (typed.length < 5) continue;
+      let best: NameEntry | null = null;
+      for (const e of names.all) {
+        if (!e.sentence || e.weak || e.key.length < 6 || Math.abs(e.key.length - typed.length) > 1) continue;
+        if (editDistance(typed, e.key, 1) !== 1) continue;
+        if (!best || entryOrder(e, best) < 0) best = e;
+      }
+      if (best) found.push({ start, n, entry: best, typed });
+    }
+  }
+  found.sort((a, b) => b.n - a.n || b.typed.length - a.typed.length || entryOrder(a.entry, b.entry) || a.start - b.start);
+  return found[0] ?? null;
+}
+
+const samePlace = (a: NamedPlace, b: NamedPlace) => a.kind === b.kind && a.name === b.name;
+
 /** Resolve what the user typed. Never guesses silently: an unknown text returns `none` with close names, if any. */
 export function matchPlace(text: string, idx: PlaceIndex): MatchResult {
   const ll = parseLatLng(text);
   if (ll === 'out-of-range') return { kind: 'bad-coordinates' };
   if (ll) return { kind: 'point', lat: ll.lat, lng: ll.lng };
+  const names = buildNames(idx);
   const cityN = idx.cities.map((c) => normalise(c.name));
   const countryN = idx.countries.map((r) => normalise(r.name));
   const seaN = idx.seas.map((r) => normalise(r.name));
+  const regionN = (idx.regions ?? []).map((r) => normalise(r.name));
+  const input = text.trim();
+  const full = normalise(text);
   for (const q of candidates(text)) {
     if (q.length < 2) continue;
-    const place = lookup(q, idx, cityN, countryN, seaN);
-    if (place) return { kind: 'place', place };
+    // Quote the user's own words; when filler words were stripped ("what is changing in the sahara"), only what was looked up.
+    const quoted = q === full ? input : q;
+    // Continents, the World, aliases ("usa") and sea names without "sea" ("pacific") are exact names too.
+    const special = (names.byKey.get(q) ?? []).filter((e) => e.group === 'region' || e.group === 'alias' || e.group === 'stripped').sort(entryOrder)[0];
+    if (special) {
+      if (special.places.length > 1) return { kind: 'choose', phrase: q, options: special.places };
+      const place = special.places[0];
+      return { kind: 'place', place, read: special.quiet || wasFuzzy(text, place) === false ? null : quoted, others: [] };
+    }
+    const place = lookup(q, idx, cityN, countryN, seaN, regionN);
+    if (place) return { kind: 'place', place, read: wasFuzzy(text, place) ? quoted : null, others: [] };
   }
+  // Not the whole text: a name inside a sentence ("what is the trend in the europe").
+  const words = normalise(text).split(' ').filter(Boolean);
+  const chosen = chooseHits(exactHits(words, names));
+  if (chosen.length) {
+    const first = chosen[0];
+    if (first.entry.places.length > 1) return { kind: 'choose', phrase: first.typed, options: first.entry.places };
+    const place = first.entry.places[0];
+    const others: NamedPlace[] = [];
+    for (const h of chosen.slice(1)) {
+      const p = h.entry.places.length === 1 ? h.entry.places[0] : null;
+      if (p && !samePlace(p, place) && !others.some((o) => samePlace(o, p))) others.push(p);
+    }
+    return { kind: 'place', place, read: null, others: others.slice(0, 3) };
+  }
+  const typo = words.length > 1 ? typoHit(words, names) : null;
+  if (typo && typo.entry.places.length === 1) return { kind: 'place', place: typo.entry.places[0], read: typo.typed, others: [] };
   const cands = candidates(text);
   return { kind: 'none', suggestions: suggest(cands[cands.length - 1] ?? text, idx) };
+}
+
+/** The part of the text a failed lookup tried: the text without the "tell me about" / "in the" words around it. */
+export function triedText(text: string): string {
+  const raw = text.trim().replace(/\s+/g, ' ');
+  const cands = candidates(text);
+  const stripped = cands[cands.length - 1];
+  // Quote the user's own spelling when it is just the filler-stripped text, else the stripped words.
+  const shown = stripped && normalise(raw) !== stripped ? stripped : raw;
+  return shown.length > 60 ? `${shown.slice(0, 57)}…` : shown;
 }
 
 /** True if the user's words are not exactly the matched name (so the answer says how it was read). */
@@ -264,7 +553,7 @@ export const THEMES: Theme[] = [
 export const CLICK_BUTTON = 'Click a place on the globe';
 
 export const OPENING = 'What do you want to investigate?';
-export const OPENING_HELP = 'Pick a button, or type a city, a country or a sea (or a pair like 41.0, 28.9).';
+export const OPENING_HELP = 'Pick a button, or type a city, a country, a continent or a sea (or a pair like 41.0, 28.9).';
 export const HONESTY_NOTE = 'No AI here: I look up pre-computed NASA POWER / MERRA-2 trends. Numbers are for ~100 km grid boxes.';
 
 // ---- answers --------------------------------------------------------------------------------------------------------
@@ -277,6 +566,8 @@ export interface AnswerLine {
   kind: 'significant' | 'possible';
   slopePerDecade: number;
   p: number;
+  /** A second sentence (region answers: the share of the map that agrees), or null. */
+  extra: string | null;
 }
 
 export interface Answer {
@@ -300,7 +591,7 @@ function listLabels(labels: string[]): string {
 }
 
 /** Build the answer for a rank result. `header` is the full first line; `suggestVars` (optional) adds suggestion buttons. */
-export function buildAnswer(rank: RankResult, header: string, suggestVars: string[] = []): Answer {
+export function buildAnswer(rank: RankResult, header: string, suggestVars: string[] = [], extras?: Map<string, string>): Answer {
   const shown: RankedEntry[] = rank.ranked.filter((e) => e.kind !== 'none');
   const rest = rank.ranked.filter((e) => e.kind === 'none');
   const lines: AnswerLine[] = shown.map((e) => ({
@@ -310,6 +601,7 @@ export function buildAnswer(rank: RankResult, header: string, suggestVars: strin
     kind: e.kind as 'significant' | 'possible',
     slopePerDecade: e.slopePerDecade,
     p: e.p,
+    extra: extras?.get(e.variable) ?? null,
   }));
   let nothing: string | null = null;
   if (rank.ranked.length === 0) nothing = 'None of the variables has data for this spot, so I have nothing to rank.';
@@ -329,6 +621,10 @@ export function buildAnswer(rank: RankResult, header: string, suggestVars: strin
 
 /** Header for a named place: "What's changing around Istanbul, Turkey (the roughly 100 km area around it, 1981–2025):". */
 export function placeHeader(place: NamedPlace, cellKm: number): string {
+  if (place.kind === 'region') {
+    const world = place.name === 'World';
+    return `What's changing across ${world ? 'the world' : place.name} (average over ${world ? 'all land' : 'its land'}, ${groupDigits(place.nCells ?? 0)} grid cells of about ${REGION_CELL_KM} km, ${YEARS_TEXT}):`;
+  }
   const where = place.kind === 'city' && place.country ? `${place.name}, ${place.country}` : place.name;
   if (place.kind === 'city') return `What's changing around ${where} (the roughly ${cellKm} km area around it, ${YEARS_TEXT}):`;
   return `What's changing in ${where}, at a point near its middle (the roughly ${cellKm} km area around it, ${YEARS_TEXT}):`;
@@ -345,10 +641,8 @@ export function themeHeader(t: Theme, cellKm: number): string {
 }
 
 /** Flat summary for window.__detective: what the last answer showed. */
-export function lastSummary(place: string, rank: RankResult, answer: Answer) {
-  return {
-    place,
-    cell: { lat: rank.cell.lat, lng: rank.cell.lng },
-    lines: answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind })),
-  };
+export function lastSummary(place: string, rank: RankResult, answer: Answer, region = false) {
+  const lines = answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind }));
+  if (region) return { place, cell: null, lines, region: true };
+  return { place, cell: { lat: rank.cell.lat, lng: rank.cell.lng }, lines };
 }

@@ -910,9 +910,10 @@ export default function App() {
             }}
             variable={variable}
             onShowVariable={(v) => selectVariable(v, true)}
-            onFly={(lat, lng) => {
-              setDetectiveMarker({ lat, lng });
-              flyTo({ lat, lng }, pickAltitude(window.__view?.().altitude, 5));
+            onFly={(lat, lng, altitude) => {
+              // A continent or the world: fly to its altitude and drop no marker (it is not a point).
+              setDetectiveMarker(altitude === undefined ? { lat, lng } : null);
+              flyTo({ lat, lng }, altitude ?? pickAltitude(window.__view?.().altitude, 5));
             }}
             onLift={(t: LiftTarget) => (t.kind === 'sea' ? handlersRef.current.pickSeaByName(t.idx) : handlersRef.current.pickCountryByName(t.idx))}
             clickRef={detectiveClickRef}

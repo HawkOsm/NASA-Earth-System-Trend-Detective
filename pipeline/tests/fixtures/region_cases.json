@@ -1,0 +1,222 @@
+{
+ "years": [
+  1981,
+  2025
+ ],
+ "regions": [
+  {
+   "name": "Europe",
+   "centre": [
+    52.0,
+    15.0
+   ],
+   "altitude": 1.7,
+   "nCells": 4514,
+   "topCountries": [
+    "Russia",
+    "Germany",
+    "France"
+   ],
+   "variables": {
+    "T2M": {
+     "slopePerDecade": 0.435234,
+     "ciLow": 0.272039,
+     "ciHigh": 0.6108,
+     "p": 1.05975e-05,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.96866,
+     "fracFalling": 0.0
+    },
+    "PRECTOTCORR": {
+     "slopePerDecade": 0.0374771,
+     "ciLow": 0.0137857,
+     "ciHigh": 0.0560022,
+     "p": 0.00112393,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.0479808,
+     "fracFalling": 0.00148144
+    },
+    "WS2M": {
+     "slopePerDecade": -0.0138024,
+     "ciLow": -0.0242269,
+     "ciHigh": -0.00254954,
+     "p": 0.0140743,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.00254889,
+     "fracFalling": 0.0674612
+    },
+    "T2M_MAX": {
+     "slopePerDecade": 0.454461,
+     "ciLow": 0.345944,
+     "ciHigh": 0.57393,
+     "p": 3.64077e-08,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.418006,
+     "fracFalling": 0.0
+    },
+    "GWETROOT": {
+     "slopePerDecade": -0.194972,
+     "ciLow": -0.622696,
+     "ciHigh": 0.235375,
+     "p": 0.35257,
+     "nCells": 4514,
+     "nWithData": 4510,
+     "fracRising": 0.0183871,
+     "fracFalling": 0.0343374
+    },
+    "EVLAND": {
+     "slopePerDecade": 0.0250142,
+     "ciLow": 0.0119608,
+     "ciHigh": 0.0390047,
+     "p": 0.000413339,
+     "nCells": 4514,
+     "nWithData": 4510,
+     "fracRising": 0.246782,
+     "fracFalling": 0.00077451
+    },
+    "RH2M": {
+     "slopePerDecade": -0.182407,
+     "ciLow": -0.354764,
+     "ciHigh": -0.0237913,
+     "p": 0.0238389,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.00831795,
+     "fracFalling": 0.125068
+    },
+    "FRSNO": {
+     "slopePerDecade": -0.791951,
+     "ciLow": -1.30357,
+     "ciHigh": -0.363177,
+     "p": 0.000356237,
+     "nCells": 4514,
+     "nWithData": 4380,
+     "fracRising": 0.0,
+     "fracFalling": 0.112966
+    },
+    "FRSEAICE": null,
+    "TO3": {
+     "slopePerDecade": -2.27311,
+     "ciLow": -3.86635,
+     "ciHigh": -0.490629,
+     "p": 0.0133263,
+     "nCells": 4514,
+     "nWithData": 4514,
+     "fracRising": 0.0,
+     "fracFalling": 0.278726
+    }
+   }
+  },
+  {
+   "name": "Africa",
+   "centre": [
+    2.0,
+    20.0
+   ],
+   "altitude": 2.2,
+   "nCells": 8187,
+   "topCountries": [
+    "Nigeria",
+    "Ethiopia",
+    "Egypt"
+   ],
+   "variables": {
+    "T2M": {
+     "slopePerDecade": 0.253864,
+     "ciLow": 0.148332,
+     "ciHigh": 0.347855,
+     "p": 6.29649e-05,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.688195,
+     "fracFalling": 0.00126527
+    },
+    "PRECTOTCORR": {
+     "slopePerDecade": -0.0102973,
+     "ciLow": -0.0941862,
+     "ciHigh": 0.0836853,
+     "p": 0.800133,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.0816779,
+     "fracFalling": 0.118616
+    },
+    "WS2M": {
+     "slopePerDecade": -0.0136509,
+     "ciLow": -0.0235541,
+     "ciHigh": -0.00170941,
+     "p": 0.0248022,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.0592678,
+     "fracFalling": 0.196004
+    },
+    "T2M_MAX": {
+     "slopePerDecade": 0.327126,
+     "ciLow": 0.226647,
+     "ciHigh": 0.428752,
+     "p": 1.66293e-07,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.555957,
+     "fracFalling": 0.00204326
+    },
+    "GWETROOT": {
+     "slopePerDecade": -0.344532,
+     "ciLow": -0.925605,
+     "ciHigh": 0.329666,
+     "p": 0.233304,
+     "nCells": 8187,
+     "nWithData": 8185,
+     "fracRising": 0.0818107,
+     "fracFalling": 0.0947503
+    },
+    "EVLAND": {
+     "slopePerDecade": -0.0153023,
+     "ciLow": -0.058568,
+     "ciHigh": 0.0312844,
+     "p": 0.393236,
+     "nCells": 8187,
+     "nWithData": 8185,
+     "fracRising": 0.0767368,
+     "fracFalling": 0.113933
+    },
+    "RH2M": {
+     "slopePerDecade": -0.135225,
+     "ciLow": -0.553007,
+     "ciHigh": 0.396612,
+     "p": 0.635723,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.109801,
+     "fracFalling": 0.125245
+    },
+    "FRSNO": {
+     "slopePerDecade": -0.0140645,
+     "ciLow": -0.0407334,
+     "ciHigh": 0.0146962,
+     "p": 0.256458,
+     "nCells": 8187,
+     "nWithData": 139,
+     "fracRising": 0.0,
+     "fracFalling": 0.0
+    },
+    "FRSEAICE": null,
+    "TO3": {
+     "slopePerDecade": 0.332426,
+     "ciLow": -0.505804,
+     "ciHigh": 1.10247,
+     "p": 0.368467,
+     "nCells": 8187,
+     "nWithData": 8187,
+     "fracRising": 0.092205,
+     "fracFalling": 0.0
+    }
+   }
+  }
+ ]
+}

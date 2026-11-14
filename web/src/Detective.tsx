@@ -8,12 +8,13 @@ import {
   OPENING_HELP,
   THEMES,
   buildAnswer,
+  countryPlace,
   lastSummary,
   matchPlace,
   placeHeader,
   spotHeader,
   themeHeader,
-  wasFuzzy,
+  triedText,
   type Answer,
   type NamedPlace,
   type PlaceIndex,
@@ -21,14 +22,15 @@ import {
 } from './detective';
 import { formatLatLng } from './format';
 import { loadSeaMask, loadSeas, pickSea } from './sea';
-import { loadSummary, rankAt, type RankResult } from './whatsChanging';
+import { loadRegions, regionRank, type RegionRec } from './regions';
+import { loadSummary, rankAt, type RankResult, type Summary } from './whatsChanging';
 
 declare global {
   interface Window {
     __detective?: {
       open: boolean;
       messages: number;
-      last: { place: string; cell: { lat: number; lng: number }; lines: { variable: string; slopePerDecade: number; p: number; kind: string }[] } | null;
+      last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string }[] } | null;
     };
     __askDetective?: (text: string) => void;
   }
@@ -46,6 +48,8 @@ type Action =
   | { t: 'click' }
   | { t: 'ask'; text: string }
   | { t: 'lift'; target: LiftTarget }
+  | { t: 'place'; place: NamedPlace }
+  | { t: 'country'; name: string }
   | { t: 'another' }
   | { t: 'retry' };
 
@@ -76,8 +80,8 @@ export interface DetectiveProps {
   variable: string;
   /** Switch the map to a variable (the panel stays open). */
   onShowVariable: (v: string) => void;
-  /** Fly the globe to a place and drop the marker there. */
-  onFly: (lat: number, lng: number) => void;
+  /** Fly the globe to a place and drop the marker there. With `altitude` (a continent or the world): fly there, no marker. */
+  onFly: (lat: number, lng: number, altitude?: number) => void;
   /** Open the existing country / sea overlay. */
   onLift: (t: LiftTarget) => void;
   /** Detective registers its globe-click handler here; App calls it instead of the normal click while the panel is open. */
@@ -139,12 +143,15 @@ export default function Detective(p: DetectiveProps) {
   };
 
   /** Run one lookup that needs the trends; on failure say so and offer "Try again" (never invent numbers). */
-  const withSummary = async (job: (rank: (lat: number, lng: number) => RankResult) => Promise<void>, redo: () => Promise<void>) => {
+  const withSummary = async (
+    job: (rank: (lat: number, lng: number) => RankResult, summary: Summary) => Promise<void>,
+    redo: () => Promise<void>,
+  ) => {
     try {
       setStatus((s) => (s === 'ready' ? s : 'loading'));
       const summary = await loadSummary();
       setStatus('ready');
-      await job((lat, lng) => rankAt(summary, lat, lng));
+      await job((lat, lng) => rankAt(summary, lat, lng), summary);
       failedJob.current = null;
     } catch (err) {
       console.error(err);
@@ -158,9 +165,9 @@ export default function Detective(p: DetectiveProps) {
     }
   };
 
-  const reportAnswer = (placeName: string, rank: RankResult, answer: Answer, extra: Partial<Msg> = {}) => {
+  const reportAnswer = (placeName: string, rank: RankResult, answer: Answer, extra: Partial<Msg> = {}, region = false) => {
     push({ from: 'bot', answer, ...extra });
-    setLast(lastSummary(placeName, rank, answer));
+    setLast(lastSummary(placeName, rank, answer, region));
   };
 
   const followUps = (lift: LiftTarget | null): Choice[] => [
@@ -198,7 +205,18 @@ export default function Detective(p: DetectiveProps) {
     return run();
   };
 
-  const answerPlace = (place: NamedPlace, fuzzyFrom: string | null) => {
+  const placeLabel = (place: NamedPlace) => (place.kind === 'city' && place.country ? `${place.name}, ${place.country}` : place.name);
+
+  /** "I read “europ” as Europe." and, when the text named several places, which one this answer is for. */
+  const placeNote = (place: NamedPlace, read: string | null, others: NamedPlace[]): string | undefined => {
+    const parts: string[] = [];
+    if (read) parts.push(`I read “${read}” as ${placeLabel(place)}.`);
+    if (others.length) parts.push(`You named more than one place, so this answer is for ${placeLabel(place)}, the first. Tap ${others.map(placeLabel).join(' or ')} to see that one.`);
+    return parts.length ? parts.join(' ') : undefined;
+  };
+  const otherChoices = (others: NamedPlace[]): Choice[] => others.map((o): Choice => ({ label: placeLabel(o), action: { t: 'place', place: o } }));
+
+  const answerPlace = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
     const run = () =>
       withSummary(async (rank) => {
         const r = rank(place.lat, place.lng);
@@ -209,13 +227,43 @@ export default function Detective(p: DetectiveProps) {
             : place.countryIdx !== null && place.country
               ? { kind: 'country', idx: place.countryIdx, name: place.country }
               : null;
-        const label = place.kind === 'city' && place.country ? `${place.name}, ${place.country}` : place.name;
-        reportAnswer(label, r, buildAnswer(r, header), {
-          note: fuzzyFrom ? `I read “${fuzzyFrom}” as ${label}.` : undefined,
-          choices: followUps(lift),
+        reportAnswer(placeLabel(place), r, buildAnswer(r, header), {
+          note: placeNote(place, read, others),
+          choices: [...otherChoices(others), ...followUps(lift)],
         });
       }, run);
     return run();
+  };
+
+  /** A continent or the World: the pre-computed average over its land, and its most populous countries as follow-ups. */
+  const answerRegion = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
+    const run = () =>
+      withSummary(async (_rank, summary) => {
+        const regions = await loadRegions();
+        const rec: RegionRec | undefined = regions.find((g) => g.name === place.name);
+        if (!rec) throw new Error(`regions.json has no ${place.name}`);
+        const { rank, extras } = regionRank(rec, summary);
+        const header = placeHeader({ ...place, nCells: rec.nCells }, rank.cellKm);
+        const countries: Choice[] = rec.topCountries.map((name): Choice => ({ label: name, action: { t: 'country', name } }));
+        reportAnswer(
+          rec.name,
+          rank,
+          buildAnswer(rank, header, [], extras),
+          { note: placeNote(place, read, others), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
+          true,
+        );
+      }, run);
+    return run();
+  };
+
+  /** Fly to a named place and answer for it. */
+  const answerNamed = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
+    if (place.kind === 'region') {
+      p.onFly(place.lat, place.lng, place.altitude);
+      return answerRegion(place, read, others);
+    }
+    p.onFly(place.lat, place.lng);
+    return answerPlace(place, read, others);
   };
 
   const answerTheme = (t: Theme) => {
@@ -229,8 +277,9 @@ export default function Detective(p: DetectiveProps) {
   };
 
   const loadIndex = async (): Promise<PlaceIndex> => {
-    const [cities, countries, seas] = await Promise.all([loadCities(), loadCountries(), loadSeas()]);
-    return { cities, countries, seas };
+    // Without regions.json the continents are simply unknown; cities, countries and seas still work.
+    const [cities, countries, seas, regions] = await Promise.all([loadCities(), loadCountries(), loadSeas(), loadRegions().catch(() => undefined)]);
+    return { cities, countries, seas, regions };
   };
 
   /** Free text: the same path for typing + Enter and for window.__askDetective. */
@@ -249,8 +298,13 @@ export default function Detective(p: DetectiveProps) {
       }
       const m = matchPlace(input, idx);
       if (m.kind === 'place') {
-        p.onFly(m.place.lat, m.place.lng);
-        await answerPlace(m.place, wasFuzzy(input, m.place) ? input : null);
+        await answerNamed(m.place, m.read ?? null, m.others ?? []);
+      } else if (m.kind === 'choose') {
+        push({
+          from: 'bot',
+          text: `Which ${m.phrase.replace(/^./, (c) => c.toUpperCase())} do you mean?`,
+          choices: m.options.map((o): Choice => ({ label: placeLabel(o), action: { t: 'place', place: o } })),
+        });
       } else if (m.kind === 'point') {
         p.onFly(m.lat, m.lng);
         await answerSpot(m.lat, m.lng);
@@ -259,7 +313,7 @@ export default function Detective(p: DetectiveProps) {
       } else {
         push({
           from: 'bot',
-          text: `I don't know a place called “${input}”. I can look up cities, countries, seas and oceans by name, or a latitude and longitude like 41.0, 28.9.`,
+          text: `I couldn't find a place in “${triedText(input)}”. I can look up cities, countries, continents, seas and oceans by name, or a latitude and longitude like 41.0, 28.9.`,
           choices: [...m.suggestions.map((s): Choice => ({ label: `Did you mean ${s}?`, action: { t: 'ask', text: s } })), ...themeChoices()],
         });
       }
@@ -292,6 +346,21 @@ export default function Detective(p: DetectiveProps) {
       case 'lift':
         p.onLift(a.target);
         break;
+      case 'place': {
+        const place = a.place;
+        push({ from: 'user', text: label });
+        enqueue(() => answerNamed(place, null));
+        break;
+      }
+      case 'country': {
+        const name = a.name;
+        push({ from: 'user', text: label });
+        enqueue(async () => {
+          const rec = (await loadCountries()).find((r) => r.name === name);
+          if (rec) await answerNamed(countryPlace(rec), null);
+        });
+        break;
+      }
       case 'another':
         push({ from: 'user', text: label });
         setMessages((list) => [...list, openingMessage()]);
@@ -423,7 +492,7 @@ export default function Detective(p: DetectiveProps) {
       )}
       <form className="dt-form" onSubmit={submit}>
         <label className="dt-sr" htmlFor="dt-input">
-          Type a city, a country or a sea
+          Type a city, a country, a continent or a sea
         </label>
         <input
           id="dt-input"
@@ -432,7 +501,7 @@ export default function Detective(p: DetectiveProps) {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Type a city, country or sea…"
+          placeholder="Type a place or a question…"
           autoComplete="off"
           autoCapitalize="off"
           enterKeyHint="send"
@@ -459,6 +528,7 @@ function AnswerView({ answer, variable, onShow }: { answer: Answer; variable: st
               <li key={l.variable} className={`dt-line dt-${l.kind}`}>
                 <span className="dt-line-text">
                   <strong>{l.label}:</strong> {rest}
+                  {l.extra && <span className="dt-line-extra">{l.extra}</span>}
                 </span>
                 <button
                   type="button"
