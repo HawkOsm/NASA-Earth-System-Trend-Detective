@@ -1,0 +1,13 @@
+{
+ "texture": "PRECTOTCORR_confirmed.png",
+ "source": {
+  "short": "GPCP",
+  "name": "GPCP v2.3 monthly precipitation (NOAA PSL)"
+ },
+ "shares": {
+  "significant": 0.2121320473572302,
+  "confirmed": 0.05117718283113319,
+  "notConfirmed": 0.13015749032723398,
+  "uncheckable": 0.030797374198863036
+ }
+}

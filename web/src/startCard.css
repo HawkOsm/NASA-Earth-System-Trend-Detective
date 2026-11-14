@@ -35,3 +35,7 @@
   .start-list { grid-template-columns: 1fr; }
   .start-item { flex-direction: row; flex-wrap: wrap; column-gap: 8px; }
 }
+/* On a phone the open menu is a sheet over the lower part of the screen: the strip steps aside for it. */
+@media (max-width: 760px) {
+  body.menu-open .start { display: none; }
+}

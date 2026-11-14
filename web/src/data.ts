@@ -57,6 +57,10 @@ export function trendTextureUrl(variable: string): string {
   return dataUrl(`${variable}_trend.png`);
 }
 
+export function confirmedTextureUrl(variable: string): string {
+  return dataUrl(`${variable}_confirmed.png`);
+}
+
 export function landmarksTextureUrl(variable: string): string {
   return dataUrl(`${variable}_landmarks.png`);
 }

@@ -25,3 +25,13 @@ describe('share wording', () => {
     expect(shareOfText('sea')).toBe('of the area with data');
   });
 });
+
+describe('show row', () => {
+  it('has the disabled text and enabled rule from confirmedMap', async () => {
+    const { confirmedEnabled, CONFIRMED_DISABLED_TEXT } = await import('./confirmedMap');
+    expect(confirmedEnabled('PRECTOTCORR', true)).toBe(true);
+    expect(confirmedEnabled('GWETROOT', true)).toBe(false);
+    expect(confirmedEnabled('T2M', false)).toBe(false);
+    expect(CONFIRMED_DISABLED_TEXT).toContain('air temperature and rainfall');
+  });
+});

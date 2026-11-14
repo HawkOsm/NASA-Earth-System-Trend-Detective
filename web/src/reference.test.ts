@@ -107,7 +107,7 @@ describe('sentences', () => {
   });
   it('info', () => {
     expect(referenceCheck({ ...base, kind: 'none' }).sentence).toBe(
-      `Independent record: ${src} shows +0.10 mm/day per decade for the roughly 280 km box around this place (p = 0.01).`,
+      `MERRA-2 shows no clear trend here, but an independent record does: ${src} shows +0.10 mm/day per decade for the roughly 280 km box around this place (p = 0.01).`,
     );
   });
   it('none: not eligible, with the reason', () => {
@@ -147,8 +147,8 @@ describe('sentences', () => {
     expect(shortCheckText('none', 'GPCP')).toEqual({ reason: null, tail: null });
   });
   it('Menu line', () => {
-    expect(summaryLine('PRECTOTCORR', tiny())).toBe('Independent check (GPCP): 26% of the significant area confirmed, 68% not confirmed, 6% contradicted.');
-    expect(summaryLine('T2M', tiny())).toMatch(/ \(land only\)$/);
+    expect(summaryLine('PRECTOTCORR', tiny())).toBe('Checked against GPCP: 26% confirmed · 68% not confirmed · 6% contradicted');
+    expect(summaryLine('T2M', tiny())).toMatch(/^Checked against GPCP \(land\): /);
     expect(summaryLine('T2M', null)).toBeNull();
   });
 });
@@ -192,5 +192,14 @@ describe('confirmed, but the size differs', () => {
     const b = boxAt(ref, ref.lat0, ref.lon0);
     expect(b?.sizeDiffers).toBe(true);
     expect(b?.merraSlope).toBe(0.2);
+  });
+});
+
+describe('the record shows a change that MERRA-2 does not', () => {
+  it('says so when the site has no clear trend and the record is significant', () => {
+    const ref = tiny({});
+    const b: RefBox = { index: 0, lat: 0, lng: 0, refSlope: 0.24, refP: 0.0001, merraSlope: -0.004, sizeDiffers: true, badYears: [] };
+    expect(classSentence('info', ref, b, '°C')).toMatch(/^MERRA-2 shows no clear trend here, but an independent record does: /);
+    expect(classSentence('info', ref, { ...b, refP: 0.4 }, '°C')).toMatch(/^Independent record: /);
   });
 });

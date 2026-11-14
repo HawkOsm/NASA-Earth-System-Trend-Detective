@@ -1,0 +1,13 @@
+{
+ "texture": "T2M_confirmed.png",
+ "source": {
+  "short": "NASA GISTEMP",
+  "name": "GISTEMP v4 (NASA GISS), surface temperature anomaly"
+ },
+ "shares": {
+  "significant": 0.6897809099367372,
+  "confirmed": 0.1839781930586521,
+  "notConfirmed": 0.005356960944482924,
+  "uncheckable": 0.5004457559336021
+ }
+}

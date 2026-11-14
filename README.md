@@ -222,12 +222,19 @@ with **GPCP** v2.3 (rain gauges and satellites, 2.5 degree boxes, about 280 km).
 
 ```
 T2M          eligible 28.1% of the globe (5229 land boxes):   confirmed 97.1%  not confirmed 2.3%  contradicted 0.6%
-PRECTOTCORR  eligible 86.6% of the globe (6912 boxes):        confirmed 26.1%  not confirmed 67.6%  contradicted 6.3%
+PRECTOTCORR  eligible 86.6% of the globe (6912 boxes):        confirmed 26.0%  not confirmed 67.8%  contradicted 6.2%
 ```
 
   So land temperature is almost always confirmed, while for rainfall most of the trends MERRA-2 shows are not in the independent
   record (within 60°S–60°N: over land 60% not confirmed and 7% contradicted, over the sea 71% and 6%). Read MERRA-2 rainfall
   trends with that in mind. A plain-language guide to the whole evaluation layer is in `docs/EVALUATION.md`.
+- **"Confirmed only" map** (Menu, row Show; `pipeline/export_confirmed.py`, `web/src/confirmedMap.ts`): redraws the temperature or
+  rainfall map with only the trends the independent record confirms, full period only. A MERRA-2 cell counts as confirmed if its
+  trend is map-significant, the reference box around it is eligible, the record's own trend there has p < 0.05 and the same sign.
+  Significant cells in ineligible boxes (sea for temperature, poleward of 60° for rainfall) are "cannot check" and are hidden too.
+  Globe shares (cos-latitude weighted): temperature 18% confirmed / 1% not confirmed / 50% cannot check; rainfall 5% / 13% / 3%.
+  Run `.venv/bin/python export_confirmed.py` after `export.py` and `reference.py`; it writes `<VAR>_confirmed.png` and
+  `reference/confirmed_<VAR>.json`.
 - **Bad years**: in each box the difference D between the two annual series (temperature: both as anomalies; rainfall: MERRA-2 minus
   c times GPCP, c = median ratio) loses its own Sen line (the slow drift between the records is the trend disagreement itself and
   would otherwise hide single years), and a year is flagged when its robust z (via the MAD) exceeds 5 in absolute value and the
@@ -241,6 +248,11 @@ PRECTOTCORR  eligible 86.6% of the globe (6912 boxes):        confirmed 26.1%  n
   the sea). The disagreement for rainfall is therefore a slow drift of one record against the other, not a handful of bad years.
 - Limits: GISTEMP is a smoothed anomaly product; GPCP is itself a satellite-gauge estimate, not the truth. "Not confirmed" means the
   independent record does not show the trend, not that MERRA-2 is wrong.
+- **Areas** (`pipeline/reference_areas.py`, `web/public/data/reference/areas_{T2M,PRECTOTCORR}.json`): the same check for a whole
+  country, sea, continent or the World. The record and MERRA-2 are both averaged over the boxes inside the area (weight = cos(latitude)
+  of the area's cells in each box, eligible boxes with all 45 years only), and the area is checked when those boxes carry at least half
+  of its weight (`coverage`); air temperature over a sea is never checked, and an area the record covers less than half of (small
+  islands, Russia for rainfall) says so. Same classes, wording ("averaged over the same area") and grade cap as for a point.
 
 ## Repository layout
 

@@ -323,8 +323,10 @@ def load_country_mask():
 def build(var, log=print):
     lat0, dlat, nlat, lon0, dlon, nlon = reference_grid(var)
     grid = products.load_grid(var)
-    lat = np.load(os.path.join(config.CACHE_DIR, "lat.npy")).astype(np.float64)
-    lon = np.load(os.path.join(config.CACHE_DIR, "lon.npy")).astype(np.float64)
+    # The stored coordinates carry rounding noise (the equator is -1.8e-13, not 0). Snap them, or a cell exactly on
+    # a box edge lands in the wrong box and "lower edge inclusive" is not what actually happens.
+    lat = np.round(np.load(os.path.join(config.CACHE_DIR, "lat.npy")).astype(np.float64), 6)
+    lon = np.round(np.load(os.path.join(config.CACHE_DIR, "lon.npy")).astype(np.float64), 6)
     assert grid.shape == (NY, 361, 576) and lat[0] == -90 and lon[0] == -180
     R = gistemp_annual() if var == "T2M" else gpcp_annual()
     log(f"{var}: reference {R.shape}, computing MERRA-2 box means ...")

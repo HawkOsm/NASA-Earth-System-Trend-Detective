@@ -66,7 +66,7 @@ All numbers below were computed by the pipeline and recomputed independently in 
 | | Confirmed | Not confirmed | Contradicted |
 |---|---|---|---|
 | Air temperature (land) vs GISTEMP | 97.1% | 2.3% | 0.6% |
-| Rainfall (60°S–60°N) vs GPCP | 26.1% | 67.6% | 6.3% |
+| Rainfall (60°S–60°N) vs GPCP | 26.0% | 67.8% | 6.2% |
 
 In words: MERRA-2's temperature trends on land are trustworthy. **Two thirds of its significant rainfall
 trends are not confirmed by an independent record.**
@@ -108,6 +108,16 @@ The pattern checks only see shapes; a smooth drift that is wrong looks exactly l
 right. **A "Robust" grade on a variable with no independent record means "no warning sign found", not
 "confirmed".**
 
+### The check for countries, seas and continents
+
+The same check is available for a whole area. The independent record and MERRA-2 are both averaged over the boxes that
+lie inside the area, each box weighted by the area (cos of latitude) of the area's cells it holds. Only boxes that
+qualify for a point (land for temperature, below 60 degrees latitude for rainfall, 45 years of data) are used. The area is
+checked when those boxes carry at least half of its weight; otherwise the site says the record covers less than half of
+it (this happens for small islands, and for rainfall in Russia and polar seas), and for air temperature over a sea it
+says the record measures the water. Classes (confirmed, not confirmed, contradicted), the grade cap and the bad years
+work as for a point; the numbers are in `web/public/data/reference/areas_*.json`.
+
 ### Bad years and patching
 
 A "bad year" is a year where MERRA-2 departs from the independent record much more than it usually does,
@@ -122,6 +132,22 @@ against GPCP 7.08, when every other recent year agrees within about 15%.
   +0.055. Across all boxes the agreement with the record does not improve. The disagreement is slow drift
   over the whole record, not single bad years. So "patching" does not make MERRA-2's rainfall trends right;
   the honest response is to label them.
+
+### The "Confirmed only" map
+
+The Menu row **Show** redraws the temperature or rainfall map (1981–2025 only) with just the trends the independent record
+confirms. For each MERRA-2 cell that is significant on the map: it is *confirmed* if the reference box containing the cell centre is
+eligible, the record's own trend there has p < 0.05 and the same sign; *cannot check* if the box is not eligible; otherwise
+*not confirmed*. The picture is the normal trend picture with only confirmed cells coloured. Shares of the whole globe (cos-latitude
+weighted; `reference/confirmed_<VAR>.json`):
+
+| | Significant | Confirmed | Not confirmed | Cannot check |
+|---|---|---|---|---|
+| Air temperature (GISTEMP) | 69.0% | 18.4% | 0.5% | 50.0% |
+| Rainfall (GPCP) | 21.2% | 5.1% | 13.0% | 3.1% |
+
+Temperature looks small here only because half of the significant area is sea, where the record is not air temperature; on land
+almost all of it is confirmed (97% in the box table above). Code: `pipeline/export_confirmed.py`.
 
 ## 4. How good are the checks themselves? (calibration)
 

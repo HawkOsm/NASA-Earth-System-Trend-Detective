@@ -48,6 +48,7 @@
 .menu-scale .menu-note { margin-top: 3px; }
 .menu-plain { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: -1px; border: 1px solid #666; }
 .menu-footer { padding-top: 2px; }
+.menu-show-off { padding: 3px 10px; }
 
 /* The period bar inside the menu: no box of its own, the label column names it. */
 .menu .period-bar {

@@ -24,6 +24,7 @@ import {
 import { formatLatLng } from './format';
 import { loadSeaMask, loadSeas, pickSea } from './sea';
 import { loadRegions, regionRank, type RegionRec } from './regions';
+import { areaLineChecks, loadAreaReference, type AreaRefData } from './referenceAreas';
 import { loadSummary, rankAt, type RankResult, type Summary } from './whatsChanging';
 import { loadReference, REFERENCE_VARIABLES, type RefData } from './reference';
 import { loadQuality, qualityAt, type QualityData } from './qualityData';
@@ -269,12 +270,22 @@ export default function Detective(p: DetectiveProps) {
         const rec: RegionRec | undefined = regions.find((g) => g.name === place.name);
         if (!rec) throw new Error(`regions.json has no ${place.name}`);
         const { rank, extras, qualities } = regionRank(rec, summary);
+        // The independent check for the continent / World (without the files the lines simply carry no check).
+        const areaRefs = new Map<string, AreaRefData>();
+        for (const v of REFERENCE_VARIABLES) {
+          try {
+            const r = await loadAreaReference(v);
+            if (r) areaRefs.set(v, r);
+          } catch (err) {
+            console.error(err);
+          }
+        }
         const header = placeHeader({ ...place, nCells: rec.nCells }, rank.cellKm);
         const countries: Choice[] = rec.topCountries.map((name): Choice => ({ label: name, action: { t: 'country', name } }));
         reportAnswer(
           rec.name,
           rank,
-          buildAnswer(rank, header, [], extras, qualities),
+          buildAnswer(rank, header, [], extras, qualities, areaLineChecks(rank, areaRefs, 'regions', rec.name)),
           { note: placeNote(place, read, others), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
           true,
         );

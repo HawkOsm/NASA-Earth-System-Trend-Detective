@@ -6,12 +6,13 @@ import { cityMark, provinceHeading, sortProvinces, type ProvinceTrend } from './
 import type { VariableMeta } from './data';
 import { summarize, type DetailCell, type Ring } from './detail';
 import { VARIABLE_GROUPS } from './demos';
-import { rateUnits } from './format';
+import { rateUnits, rateUnitsLong } from './format';
 import { formatTick, overlayBarCss } from './legend';
 import { MIN_YEARS } from './analysis';
 import PeriodBar from './PeriodBar';
 import { ResultChart, ResultSummary } from './Panel';
-import { hasReference } from './reference';
+import { combineGrade, hasReference } from './reference';
+import { areaCheck, loadAreaReference, type AreaCheck, type AreaRefData } from './referenceAreas';
 import { periodText, type Period } from './period';
 import { cellKm } from './sea';
 import { surfaceMessage } from './noData';
@@ -135,6 +136,49 @@ export default function CountryOverlay(p: Props) {
 
   const ready = state.status === 'ready' ? state : null;
 
+  // The independent check for the whole area (referenceAreas.ts): lazy, one fetch per variable. A failed load shows nothing.
+  const [areaRef, setAreaRef] = useState<{ variable: string; data: AreaRefData | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!hasReference(meta.variable)) {
+      setAreaRef({ variable: meta.variable, data: null });
+      return;
+    }
+    loadAreaReference(meta.variable).then(
+      (data) => alive && setAreaRef({ variable: meta.variable, data }),
+      (err) => console.error(err),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [meta.variable]);
+  const analysis = ready ? ready.analysis : null;
+  const reference = useMemo<AreaCheck | null>(() => {
+    if (!ready || !analysis || ready.data.variable !== meta.variable || !areaRef || areaRef.variable !== meta.variable || !hasReference(meta.variable)) return null;
+    return areaCheck({
+      variable: meta.variable,
+      data: areaRef.data,
+      kind: sea ? 'seas' : 'countries',
+      key: String(rec.idx),
+      fullPeriod: p.fullPeriod,
+      verdictKind: analysis.kind,
+      slope: analysis.slopeDecade,
+      unitsLong: rateUnitsLong(analysis.units),
+      series: { years: analysis.years, values: analysis.annual },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, areaRef, meta.variable, sea, rec.idx, p.fullPeriod]);
+  // window.__lastResult.reference / .quality.combined for countries and seas, as for points (plus the coverage).
+  useEffect(() => {
+    const lr = window.__lastResult;
+    if (!lr || !analysis || !reference || lr.variable !== meta.variable || typeof lr.area.sizeDeg === 'number') return;
+    lr.quality.combined = combineGrade(lr.quality.grade, reference.cls);
+    lr.reference = {
+      cls: reference.cls, short: reference.short, refSlope: reference.refSlope, refP: reference.refP, boxLat: null, boxLng: null,
+      badYears: reference.badYears, slopeWithout: reference.slopeWithout, pWithout: reference.pWithout, coverage: reference.coverage,
+    };
+  }, [reference, analysis, meta.variable]);
+
   // Provinces: the map and its hooks use the file order; the list is sorted by trend.
   const provs = p.provinces && p.provinces.length ? p.provinces : null;
   const [hoverProv, setHoverProv] = useState<number | null>(null);
@@ -229,7 +273,7 @@ export default function CountryOverlay(p: Props) {
                 <>
                   <section className="co-card" aria-label={sea ? 'Whole sea' : 'Whole country'}>
                     <h3 className="co-card-title">{sea ? 'Whole sea' : 'Whole country'}</h3>
-                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} countryNote={hasReference(meta.variable)} />
+                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} reference={reference} />
                   </section>
                   <section className="co-card" aria-label="Trend chart">
                     <ResultChart a={ready.analysis} period={p.period} country={true} />

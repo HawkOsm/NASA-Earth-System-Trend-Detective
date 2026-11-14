@@ -93,7 +93,7 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           change; &ldquo;contradicted&rdquo; means it shows the opposite. It is the only check here that tests the data against something
           other than itself, so a trend that is not confirmed is at best &ldquo;use with caution&rdquo; and a contradicted one is
           &ldquo;doubtful&rdquo;. For rainfall most significant trends are not confirmed: the independent record does not show them, so
-          treat MERRA-2 rainfall trends with care. The check is shown for single places (Point or a box) over 1981–2025.
+          treat MERRA-2 rainfall trends with care. The check is shown for single places (Point or a box), and for a whole country, sea or continent when the record covers at least half of it (the record and MERRA-2 are then both averaged over the same area), over 1981–2025.
         </p>
         <h3>Data source</h3>
         <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid.</p>

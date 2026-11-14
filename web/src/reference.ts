@@ -131,6 +131,9 @@ export function classSentence(cls: RefClass, ref: RefData, box: RefBox, unitsLon
     return `Not confirmed by an independent record: ${src} shows no significant change for the roughly ${km} km box around this place (${rate}, ${fmtP(box.refP)}).`;
   if (cls === 'contradicted')
     return `Contradicted by an independent record: ${src} shows the opposite, ${rate} (${fmtP(box.refP)}), for the roughly ${km} km box around this place.`;
+  // The site sees no clear trend, but the record does: say so plainly instead of only quoting the number.
+  if (box.refP < 0.05)
+    return `MERRA-2 shows no clear trend here, but an independent record does: ${src} shows ${rate} for the roughly ${km} km box around this place (${fmtP(box.refP)}).`;
   return `Independent record: ${src} shows ${rate} for the roughly ${km} km box around this place (${fmtP(box.refP)}).`;
 }
 
@@ -233,8 +236,8 @@ export function summaryLine(variable: string, ref: RefData | null): string | nul
   if (!ref || !s || s.confirmed === null || s.unconfirmed === null || s.contradicted === null) return null;
   const pc = (x: number) => `${Math.round(x * 100)}%`;
   return (
-    `Independent check (${ref.source.short}): ${pc(s.confirmed)} of the significant area confirmed, ${pc(s.unconfirmed)} not confirmed, ` +
-    `${pc(s.contradicted)} contradicted.${variable === 'T2M' ? ' (land only)' : ''}`
+    `Checked against ${ref.source.short}${variable === 'T2M' ? ' (land)' : ''}: ${pc(s.confirmed)} confirmed · ` +
+    `${pc(s.unconfirmed)} not confirmed · ${pc(s.contradicted)} contradicted`
   );
 }
 

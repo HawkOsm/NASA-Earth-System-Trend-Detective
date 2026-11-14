@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import './menu.css';
 import type { VariableMeta } from './data';
 import { VARIABLE_GROUPS } from './demos';
+import { CONFIRMED_DISABLED_TEXT } from './confirmedMap';
 import { WHOLE_GLOBE_BUTTON_BELOW } from './detail';
 import { rateUnits } from './format';
 import { formatTick, overlayBarCss } from './legend';
@@ -71,6 +72,9 @@ export interface MenuProps {
   footerExtra?: ReactNode;
   /** "Independent check (SHORT): ..." for temperature and rainfall at the full period (reference.ts summaryLine), else null. */
   referenceLine?: string | null;
+  /** The Show row ("All significant" / "Confirmed only", confirmedMap.ts): `enabled` per confirmedEnabled; `line` is the
+   *  share sentence shown in the Scale row while `on`. */
+  confirmed?: { enabled: boolean; on: boolean; onChange: (on: boolean) => void; line: string | null };
 }
 
 function Opt({
@@ -111,10 +115,13 @@ export default function Menu(p: MenuProps) {
 
   useEffect(() => {
     window.__menu = { open };
+    // Lets other pieces step aside while the menu is open on a narrow screen (the start strip does).
+    document.body.classList.toggle('menu-open', open);
   }, [open]);
   useEffect(
     () => () => {
       delete window.__menu;
+      document.body.classList.remove('menu-open');
     },
     [],
   );
@@ -207,7 +214,9 @@ export default function Menu(p: MenuProps) {
                   aria-hidden="true"
                   style={{ background: `linear-gradient(to right, ${meta.render.land} 50%, ${meta.render.ocean} 50%)` }}
                 />
-                Plain map = no significant trend · {Math.round(shown.fracSignificant * 100)}% {shareOfText(meta.surface)} shows one
+                {p.confirmed?.on && p.confirmed.line
+                  ? p.confirmed.line
+                  : `Plain map = no significant trend · ${Math.round(shown.fracSignificant * 100)}% ${shareOfText(meta.surface)} shows one`}
               </div>
               {shown.recomputed && <div className="menu-dim menu-note">Recomputed for this period at about 100 km detail.</div>}
               {referenceLine && (
@@ -215,9 +224,26 @@ export default function Menu(p: MenuProps) {
               )}
               {meta.quality && !shown.recomputed && (
                 <div className="menu-dim menu-note menu-quality">
-                  Of the significant area: {Math.round(meta.quality.robust * 100)}% robust, {Math.round(meta.quality.caution * 100)}% use with
-                  caution, {Math.round(meta.quality.doubtful * 100)}% doubtful.
+                  Pattern checks: {Math.round(meta.quality.robust * 100)}% robust · {Math.round(meta.quality.caution * 100)}% caution ·{' '}
+                  {Math.round(meta.quality.doubtful * 100)}% doubtful
                 </div>
+              )}
+            </Row>
+          )}
+
+          {p.confirmed && (
+            <Row label="Show" className="menu-show">
+              {p.confirmed.enabled ? (
+                <>
+                  <Opt pressed={!p.confirmed.on} onClick={() => p.confirmed?.onChange(false)}>
+                    All significant
+                  </Opt>
+                  <Opt pressed={p.confirmed.on} onClick={() => p.confirmed?.onChange(true)}>
+                    Confirmed only
+                  </Opt>
+                </>
+              ) : (
+                <span className="menu-dim menu-note menu-show-off">{CONFIRMED_DISABLED_TEXT}</span>
               )}
             </Row>
           )}

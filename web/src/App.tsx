@@ -46,6 +46,7 @@ import { splitLines, type LngLat } from './coastlines';
 import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
 import type { Grade, QualityResult } from './quality';
+import { chooseTexture, confirmedEnabled, confirmedSentence, effectiveMode, loadConfirmed, type ConfirmedData } from './confirmedMap';
 import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './reference';
 import { rateUnitsLong } from './format';
 import { rulesFromMeta, surfaceMessage } from './noData';
@@ -113,6 +114,8 @@ declare global {
         badYears: number[];
         slopeWithout: number | null;
         pWithout: number | null;
+        /** Country / sea results only: the share of the area the check rests on (null if not checked). */
+        coverage?: number | null;
       } | null;
     };
     __countryOverlay?: { open: boolean };
@@ -150,6 +153,8 @@ declare global {
     __pickAt?: (lat: number, lng: number) => void;
     __setVariable?: (name: string) => void;
     __setPeriod?: (startYear: number, endYear: number) => void;
+    __confirmedOnly?: boolean;
+    __setConfirmedOnly?: (on: boolean) => void;
     __detail?: {
       status: 'idle' | 'loading' | 'ready' | 'error';
       sizeDeg: number;
@@ -739,6 +744,47 @@ export default function App() {
   }, [referenceOfPanel, panel, variable]);
   const referenceMenuLine = isFull && refReady ? summaryLine(variable, refData) : null;
 
+  // ---- "Confirmed only" map view (confirmedMap.ts): only for T2M / rainfall at the full period ----
+  const [confirmedChoice, setConfirmedChoice] = useState(false);
+  const [confirmedData, setConfirmedData] = useState<{ variable: string; data: ConfirmedData } | null>(null);
+  const confirmedAllowed = confirmedEnabled(variable, isFull, range.shown.recomputed);
+  const mapMode = effectiveMode(confirmedChoice, confirmedAllowed);
+  const confirmedOn = mapMode === 'confirmed';
+  const confirmedAllowedRef = useRef(confirmedAllowed);
+  confirmedAllowedRef.current = confirmedAllowed;
+  useEffect(() => {
+    if (confirmedChoice && !confirmedAllowed) setConfirmedChoice(false);
+  }, [confirmedChoice, confirmedAllowed]);
+  // Choosing another variable goes back to "All significant".
+  useEffect(() => {
+    setConfirmedChoice(false);
+  }, [variable]);
+  useEffect(() => {
+    if (!confirmedOn) return;
+    let alive = true;
+    loadConfirmed(variable).then(
+      (data) => alive && setConfirmedData({ variable, data }),
+      (err) => console.error(err),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [confirmedOn, variable]);
+  const confirmedLine =
+    confirmedOn && confirmedData?.variable === variable ? confirmedSentence(confirmedData.data.source.short, confirmedData.data.shares) : null;
+  useEffect(() => {
+    window.__confirmedOnly = confirmedOn;
+  }, [confirmedOn]);
+  useEffect(() => {
+    window.__setConfirmedOnly = (on) => {
+      if (confirmedAllowedRef.current) setConfirmedChoice(!!on);
+    };
+    return () => {
+      delete window.__setConfirmedOnly;
+      delete window.__confirmedOnly;
+    };
+  }, []);
+
   const detailVmax = range.shown.vmax;
   const detailCells = useMemo<DetailCell[]>(
     () => (detail.status === 'ready' ? cellTrends(detail.data.cells, detail.data.years, period) : []),
@@ -935,7 +981,7 @@ export default function App() {
   const windOn = windChoice ?? (variable === 'WS2M' && !prefersReducedMotion());
 
   const textureUrl =
-    debugLandmarks && !range.shown.recomputed ? landmarksTextureUrl(variable) : range.textureUrl;
+    debugLandmarks && !range.shown.recomputed ? landmarksTextureUrl(variable) : chooseTexture(mapMode, variable, range.textureUrl);
   const recomputing = range.status === 'loading' || range.status === 'computing' ? range.progress : null;
 
   return (
@@ -987,6 +1033,7 @@ export default function App() {
             panelOpen={!!panel || waterPanel}
             overlayOpen={overlayOpen}
             referenceLine={referenceMenuLine}
+            confirmed={{ enabled: confirmedAllowed, on: confirmedOn, onChange: setConfirmedChoice, line: confirmedLine }}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
                 Detective
