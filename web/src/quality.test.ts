@@ -110,7 +110,7 @@ describe('sentence wording', () => {
   it('robust and unchecked', () => {
     const r = byName('clean trend');
     expect(reasonSentences(r.q, r.c.t, '°C')).toEqual([ROBUST_TEXT]);
-    expect(ROBUST_TEXT).toBe('Checks passed: the change is gradual, not driven by one year, and consistent across the record.');
+    expect(ROBUST_TEXT).toBe('Pattern checks passed: the change is gradual, not driven by one year, and consistent across the record.');
     const u = byName('n = 19');
     expect(reasonSentences(u.q, u.c.t, '°C')).toEqual(['Too few years to check (at least 20 are needed).']);
     expect(UNCHECKED_TEXT).toBe('Too few years to check (at least 20 are needed).');

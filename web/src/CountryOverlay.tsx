@@ -11,6 +11,7 @@ import { formatTick, overlayBarCss } from './legend';
 import { MIN_YEARS } from './analysis';
 import PeriodBar from './PeriodBar';
 import { ResultChart, ResultSummary } from './Panel';
+import { hasReference } from './reference';
 import { periodText, type Period } from './period';
 import { cellKm } from './sea';
 import { surfaceMessage } from './noData';
@@ -228,7 +229,7 @@ export default function CountryOverlay(p: Props) {
                 <>
                   <section className="co-card" aria-label={sea ? 'Whole sea' : 'Whole country'}>
                     <h3 className="co-card-title">{sea ? 'Whole sea' : 'Whole country'}</h3>
-                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} />
+                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} countryNote={hasReference(meta.variable)} />
                   </section>
                   <section className="co-card" aria-label="Trend chart">
                     <ResultChart a={ready.analysis} period={p.period} country={true} />

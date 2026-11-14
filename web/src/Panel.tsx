@@ -8,6 +8,7 @@ import type { RegionBox } from './region';
 import type { LatLng } from './Globe';
 import { fmtPValue } from './stats/trend';
 import { QualityBlock } from './QualityBadge';
+import type { RefCheck } from './reference';
 
 interface PanelBase {
   /** Snapped grid cell of the click (marker position). */
@@ -93,6 +94,8 @@ interface PanelProps {
   inCountry?: { name: string; onShow: () => void } | null;
   /** The variable's one-line caveat (meta.caveat), shown under the quality grade. */
   caveat?: string;
+  /** The independent-record check of this place (null: not available / still loading). */
+  reference?: RefCheck | null;
 }
 
 export default function Panel({
@@ -109,6 +112,7 @@ export default function Panel({
   onCountryArea,
   inCountry,
   caveat,
+  reference,
 }: PanelProps) {
   const { cell } = state;
   return (
@@ -164,7 +168,7 @@ export default function Panel({
         </p>
       )}
 
-      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} caveat={caveat} />}
+      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} caveat={caveat} reference={reference} />}
 
       {detail}
     </aside>
@@ -191,7 +195,22 @@ export function ResultChart({ a, period, country = false }: { a: Analysis; perio
 }
 
 /** The rate, p-value and 95% range tiles, and the verdict. */
-export function ResultSummary({ a, area, country = false, caveat }: { a: Analysis; area: boolean; country?: boolean; caveat?: string }) {
+export function ResultSummary({
+  a,
+  area,
+  country = false,
+  caveat,
+  reference,
+  countryNote,
+}: {
+  a: Analysis;
+  area: boolean;
+  country?: boolean;
+  caveat?: string;
+  reference?: RefCheck | null;
+  /** Country / sea overlay of a variable that has an independent record: say the check is for single places. */
+  countryNote?: boolean;
+}) {
   return (
     <>
       <div className="tiles">
@@ -215,7 +234,7 @@ export function ResultSummary({ a, area, country = false, caveat }: { a: Analysi
       </div>
       {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
-      <QualityBlock a={a} caveat={caveat} />
+      <QualityBlock a={a} caveat={caveat} reference={reference} countryNote={countryNote} />
     </>
   );
 }
@@ -226,6 +245,7 @@ export function Result({
   period,
   country = false,
   caveat,
+  reference,
 }: {
   a: Analysis;
   area: boolean;
@@ -233,11 +253,12 @@ export function Result({
   /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
   country?: boolean;
   caveat?: string;
+  reference?: RefCheck | null;
 }) {
   return (
     <>
       <ResultChart a={a} period={period} country={country} />
-      <ResultSummary a={a} area={area} country={country} caveat={caveat} />
+      <ResultSummary a={a} area={area} country={country} caveat={caveat} reference={reference} />
     </>
   );
 }

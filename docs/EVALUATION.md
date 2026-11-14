@@ -1,37 +1,181 @@
-# Evaluation layer: can a trend be trusted?
+# Evaluation layer: a guide
 
-Branch: `evaluation-layer`. Owner: HawkOsm.
+Branch `evaluation-layer`, pull request #1. Owner: HawkOsm.
 
-## Why
+This guide is written so that someone new to the project can understand what the evaluation layer does, run
+it, and decide what to change. Read it top to bottom once; it takes about fifteen minutes.
 
-The site reports whatever MERRA-2 says and calls a trend "significant" on statistics alone. Statistics cannot
-tell a real change from a flaw in the dataset: a jump when a satellite instrument changed, one bad year, or a
-variable that is computed by a model rather than measured. This branch adds checks that grade each trend.
+## 1. The problem in one paragraph
 
-## What gets built
+The site shows trends from one dataset, MERRA-2. MERRA-2 is not a set of measurements: it is a weather model
+that is constantly corrected with measurements from satellites, weather stations and ships. When the
+instruments change, or when the model is on its own, the numbers can drift or jump for reasons that have
+nothing to do with the climate. Our statistics ("significant, p < 0.05") only say that a change in the
+numbers is unlikely to be random noise. They cannot say whether the numbers are right. The evaluation layer
+adds that second question: **can this trend be trusted?**
 
-1. **Quality checks on every trend** (same code in Python and TypeScript, tied by shared fixtures, like the
-   statistics):
-   - **Jump**: most of the change happened in one step, with little trend before or after it.
-   - **One unusual year**: the verdict changes if a single outlier year is left out.
-   - **Reversal**: the first and second halves of the record point in opposite directions.
-   - **End sensitivity**: the direction flips if the first or last five years are dropped.
-   - **Many tests** (Detective only): a line that is significant on its own but not after correcting for
-     testing ten variables at one place.
-2. **A grade per trend**: Robust / Use with caution / Doubtful, with the reason in plain words, in the click
-   panel, the country / sea overlay and the Detective.
-3. **A written caveat per variable**: what is measured and what is modelled.
-4. **Calibration**: the thresholds are checked on synthetic series (clean trends must mostly grade Robust,
-   pure jumps and outlier-driven trends must mostly be flagged) and the measured rates go in the README.
-5. **Stretch**: an independent comparison for air temperature against NASA GISTEMP.
+## 2. Two kinds of check
 
-## What it does not do
+### A. Pattern checks (all ten variables)
 
-It cannot prove the data is right. It only catches patterns that are known signs of trouble.
+These look only at the shape of the 45 yearly values at one place. They need no other data.
 
-## Done means
+| Check | Plain meaning | Why it matters |
+|---|---|---|
+| Jump | Most of the change happened in one step, with little trend before or after | A satellite or data-source change often shows up as a step |
+| One unusual year | The verdict changes if a single year is left out | One bad value should not decide the answer |
+| Reversal | The first and second half of the record point in opposite directions | "Rising" over 45 years can hide "rising then falling" |
+| End sensitivity | The direction flips without the first or last five years | The answer depends on where the record happens to start or stop |
+| Many tests (Detective only) | Significant alone, but not after allowing for ten variables being tested | Test ten things and one will often look significant by luck |
 
-- Python and TypeScript give the same flags on the shared fixtures.
-- The calibration table is reproduced from a script in the repo.
-- Per variable: the share of significant area that grades Robust / Use with caution / Doubtful.
-- `pytest`, `npm test` and `npm run build` pass.
+Result: a grade. **Robust** (no flag), **Use with caution** (one flag), **Doubtful** (it depends on one year,
+or two or more flags).
+
+Code: `pipeline/quality.py` (Python) and `web/src/quality.ts` (browser). They must give identical answers;
+`pipeline/tests/fixtures/quality_cases.json` holds 64 cases both are tested against.
+
+### B. The independent check (air temperature and rainfall only)
+
+This is the only check that tests MERRA-2 against something else. We compare with two records that are
+built from measurements, not from MERRA-2:
+
+| Variable | Independent record | Made from | Box size |
+|---|---|---|---|
+| Air temperature | NASA GISTEMP v4 | Thermometers on land, ships and buoys at sea | 2° (about 220 km) |
+| Rainfall | GPCP v2.3 | Rain gauges and satellites | 2.5° (about 280 km) |
+
+For each box of the record we average MERRA-2 over the same area and compute the trend of both with the
+same method. Then, for a trend the site calls significant:
+
+- **Confirmed**: the record also shows a significant change in the same direction.
+- **Not confirmed**: the record shows no significant change. Grade is at best "Use with caution".
+- **Contradicted**: the record shows a significant change in the opposite direction. Grade is "Doubtful".
+
+Where it is not used, and why: for temperature over the sea (GISTEMP measures the water there, not the air)
+and for rainfall poleward of 60° (GPCP is weak near the poles).
+
+Code: `pipeline/reference.py` writes `web/public/data/reference/T2M.json` and `PRECTOTCORR.json`;
+`web/src/reference.ts` reads them in the browser.
+
+## 3. What we measured
+
+All numbers below were computed by the pipeline and recomputed independently in review.
+
+### Independent check, over the area where MERRA-2 shows a significant trend
+
+| | Confirmed | Not confirmed | Contradicted |
+|---|---|---|---|
+| Air temperature (land) vs GISTEMP | 97.1% | 2.3% | 0.6% |
+| Rainfall (60°S–60°N) vs GPCP | 26.1% | 67.6% | 6.3% |
+
+In words: MERRA-2's temperature trends on land are trustworthy. **Two thirds of its significant rainfall
+trends are not confirmed by an independent record.**
+
+### Examples
+
+| Place | Variable | MERRA-2 per decade | Independent record per decade | Result |
+|---|---|---|---|---|
+| Istanbul | Air temperature | +0.54 °C | +0.55 °C | Confirmed |
+| Porto Velho | Air temperature | +0.52 °C | +0.23 °C | Confirmed, but MERRA-2 is twice as large |
+| Porto Velho | Rainfall | −0.58 mm/day | −0.36 mm/day | Confirmed |
+| Cebu | Rainfall | +0.90 mm/day | +0.09 mm/day, not significant | Not confirmed |
+| Manila | Rainfall | +0.88 mm/day | +0.05 mm/day, not significant | Not confirmed |
+
+"Cebu is getting wetter" was one of the site's example findings. It should not be used.
+
+### Pattern checks: share of each variable's significant area by grade
+
+| Variable | Robust | Use with caution | Doubtful | Most common jump year |
+|---|---|---|---|---|
+| Air temperature | 94.2% | 5.2% | 0.5% | 2006 |
+| Hottest temperature of the year | 98.0% | 1.9% | 0.1% | 2013 |
+| Precipitation | 93.1% | 6.3% | 0.5% | 2004 |
+| Wind speed | 91.2% | 8.1% | 0.6% | 2007 |
+| Soil moisture | 84.2% | 14.5% | 1.3% | 1998 |
+| Evaporation from land | 85.2% | 12.9% | 1.9% | 2005 |
+| Humidity | 82.8% | 14.2% | 3.0% | 2005 |
+| Snow cover | 95.7% | 4.3% | 0.0% | 2011 |
+| Sea ice | 69.1% | 30.5% | 0.5% | 2005 |
+| Ozone layer | 98.8% | 1.2% | 0.0% | none |
+
+The jump years cluster around 1998 and 2004–2007. Those are years when the satellites and data sources
+feeding MERRA-2 changed, which is what a jump caused by the dataset would look like.
+
+### The pattern checks have a blind spot
+
+Manila's rainfall passes every pattern check ("Robust"), yet the independent record does not confirm it.
+The pattern checks only see shapes; a smooth drift that is wrong looks exactly like a smooth trend that is
+right. **A "Robust" grade on a variable with no independent record means "no warning sign found", not
+"confirmed".**
+
+### Bad years and patching
+
+A "bad year" is a year where MERRA-2 departs from the independent record much more than it usually does,
+after removing any slow drift between the two. Example: the box around Manila in 2020, MERRA-2 11.66 mm/day
+against GPCP 7.08, when every other recent year agrees within about 15%.
+
+- **Finding bad years works.** With faults planted on purpose in real data (one year inflated by 30%, 50%,
+  100%), the rule finds 21%, 63% and 90% of them, and flags 0.12% of untouched years.
+- **Looking at neighbouring cells does not work for this.** The cells around Manila share the 2020 error,
+  so filling from neighbours would copy the fault.
+- **Removing bad years barely changes the trends.** Manila goes from +0.875 to +0.832 per decade; GPCP says
+  +0.055. Across all boxes the agreement with the record does not improve. The disagreement is slow drift
+  over the whole record, not single bad years. So "patching" does not make MERRA-2's rainfall trends right;
+  the honest response is to label them.
+
+## 4. How good are the checks themselves? (calibration)
+
+We test the pattern checks on made-up series where we know the truth. From `pipeline/calibrate_quality.py`:
+
+- A genuine gradual trend is wrongly flagged as a jump in under 1% of cases when the noise is independent
+  from year to year, and in 2–7% when each year resembles the one before.
+- A genuine jump of three noise-widths or more is caught in 69–98% of cases. A small jump (two noise-widths)
+  is caught in only about a third of cases, so small jumps often pass as "Robust".
+- A trend created by one extreme year is flagged in 33–48% of cases.
+
+The thresholds were chosen to keep false alarms low. That is a choice, and it can be changed (section 6).
+
+## 5. How to run it
+
+```bash
+cd pipeline
+.venv/bin/python -m pytest -q            # all tests
+.venv/bin/python calibrate_quality.py    # the calibration table of section 4
+.venv/bin/python export_quality.py       # pattern checks for every cell; rewrites quality.bin and the meta files
+.venv/bin/python reference.py            # downloads GPCP once, builds both comparisons, prints the full report
+.venv/bin/python reference.py report     # prints the report again from the cache
+```
+
+`reference.py` needs the GISTEMP file (`gistemp1200_GHCNv4_ERSSTv5.nc`, from
+https://data.giss.nasa.gov/pub/gistemp/); set `GISTEMP_NC` to its path. GPCP is read over the web from NOAA.
+
+On the site: click a place with Click set to Point. Under the verdict there is a grade badge, the reasons,
+and an "Independent check" line. The Detective shows the grade on each line.
+
+## 6. Decisions that are yours
+
+These are judgement calls, not statistics. Each can be changed in one place.
+
+1. **What to do with "Not confirmed" rainfall trends.** Now: they stay on the map and get "Use with caution".
+   Alternatives: fade them on the map, or hide them from the Detective's list.
+2. **How strict the jump check is.** Now: few false alarms, small jumps often missed.
+   (`RATIO_MAX` and `FIT_MAX` in `pipeline/quality.py` and `web/src/quality.ts`; change both, then rerun
+   the calibration.)
+3. **Whether a "Robust" grade should be reworded for the eight variables with no independent record**, for
+   example "No warning signs" instead of "Robust", so nobody reads it as "confirmed".
+4. **Whether to drop "Cebu is getting wetter"** from the submission (recommended) and lead with temperature,
+   where the evidence is strong.
+5. **More independent records.** Sea ice (NSIDC) and snow cover would be the next most useful, because sea
+   ice has the most jump flags.
+
+## 7. Words used here
+
+- **Trend / slope**: how fast a value changes, here per decade.
+- **Significant (p < 0.05)**: if there were no real change, numbers this extreme would turn up less than
+  1 time in 20.
+- **Reanalysis**: a weather model continually corrected with measurements; MERRA-2 is one.
+- **Independent record**: a dataset built from measurements, without using MERRA-2.
+- **Box**: one cell of the independent record's grid, about 220–280 km across. MERRA-2's cells are about 50 km.
+- **Drift**: a slow, steady difference that grows between two datasets over the years.
+- **Calibration**: testing a check on made-up data where the right answer is known.
+- **False alarm**: a check warns about something that is actually fine.

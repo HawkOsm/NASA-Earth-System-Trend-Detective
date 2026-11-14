@@ -185,6 +185,45 @@ FRSEAICE         16708     69.1     30.5       0.5 |   30.6     0.0     0.8   0.
 TO3              20763     98.8      1.2       0.0 |    1.0     0.0     0.2   0.0 | 1989:222, 1992:32   [meta mode None]
 ```
 
+### Independent-record check
+
+Everything above looks at the pattern of one series. The independent-record check is the only check on the site that tests
+MERRA-2 against something else: MERRA-2, averaged over the boxes of an independent observation record, is compared with that
+record (`pipeline/reference.py`, results in `web/public/data/reference/*.json`, logic in `web/src/reference.ts`). Air temperature
+(T2M) is compared with **NASA GISTEMP** v4 (thermometer and ship records, 2 degree boxes, about 220 km) and rainfall (PRECTOTCORR)
+with **GPCP** v2.3 (rain gauges and satellites, 2.5 degree boxes, about 280 km). Other variables have no reference yet.
+
+- **Eligible box**: the box is used (at least 40 valid years in both records) and, for T2M, is land (over the sea GISTEMP is water
+  temperature, not air temperature); for rainfall its centre is at a latitude below 60 degrees (GPCP is weak near the poles).
+- **Class** of the site's trend at a place (the box containing it, full period 1981-2025 only): *confirmed* (the record's own trend
+  has p < 0.05 and the same sign), *contradicted* (p < 0.05, opposite sign), *not confirmed* (p >= 0.05). Where the site shows no
+  trend the record is shown as information only; where no eligible box exists the site says why.
+- **Effect on the grade**: not confirmed caps the grade at "use with caution", contradicted makes it "doubtful" (the worse of this
+  and the pattern grade). The Menu shows the shares below for the variable on the map.
+- **Measured** (area-weighted over eligible boxes where MERRA-2's own box trend is significant; `summary` in each JSON):
+
+```
+T2M          eligible 28.1% of the globe (5229 land boxes):   confirmed 97.1%  not confirmed 2.3%  contradicted 0.6%
+PRECTOTCORR  eligible 86.6% of the globe (6912 boxes):        confirmed 26.1%  not confirmed 67.6%  contradicted 6.3%
+```
+
+  So land temperature is almost always confirmed, while for rainfall most of the trends MERRA-2 shows are not in the independent
+  record (within 60°S–60°N: over land 60% not confirmed and 7% contradicted, over the sea 71% and 6%). Read MERRA-2 rainfall
+  trends with that in mind. A plain-language guide to the whole evaluation layer is in `docs/EVALUATION.md`.
+- **Bad years**: in each box the difference D between the two annual series (temperature: both as anomalies; rainfall: MERRA-2 minus
+  c times GPCP, c = median ratio) loses its own Sen line (the slow drift between the records is the trend disagreement itself and
+  would otherwise hide single years), and a year is flagged when its robust z (via the MAD) exceeds 5 in absolute value and the
+  deviation exceeds 0.5 degC (1.0 mm/day for rainfall). Planted-fault benchmark on real rainfall boxes (one year multiplied by 1+f,
+  excess of at least 1 mm/day): detected 21% / 63% / 90% for f = 30% / 50% / 100%; 0.12% of real box-years are flagged with nothing
+  planted. The click panel lists the flagged years of the box (for example the box around Manila, 2020: MERRA-2 11.66 vs GPCP 7.08
+  mm/day) and the site's trend with those years left out.
+- **Slow drift, not single bad years**: leaving the flagged years out of MERRA-2 barely changes how it compares with the record
+  (RMSE of the box slopes, all used boxes: land temperature 0.1794 -> 0.1795 C/decade, sea 0.1450 -> 0.1450; rain over land 0.1995
+  -> 0.1994 mm/day/decade, sea 0.1697 -> 0.1701; in boxes that have a flagged year 0.2813 -> 0.2804 over land and 0.3117 -> 0.3155 over
+  the sea). The disagreement for rainfall is therefore a slow drift of one record against the other, not a handful of bad years.
+- Limits: GISTEMP is a smoothed anomaly product; GPCP is itself a satellite-gauge estimate, not the truth. "Not confirmed" means the
+  independent record does not show the trend, not that MERRA-2 is wrong.
+
 ## Repository layout
 
 ```
@@ -247,6 +286,10 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   `ne_10m_admin_1_states_provinces.geojson` (public domain), from
   https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_admin_1_states_provinces.geojson .
   The 40 MB source file is not in this repository; the script takes its path as an argument.
+- Independent-record check (`pipeline/reference.py`): **NASA GISTEMP v4** (GISS Surface Temperature Analysis, NASA Goddard Institute for Space
+  Studies, https://data.giss.nasa.gov/gistemp/) and **GPCP v2.3** monthly precipitation (Global Precipitation Climatology Project,
+  served by NOAA Physical Sciences Laboratory, https://psl.noaa.gov/data/gridded/data.gpcp.html). Only per-box trend numbers
+  derived from them are in `web/public/data/reference/`.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was

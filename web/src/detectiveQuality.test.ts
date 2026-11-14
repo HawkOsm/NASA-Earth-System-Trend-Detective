@@ -94,3 +94,28 @@ describe('regionRank carries the region quality', () => {
     expect(buildAnswer(rank, 'H', [], undefined, qualities).lines[0].grade).toBe('caution');
   });
 });
+
+describe('buildAnswer with the independent check', () => {
+  const rank: RankResult = {
+    cell: { lat: 41, lng: 28.75 }, cellKm: 100, noData: [],
+    ranked: [entry('T2M', 'Air temperature', 0.5, 0.0001), entry('PRECTOTCORR', 'Rainfall', 0.2, 0.003), entry('Z', 'Zed', 0.1, 0.01), entry('Y', 'Why', 0.1, 0.02)],
+  };
+  const q = new Map<string, VarQuality>(['T2M', 'PRECTOTCORR', 'Z', 'Y'].map((v) => [v, vq('robust')]));
+  const checks = new Map<string, { cls: 'confirmed' | 'unconfirmed' | 'contradicted'; short: string }>([
+    ['T2M', { cls: 'confirmed', short: 'NASA GISTEMP' }],
+    ['PRECTOTCORR', { cls: 'unconfirmed', short: 'GPCP' }],
+  ]);
+  it('caps the grade, adds the short reason or the confirmed tail, leaves other variables alone', () => {
+    const a = buildAnswer(rank, 'H', [], undefined, q, checks);
+    const by = Object.fromEntries(a.lines.map((l) => [l.variable, l]));
+    expect(by.T2M).toMatchObject({ grade: 'robust', reference: 'confirmed', referenceTail: ' · Confirmed by NASA GISTEMP', reasons: [] });
+    expect(by.PRECTOTCORR).toMatchObject({ grade: 'caution', reference: 'unconfirmed', referenceTail: null, reasons: ['Not confirmed by GPCP.'] });
+    expect(by.Z).toMatchObject({ grade: 'robust', reference: null, referenceTail: null, reasons: [] });
+    const c = buildAnswer(rank, 'H', [], undefined, q, new Map([['PRECTOTCORR', { cls: 'contradicted' as const, short: 'GPCP' }]]));
+    expect(c.lines.find((l) => l.variable === 'PRECTOTCORR')).toMatchObject({ grade: 'doubtful', reasons: ['Contradicted by GPCP.'] });
+  });
+  it('without checks nothing changes', () => {
+    const a = buildAnswer(rank, 'H', [], undefined, q);
+    expect(a.lines.every((l) => l.reference === null && l.referenceTail === null && l.grade === 'robust')).toBe(true);
+  });
+});

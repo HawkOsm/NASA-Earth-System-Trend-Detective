@@ -84,6 +84,17 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           but not after allowing for the many variables tested at one place is at best &ldquo;use with caution&rdquo;. These checks only catch
           patterns that are known signs of trouble; they cannot prove the data is right, and a robust trend can still be wrong.
         </p>
+        <h3>Independent check</h3>
+        <p>
+          For temperature and rainfall we also compare MERRA-2 with a record that is measured independently: NASA GISTEMP (thermometer and
+          ship records) for temperature over land, and GPCP (rain gauges and satellites) for rainfall. MERRA-2 is averaged over the boxes
+          of that record (about 220 and 280 km) and the trend in the box is compared with the trend of the record. &ldquo;Confirmed&rdquo;
+          means the record shows a significant trend in the same direction; &ldquo;not confirmed&rdquo; means it shows no significant
+          change; &ldquo;contradicted&rdquo; means it shows the opposite. It is the only check here that tests the data against something
+          other than itself, so a trend that is not confirmed is at best &ldquo;use with caution&rdquo; and a contradicted one is
+          &ldquo;doubtful&rdquo;. For rainfall most significant trends are not confirmed: the independent record does not show them, so
+          treat MERRA-2 rainfall trends with care. The check is shown for single places (Point or a box) over 1981–2025.
+        </p>
         <h3>Data source</h3>
         <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid.</p>
       </div>

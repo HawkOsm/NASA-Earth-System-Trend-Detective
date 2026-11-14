@@ -231,7 +231,7 @@ export const BADGE_LABEL: Record<'robust' | 'caution' | 'doubtful', string> = {
   doubtful: 'Doubtful',
 };
 
-export const ROBUST_TEXT = 'Checks passed: the change is gradual, not driven by one year, and consistent across the record.';
+export const ROBUST_TEXT = 'Pattern checks passed: the change is gradual, not driven by one year, and consistent across the record.';
 export const UNCHECKED_TEXT = 'Too few years to check (at least 20 are needed).';
 
 export function manyTestsText(n: number): string {

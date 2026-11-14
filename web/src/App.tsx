@@ -44,6 +44,8 @@ import { splitLines, type LngLat } from './coastlines';
 import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
 import type { Grade, QualityResult } from './quality';
+import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './reference';
+import { rateUnitsLong } from './format';
 import { rulesFromMeta, surfaceMessage } from './noData';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
 import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
@@ -57,7 +59,7 @@ const DEFAULT_VARIABLE = VARIABLES[0];
 
 /** The window.__lastResult.quality hook: grade, flags and the headline numbers. */
 function lastQuality(q: QualityResult) {
-  return { grade: q.grade, flags: { ...q.flags }, stepYear: q.flags.step ? q.stepYear : null, outlierYear: q.flags.oneYear ? q.outlierYear : null, pPettitt: q.pPettitt, ratio: q.ratio, fit: q.fit };
+  return { grade: q.grade, combined: q.grade, flags: { ...q.flags }, stepYear: q.flags.step ? q.stepYear : null, outlierYear: q.flags.oneYear ? q.outlierYear : null, pPettitt: q.pPettitt, ratio: q.ratio, fit: q.fit };
 }
 
 declare global {
@@ -89,6 +91,8 @@ declare global {
       /** Quality checks of this trend (quality.ts): grade, the four flags and the numbers behind them. */
       quality: {
         grade: Grade;
+        /** The grade shown: the pattern grade capped by the independent check (equal to `grade` where there is none). */
+        combined: Grade;
         flags: { step: boolean; oneYear: boolean; reversal: boolean; endSensitive: boolean };
         stepYear: number | null;
         outlierYear: number | null;
@@ -96,6 +100,18 @@ declare global {
         ratio: number | null;
         fit: number | null;
       };
+      /** The independent-record check at this place (point and box modes); undefined until it is known. */
+      reference?: {
+        cls: string | null;
+        short: string | null;
+        refSlope: number | null;
+        refP: number | null;
+        boxLat: number | null;
+        boxLng: number | null;
+        badYears: number[];
+        slopeWithout: number | null;
+        pWithout: number | null;
+      } | null;
     };
     __countryOverlay?: { open: boolean };
     __provinces?: {
@@ -665,6 +681,55 @@ export default function App() {
   const isFull = isFullPeriod(period, fullYears);
   const range = useRangeMap(variable, mapPeriod, meta);
 
+  // ---- independent-record check (reference.ts): lazy, one fetch per variable ----
+  const [refState, setRefState] = useState<{ variable: string; data: RefData | null; failed: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!hasReference(variable)) {
+      setRefState({ variable, data: null, failed: false });
+      return;
+    }
+    loadReference(variable).then(
+      (data) => alive && setRefState({ variable, data, failed: false }),
+      (err) => {
+        console.error(err);
+        if (alive) setRefState({ variable, data: null, failed: true });
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [variable]);
+  /** Known once the file for the current variable has loaded (or the variable has none); a failed load shows nothing. */
+  const refReady = refState !== null && refState.variable === variable && !refState.failed;
+  const refData = refReady ? refState.data : null;
+  const referenceOfPanel = useMemo<RefCheck | null>(() => {
+    if (!refReady || panel?.status !== 'ready') return null;
+    const a = panel.analysis;
+    return referenceCheck({
+      variable,
+      ref: refData,
+      lat: panel.center.lat,
+      lng: panel.center.lng,
+      fullPeriod: isFull,
+      kind: a.kind,
+      slope: a.slopeDecade,
+      unitsLong: rateUnitsLong(a.units),
+      series: { years: a.years, values: a.annual },
+    });
+  }, [refReady, refData, panel, variable, isFull]);
+  useEffect(() => {
+    const lr = window.__lastResult;
+    if (!lr || panel?.status !== 'ready' || lr.variable !== variable || typeof lr.area.sizeDeg !== 'number' || !referenceOfPanel) return;
+    const r = referenceOfPanel;
+    lr.quality.combined = combineGrade(lr.quality.grade, r.cls);
+    lr.reference = {
+      cls: r.cls, short: r.short, refSlope: r.refSlope, refP: r.refP, boxLat: r.boxLat, boxLng: r.boxLng, badYears: r.badYears,
+      slopeWithout: r.slopeWithout, pWithout: r.pWithout,
+    };
+  }, [referenceOfPanel, panel, variable]);
+  const referenceMenuLine = isFull && refReady ? summaryLine(variable, refData) : null;
+
   const detailVmax = range.shown.vmax;
   const detailCells = useMemo<DetailCell[]>(
     () => (detail.status === 'ready' ? cellTrends(detail.data.cells, detail.data.years, period) : []),
@@ -912,6 +977,7 @@ export default function App() {
             onAbout={() => setShowHelp(true)}
             panelOpen={!!panel || waterPanel}
             overlayOpen={overlayOpen}
+            referenceLine={referenceMenuLine}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
                 Detective
@@ -984,6 +1050,7 @@ export default function App() {
             onCountryArea={selectCountryArea}
             inCountry={inCountry ? { name: inCountry.name, onShow: () => selectCountry(inCountry, panel.center) } : null}
             caveat={meta.caveat}
+            reference={referenceOfPanel}
             onRetry={() => load(panel.center, variable, sizeDeg)}
             period={period}
             fullPeriod={isFull}

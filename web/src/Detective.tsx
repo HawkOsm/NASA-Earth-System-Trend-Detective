@@ -10,6 +10,7 @@ import {
   buildAnswer,
   countryPlace,
   lastSummary,
+  lineChecks,
   matchPlace,
   placeHeader,
   spotHeader,
@@ -24,6 +25,7 @@ import { formatLatLng } from './format';
 import { loadSeaMask, loadSeas, pickSea } from './sea';
 import { loadRegions, regionRank, type RegionRec } from './regions';
 import { loadSummary, rankAt, type RankResult, type Summary } from './whatsChanging';
+import { loadReference, REFERENCE_VARIABLES, type RefData } from './reference';
 import { loadQuality, qualityAt, type QualityData } from './qualityData';
 import { BADGE_LABEL, type Grade, type QualityFlags, type VarQuality } from './quality';
 
@@ -32,7 +34,7 @@ declare global {
     __detective?: {
       open: boolean;
       messages: number;
-      last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string; grade: Grade | null; flags: QualityFlags | null }[] } | null;
+      last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string; grade: Grade | null; flags: QualityFlags | null; reference?: string | null }[] } | null;
     };
     __askDetective?: (text: string) => void;
   }
@@ -150,6 +152,7 @@ export default function Detective(p: DetectiveProps) {
       rank: (lat: number, lng: number) => RankResult,
       summary: Summary,
       quality: (lat: number, lng: number) => Map<string, VarQuality> | undefined,
+      refs: Map<string, RefData>,
     ) => Promise<void>,
     redo: () => Promise<void>,
   ) => {
@@ -164,7 +167,17 @@ export default function Detective(p: DetectiveProps) {
       } catch (err) {
         console.error(err);
       }
-      await job((lat, lng) => rankAt(summary, lat, lng), summary, (lat, lng) => (qd ? qualityAt(qd, summary, lat, lng) : undefined));
+      // Likewise the independent records: without them the lines simply carry no check.
+      const refs = new Map<string, RefData>();
+      for (const v of REFERENCE_VARIABLES) {
+        try {
+          const r = await loadReference(v);
+          if (r) refs.set(v, r);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      await job((lat, lng) => rankAt(summary, lat, lng), summary, (lat, lng) => (qd ? qualityAt(qd, summary, lat, lng) : undefined), refs);
       failedJob.current = null;
     } catch (err) {
       console.error(err);
@@ -206,11 +219,11 @@ export default function Detective(p: DetectiveProps) {
   const answerSpot = (lat: number, lng: number, preface?: string) => {
     const lng0 = wrapLng(lng);
     const run = () =>
-      withSummary(async (rank, _summary, quality) => {
+      withSummary(async (rank, _summary, quality, refs) => {
         const { inside, lift } = await describeSpot(lat, lng0);
         const r = rank(lat, lng0);
         const header = spotHeader(lat, lng0, inside);
-        reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng)), {
+        reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
           note: preface,
           choices: followUps(lift),
         });
@@ -231,7 +244,7 @@ export default function Detective(p: DetectiveProps) {
 
   const answerPlace = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
     const run = () =>
-      withSummary(async (rank, _summary, quality) => {
+      withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(place.lat, place.lng);
         const header = placeHeader(place, r.cellKm);
         const lift: LiftTarget | null =
@@ -240,7 +253,7 @@ export default function Detective(p: DetectiveProps) {
             : place.countryIdx !== null && place.country
               ? { kind: 'country', idx: place.countryIdx, name: place.country }
               : null;
-        reportAnswer(placeLabel(place), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng)), {
+        reportAnswer(placeLabel(place), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
           note: placeNote(place, read, others),
           choices: [...otherChoices(others), ...followUps(lift)],
         });
@@ -281,10 +294,10 @@ export default function Detective(p: DetectiveProps) {
 
   const answerTheme = (t: Theme) => {
     const run = () =>
-      withSummary(async (rank, _summary, quality) => {
+      withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(t.lat, t.lng);
         const { lift } = await describeSpot(t.lat, t.lng);
-        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng)), { choices: followUps(lift) });
+        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { choices: followUps(lift) });
       }, run);
     return run();
   };
@@ -544,6 +557,7 @@ function AnswerView({ answer, variable, onShow }: { answer: Answer; variable: st
                   {l.grade && l.grade !== 'none' && l.grade !== 'unchecked' && (
                     <span className={`dt-grade grade-text-${l.grade}`}>{` · ${BADGE_LABEL[l.grade]}`}</span>
                   )}
+                  {l.referenceTail && <span className="dt-confirmed">{l.referenceTail}</span>}
                   {l.reasons.map((r) => (
                     <span key={r} className="dt-line-extra dt-line-reason">
                       {r}

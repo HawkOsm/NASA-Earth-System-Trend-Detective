@@ -69,6 +69,8 @@ export interface MenuProps {
   overlayOpen: boolean;
   /** Slot for extra footer buttons next to "about" (the "Detective" button goes here). */
   footerExtra?: ReactNode;
+  /** "Independent check (SHORT): ..." for temperature and rainfall at the full period (reference.ts summaryLine), else null. */
+  referenceLine?: string | null;
 }
 
 function Opt({
@@ -105,6 +107,7 @@ export default function Menu(p: MenuProps) {
   const [zoomedIn, setZoomedIn] = useState(false);
   const { meta, variable } = p;
   const group = groupOf(variable);
+  const referenceLine = p.referenceLine;
 
   useEffect(() => {
     window.__menu = { open };
@@ -207,6 +210,9 @@ export default function Menu(p: MenuProps) {
                 Plain map = no significant trend · {Math.round(shown.fracSignificant * 100)}% {shareOfText(meta.surface)} shows one
               </div>
               {shown.recomputed && <div className="menu-dim menu-note">Recomputed for this period at about 100 km detail.</div>}
+              {referenceLine && (
+                <div className="menu-dim menu-note menu-quality menu-reference">{referenceLine}</div>
+              )}
               {meta.quality && !shown.recomputed && (
                 <div className="menu-dim menu-note menu-quality">
                   Of the significant area: {Math.round(meta.quality.robust * 100)}% robust, {Math.round(meta.quality.caution * 100)}% use with

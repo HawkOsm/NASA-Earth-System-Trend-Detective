@@ -241,3 +241,64 @@ def test_built_cache_matches_direct_computation():
         j = json.load(f)
     assert len(j["agree"]) == j["nlat"] * j["nlon"] == 72 * 144
     assert j["lon0"] == -178.75 and j["floor"] == 1.0
+
+
+# ---- eligibility and the summary shares (synthetic, hand-computed) -----------------------------------------------
+
+def _empty_o(nb):
+    return {"used": np.zeros(nb, bool), "land": np.zeros(nb, bool), "merraSlope": np.full(nb, np.nan),
+            "merraP": np.full(nb, np.nan), "refSlope": np.full(nb, np.nan), "refP": np.full(nb, np.nan)}
+
+
+def test_eligible_t2m_needs_land_and_rain_needs_latitude_below_60():
+    lat0, dlat, nlat, lon0, dlon, nlon = X.reference_grid("T2M")
+    o = _empty_o(nlat * nlon)
+    o["used"][:] = True
+    o["land"][0] = True      # land, used
+    o["land"][1] = False     # sea
+    o["used"][2] = False
+    o["land"][2] = True      # land but not used
+    e = X.eligible_mask("T2M", o["used"], o["land"])
+    assert list(e[:3]) == [1, 0, 0]
+    lat0, dlat, nlat, lon0, dlon, nlon = X.reference_grid("PRECTOTCORR")
+    used = np.ones(nlat * nlon, bool)
+    e = X.eligible_mask("PRECTOTCORR", used, np.zeros(nlat * nlon, bool))
+    blat = np.repeat(lat0 + dlat * np.arange(nlat), nlon)
+    assert (e == (np.abs(blat) < 60)).all()
+    assert blat[np.argmax(np.abs(blat) < 60)] == -58.75 and e.sum() == (np.abs(blat) < 60).sum()
+    used[0] = False
+    assert X.eligible_mask("PRECTOTCORR", used, np.zeros_like(used))[nlon * 36] == 1  # near the equator, used
+
+
+def test_summary_shares_hand_computed_and_cos_weighted():
+    lat0, dlat, nlat, lon0, dlon, nlon = X.reference_grid("T2M")
+    o = _empty_o(nlat * nlon)
+    o["used"][:] = True
+    row = lambda i: i * nlon  # noqa: E731
+    # row 45 is lat 1 (weight ~1), row 75 is lat 61 (weight cos 61 deg)
+    a, b, c, d, e, f = row(45), row(45) + 1, row(45) + 2, row(75), row(75) + 1, row(75) + 2
+    for k in (a, b, c, d, e, f):
+        o["land"][k] = True
+    # a: significant, ref significant same sign -> confirmed; b: ref not significant -> unconfirmed
+    # c: ref significant opposite sign -> contradicted; d: MERRA-2 not significant -> not counted
+    # e: sea box (not eligible); f: unconfirmed at high latitude
+    for k in (a, b, c, e, f):
+        o["merraSlope"][k], o["merraP"][k] = 0.3, 0.001
+    o["merraSlope"][d], o["merraP"][d] = 0.3, 0.2
+    o["refSlope"][a], o["refP"][a] = 0.2, 0.01
+    o["refSlope"][b], o["refP"][b] = 0.2, 0.5
+    o["refSlope"][c], o["refP"][c] = -0.2, 0.01
+    o["refSlope"][d], o["refP"][d] = 0.2, 0.01
+    o["refSlope"][e], o["refP"][e] = 0.2, 0.01
+    o["refSlope"][f], o["refP"][f] = 0.2, 0.9
+    o["land"][e] = False
+    s = X.summarize("T2M", o)
+    w1, w2 = np.cos(np.radians(1.0)), np.cos(np.radians(61.0))
+    tot = 3 * w1 + w2
+    assert s["confirmed"] == pytest.approx(w1 / tot, abs=1e-4)
+    assert s["contradicted"] == pytest.approx(w1 / tot, abs=1e-4)
+    assert s["unconfirmed"] == pytest.approx((w1 + w2) / tot, abs=1e-4)
+    assert s["confirmed"] + s["contradicted"] + s["unconfirmed"] == pytest.approx(1.0, abs=2e-4)
+    assert s["nBoxes"] == 5   # a b c d f
+    allw = np.cos(np.radians(lat0 + dlat * np.arange(nlat))).sum() * nlon
+    assert s["eligibleShareOfGlobe"] == pytest.approx((3 * w1 + 2 * w2) / allw, abs=1e-4)

@@ -5,6 +5,7 @@
  */
 import type { CityRec, CountryRec } from './country';
 import { formatLatLng } from './format';
+import { combineGrade, referenceCheck, shortCheckText, REFERENCE_VARIABLES, type RefClass, type RefData } from './reference';
 import { holmAdjust, lineQuality, type Grade, type LineQuality, type QualityFlags, type VarQuality } from './quality';
 import type { RankResult, RankedEntry } from './whatsChanging';
 import { plainLine } from './whatsChanging';
@@ -574,6 +575,10 @@ export interface AnswerLine {
   flags: QualityFlags | null;
   /** Lines under the badge (short reason for the first flag, many-tests note); empty when robust or unknown. */
   reasons: string[];
+  /** Independent-record class for temperature and rainfall point answers (the grade above already includes its cap), else null. */
+  reference: RefClass | null;
+  /** " · Confirmed by NASA GISTEMP" after the badge for a confirmed line, else null. */
+  referenceTail: string | null;
 }
 
 export interface Answer {
@@ -596,6 +601,23 @@ function listLabels(labels: string[]): string {
   return labels.join(', ');
 }
 
+/** What the independent record says about each temperature / rainfall line of a place (the box containing the coarse cell's centre). */
+export type LineChecks = Map<string, { cls: RefClass | null; short: string | null }>;
+
+export function lineChecks(rank: RankResult, refs: Map<string, RefData>): LineChecks {
+  const out: LineChecks = new Map();
+  for (const e of rank.ranked) {
+    const ref = refs.get(e.variable);
+    if (!ref || !(REFERENCE_VARIABLES as readonly string[]).includes(e.variable)) continue;
+    const c = referenceCheck({
+      variable: e.variable, ref, lat: rank.cell.lat, lng: rank.cell.lng, fullPeriod: true, kind: e.kind, slope: e.slopePerDecade,
+      unitsLong: e.units.replace(/ per decade$/, ''),
+    });
+    out.set(e.variable, { cls: c.cls, short: c.short });
+  }
+  return out;
+}
+
 /** Build the answer for a rank result. `header` is the full first line; `suggestVars` (optional) adds suggestion buttons. */
 export function buildAnswer(
   rank: RankResult,
@@ -603,6 +625,7 @@ export function buildAnswer(
   suggestVars: string[] = [],
   extras?: Map<string, string>,
   qualities?: Map<string, VarQuality>,
+  checks?: LineChecks,
 ): Answer {
   const shown: RankedEntry[] = rank.ranked.filter((e) => e.kind !== 'none');
   const rest = rank.ranked.filter((e) => e.kind === 'none');
@@ -613,6 +636,8 @@ export function buildAnswer(
     const vq = qualities?.get(e.variable);
     const lq: LineQuality | null =
       vq && vq.grade !== 'none' && vq.grade !== 'unchecked' ? lineQuality(vq, e.kind, adjOf.get(e.variable)!, rank.ranked.length) : null;
+    const chk = checks?.get(e.variable);
+    const sc = chk ? shortCheckText(chk.cls, chk.short) : { reason: null, tail: null };
     return {
       variable: e.variable,
       label: e.label,
@@ -621,9 +646,11 @@ export function buildAnswer(
       slopePerDecade: e.slopePerDecade,
       p: e.p,
       extra: extras?.get(e.variable) ?? null,
-      grade: lq ? lq.grade : null,
+      grade: lq ? combineGrade(lq.grade, chk ? chk.cls : null) : null,
       flags: lq ? lq.flags : null,
-      reasons: lq ? lq.reasons : [],
+      reasons: [...(lq ? lq.reasons : []), ...(sc.reason ? [sc.reason] : [])],
+      reference: chk ? chk.cls : null,
+      referenceTail: sc.tail,
     };
   });
   let nothing: string | null = null;
@@ -665,7 +692,7 @@ export function themeHeader(t: Theme, cellKm: number): string {
 
 /** Flat summary for window.__detective: what the last answer showed. */
 export function lastSummary(place: string, rank: RankResult, answer: Answer, region = false) {
-  const lines = answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind, grade: l.grade, flags: l.flags }));
+  const lines = answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind, grade: l.grade, flags: l.flags, reference: l.reference }));
   if (region) return { place, cell: null, lines, region: true };
   return { place, cell: { lat: rank.cell.lat, lng: rank.cell.lng }, lines };
 }

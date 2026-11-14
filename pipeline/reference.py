@@ -22,6 +22,7 @@ Definitions (fixed by the task):
 Run from the pipeline directory:
   .venv/bin/python reference.py            fetch GPCP (once), build both variables, write cache + JSON, print report
   .venv/bin/python reference.py report     print the report from the cache only
+  .venv/bin/python reference.py rewrite    rewrite the JSON files from the cached npz (no rebuild), print the summaries
 """
 import json
 import math
@@ -57,12 +58,14 @@ OUT_DIR = os.path.join(config.WEB_DATA_DIR, "reference")
 
 SOURCES = {
     "T2M": {"name": "GISTEMP v4 (NASA GISS), surface temperature anomaly", "url": GISTEMP_URL,
-            "grid": "2 x 2 degrees, monthly",
+            "grid": "2 x 2 degrees, monthly", "short": "NASA GISTEMP", "what": "thermometer and ship records",
+            "boxKm": 220,
             "note": "Over the oceans GISTEMP is sea-surface temperature, not air temperature, and it is smoothed over up "
                     "to 1200 km. Annual values need all 12 months. Compared on anomalies: only the year-to-year "
                     "differences and the trend are compared, not the absolute level."},
     "PRECTOTCORR": {"name": "GPCP v2.3 monthly precipitation (NOAA PSL)", "url": GPCP_DAP,
-                    "grid": "2.5 x 2.5 degrees, monthly",
+                    "grid": "2.5 x 2.5 degrees, monthly", "short": "GPCP", "what": "rain gauges and satellites",
+                    "boxKm": 280,
                     "note": "Satellite-gauge product; an independent estimate, not the truth. Annual values need all 12 "
                             "months. MERRA-2 is compared with a ratio-scaled GPCP (c = median ratio) so a constant "
                             "bias is not counted as a bad year."},
@@ -341,6 +344,39 @@ def _sig4(a):
     return out
 
 
+def eligible_mask(var, used, land, nlat=None, nlon=None):
+    """[nbox] 0/1: the box can be used to check the site. T2M: used and land (over the sea GISTEMP is water temperature,
+    not air temperature). Rain: used and |box centre latitude| < 60 (GPCP is weak near the poles)."""
+    lat0, dlat, nlat, lon0, dlon, nlon = reference_grid(var)
+    used = np.asarray(used, dtype=bool)
+    if var == "T2M":
+        return (used & np.asarray(land, dtype=bool)).astype(np.int8)
+    blat = np.repeat(lat0 + dlat * np.arange(nlat), nlon)
+    return (used & (np.abs(blat) < 60)).astype(np.int8)
+
+
+def summarize(var, o):
+    """cos(lat)-weighted shares over ELIGIBLE boxes where MERRA-2's box trend is significant (merraP < 0.05):
+    confirmed (refP < 0.05, same sign as merraSlope), contradicted (refP < 0.05, opposite sign), unconfirmed (refP >= 0.05);
+    eligibleShareOfGlobe = area of eligible boxes / area of all boxes; nBoxes = number of eligible boxes."""
+    lat0, dlat, nlat, lon0, dlon, nlon = reference_grid(var)
+    blat = np.repeat(lat0 + dlat * np.arange(nlat), nlon)
+    w = np.cos(np.radians(blat))
+    el = eligible_mask(var, o["used"], o["land"]) == 1
+    ms, mp, rs, rp = (np.asarray(o[k], dtype=np.float64) for k in ("merraSlope", "merraP", "refSlope", "refP"))
+    with np.errstate(invalid="ignore"):
+        sig = el & (mp < 0.05)
+        refsig = rp < 0.05
+        same = np.sign(rs) == np.sign(ms)
+        conf = sig & refsig & same
+        contra = sig & refsig & ~same
+        unconf = sig & (rp >= 0.05)
+    tot = w[sig].sum()
+    share = lambda m: float(round(w[m].sum() / tot, 4)) if tot > 0 else None  # noqa: E731
+    return {"confirmed": share(conf), "contradicted": share(contra), "unconfirmed": share(unconf),
+            "eligibleShareOfGlobe": float(round(w[el].sum() / w.sum(), 4)), "nBoxes": int(el.sum())}
+
+
 def write_json(var, o):
     lat0, dlat, nlat, lon0, dlon, nlon = reference_grid(var)
     badyears = {}
@@ -353,6 +389,8 @@ def write_json(var, o):
     doc["agree"] = [int(x) for x in o["agree"]]
     doc["patchedAgree"] = [int(x) for x in o["patchedAgree"]]
     doc["land"] = [int(x) for x in o["land"]]
+    doc["eligible"] = [int(x) for x in eligible_mask(var, o["used"], o["land"])]
+    doc["summary"] = summarize(var, o)
     doc["badYears"] = badyears
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, f"{var}.json"), "w") as f:
@@ -506,6 +544,13 @@ def report(var, out=print):
 
 def main(argv):
     t0 = time.time()
+    if len(argv) > 1 and argv[1] == "rewrite":
+        for var in VARS:
+            z = np.load(os.path.join(config.CACHE_DIR, f"reference_{var}.npz"))
+            write_json(var, {k: z[k] for k in z.files})
+            with open(os.path.join(OUT_DIR, f"{var}.json")) as fh:
+                print(var, json.dumps(json.load(fh)["summary"]))
+        return
     if len(argv) > 1 and argv[1] == "report":
         pass
     else:

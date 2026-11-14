@@ -169,6 +169,14 @@ html, body, #root {
 .grade-robust { background: #3caa6e; }
 .grade-caution { background: #e6aa28; }
 .grade-doubtful { background: #e8693a; }
+.refcheck { margin: 8px 0 0; padding: 6px 0 0; border-top: 1px solid #2a3350; }
+.refcheck-label { display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9aa4bb; }
+.refcheck-text { margin: 3px 0 0; font-size: 0.88rem; line-height: 1.4; color: #dde2ec; overflow-wrap: anywhere; }
+.refcheck-confirmed .refcheck-label { color: #5fc08a; }
+.refcheck-unconfirmed .refcheck-label { color: #e6aa28; }
+.refcheck-contradicted .refcheck-label { color: #e8693a; }
+.refcheck-note { margin-top: 8px; }
+.dt-confirmed { color: #5fc08a; }
 .quality-reason { margin: 4px 0 0; font-size: 0.9rem; line-height: 1.4; color: #dde2ec; overflow-wrap: anywhere; }
 .quality-caveat { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.35; color: #7d8597; overflow-wrap: anywhere; }
 
