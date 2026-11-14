@@ -151,6 +151,8 @@ export default function App() {
   const variableRef = useRef<string>(DEFAULT_VARIABLE);
   const sizeRef = useRef<number>(0);
   const countryModeRef = useRef(false);
+  /** A plain click on land lifts the country (default). Off once the user explicitly chooses Point or a box. */
+  const liftRef = useRef(true);
   const countryPanelRef = useRef<CountryPanelState | null>(null);
   const countryPosRef = useRef<LatLng | null>(null);
   const countryDataRef = useRef<CountryData | null>(null);
@@ -362,8 +364,10 @@ export default function App() {
           fetchedRef.current = null;
           countryDataRef.current = null;
           setDetail({ status: 'idle' });
-          setPanel(null);
-          setCountryPanel({ status: 'water' });
+          // Open water: there is no country to lift, so show the ordinary point (or box) result for the spot.
+          setCountryMode(false);
+          flyTo(pos, pickAltitude(window.__view?.().altitude, sizeRef.current));
+          load(pos, variableRef.current, sizeRef.current);
           return;
         }
         selectCountry(recs[idx], pos);
@@ -375,6 +379,7 @@ export default function App() {
   };
 
   const selectCountryArea = () => {
+    liftRef.current = true;
     setCountryMode(true);
     const p = panelRef.current;
     if (p) pickCountryAt(p.center);
@@ -421,9 +426,10 @@ export default function App() {
     flyRef.current?.({ lat: pos.lat, lng: pos.lng, altitude: alt });
   };
 
-  const handlePick = (pos: LatLng) => {
+  const handlePick = (pos: LatLng, forcePoint = false) => {
     window.__lastPick = { lat: pos.lat, lng: pos.lng };
-    if (countryModeRef.current) {
+    if (!forcePoint && (countryModeRef.current || liftRef.current)) {
+      setCountryMode(true);
       pickCountryAt(pos);
       return;
     }
@@ -441,7 +447,7 @@ export default function App() {
     setSizeDegState(size);
     const cp = countryPanelRef.current;
     const cpos = countryPosRef.current;
-    if (wasCountry) {
+    if (wasCountry && cp) {
       // Country -> Point or box: back to the spot that was clicked (the country panel closes in load()).
       countryTokenRef.current++;
       if (cp && cpos) {
@@ -513,17 +519,23 @@ export default function App() {
     selectVariable(d.variable, false);
     sizeRef.current = 0;
     setSizeDegState(0);
-    handlePick({ lat: d.lat, lng: d.lng });
+    handlePick({ lat: d.lat, lng: d.lng }, true);
+  };
+
+  /** The user explicitly chose Point or a box in the Area row: clicks stop lifting countries until "Country" is chosen. */
+  const chooseArea = (size: number) => {
+    liftRef.current = false;
+    selectArea(size);
   };
 
   // Always-current handlers so the window hooks run exactly the UI code paths.
-  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, setPeriod, selectCountryArea, pickCountryByName });
-  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, setPeriod, selectCountryArea, pickCountryByName };
+  const handlersRef = useRef({ handlePick, selectVariable, runDemo, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName });
+  handlersRef.current = { handlePick, selectVariable, runDemo, selectArea, chooseArea, setPeriod, selectCountryArea, pickCountryByName };
   useEffect(() => {
     window.__pickAt = (lat, lng) => handlersRef.current.handlePick({ lat, lng });
     window.__setVariable = (name) => handlersRef.current.selectVariable(name, true);
     window.__runDemo = (i) => handlersRef.current.runDemo(i);
-    window.__setArea = (n) => (n === 'country' ? handlersRef.current.selectCountryArea() : handlersRef.current.selectArea(n));
+    window.__setArea = (n) => (n === 'country' ? handlersRef.current.selectCountryArea() : handlersRef.current.chooseArea(n));
     window.__pickCountry = (x) => handlersRef.current.pickCountryByName(x);
     window.__setPeriod = (s, e) => handlersRef.current.setPeriod(s, e);
     return () => {
@@ -541,7 +553,7 @@ export default function App() {
     setCountryMode(false);
     sizeRef.current = 0;
     setSizeDegState(0);
-    handlePick({ lat, lng });
+    handlePick({ lat, lng }, true);
   };
 
   const closePanel = () => {
@@ -733,7 +745,7 @@ export default function App() {
           <CountryPanel
             label={meta.label}
             sizeDeg={sizeDeg}
-            onAreaChange={selectArea}
+            onAreaChange={chooseArea}
             onCountryArea={selectCountryArea}
             onClose={closePanel}
           />
@@ -771,7 +783,7 @@ export default function App() {
             yearsText={String(meta.years[1] - meta.years[0] + 1)}
             onClose={closePanel}
             sizeDeg={sizeDeg}
-            onAreaChange={selectArea}
+            onAreaChange={chooseArea}
             onCountryArea={selectCountryArea}
             inCountry={inCountry ? { name: inCountry.name, onShow: () => selectCountry(inCountry, panel.center) } : null}
             onRetry={() => load(panel.center, variable, sizeDeg)}
