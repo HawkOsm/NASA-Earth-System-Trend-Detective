@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ALPHA_CELL,
-  cellAlpha,
-  cellRgb,
   parseStops,
   summarize,
   type DetailCell,
@@ -22,6 +20,12 @@ import {
   type CityRec,
 } from './country';
 import type { VariableMeta } from './data';
+import { hexToRgb, overlayPixels } from './rangeMap';
+
+const DLAT = 0.5;
+const DLNG = 0.625;
+/** Overlay weight of a cell that is not significant on its own (a significant cell is 1). */
+const FADED_WEIGHT = 0.3;
 import { signedRate } from './analysis';
 import { displayUnits, formatLatLng } from './format';
 import { fmtPValue } from './stats/trend';
@@ -143,28 +147,66 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
     const ctx = off.getContext('2d');
     if (!ctx) return null;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#e9ecf1';
+    // Same look as the globe: the land colour underneath, the trend laid over it with the globe's overlay rule,
+    // blended smoothly between grid points. One pixel per grid cell is coloured, then scaled up with smoothing.
+    const [lr, lg, lb] = hexToRgb(meta.render.land);
+    ctx.fillStyle = `rgb(${Math.round(lr * 255)},${Math.round(lg * 255)},${Math.round(lb * 255)})`;
     ctx.fillRect(0, 0, pr.width, pr.height);
-    fcells.forEach((c) => {
-      const r = countryCellRect(pr, c.lat, c.flng);
-      if (c.slopeDecade === null) {
-        ctx.fillStyle = 'rgba(120,125,135,0.35)';
-      } else {
-        const [R, G, B] = cellRgb(c.slopeDecade, vmax, stops);
-        ctx.fillStyle = `rgba(${R},${G},${B},${cellAlpha(c)})`;
+    if (fcells.length) {
+      let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+      for (const c of fcells) {
+        latMin = Math.min(latMin, c.lat); latMax = Math.max(latMax, c.lat);
+        lngMin = Math.min(lngMin, c.flng); lngMax = Math.max(lngMax, c.flng);
       }
-      ctx.fillRect(r.x, r.y, r.w, r.h);
-      if (r.w > 6) {
-        ctx.strokeStyle = 'rgba(15,20,35,0.35)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(r.x + 0.25, r.y + 0.25, r.w - 0.5, r.h - 0.5);
+      const nI = Math.round((latMax - latMin) / DLAT) + 1;
+      const nJ = Math.round((lngMax - lngMin) / DLNG) + 1;
+      let slope = new Float64Array(nI * nJ).fill(NaN);
+      let wgt = new Float64Array(nI * nJ).fill(NaN);
+      for (const c of fcells) {
+        if (c.slopeDecade === null) continue;
+        const k = Math.round((latMax - c.lat) / DLAT) * nJ + Math.round((c.flng - lngMin) / DLNG);
+        slope[k] = c.slopeDecade;
+        wgt[k] = c.p !== null && c.p < ALPHA_CELL ? 1 : FADED_WEIGHT;
       }
-    });
+      // Spread the edge values outwards a few cells so the smooth blend reaches the coastline and borders.
+      for (let pass = 0; pass < 3; pass++) {
+        const s2 = slope.slice(), w2 = wgt.slice();
+        for (let i = 0; i < nI; i++) for (let j = 0; j < nJ; j++) {
+          const k = i * nJ + j;
+          if (!Number.isNaN(slope[k])) continue;
+          let n = 0, ss = 0, ww = 0;
+          for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+            const ii = i + di, jj = j + dj;
+            if (ii < 0 || jj < 0 || ii >= nI || jj >= nJ) continue;
+            const q = ii * nJ + jj;
+            if (Number.isNaN(slope[q])) continue;
+            n++; ss += slope[q]; ww += wgt[q];
+          }
+          if (n) { s2[k] = ss / n; w2[k] = ww / n; }
+        }
+        slope = s2; wgt = w2;
+      }
+      const base = new Uint8ClampedArray(nI * nJ * 4);
+      for (let k = 0; k < nI * nJ; k++) { base[k * 4] = lr * 255; base[k * 4 + 1] = lg * 255; base[k * 4 + 2] = lb * 255; base[k * 4 + 3] = 255; }
+      const px = overlayPixels(slope, wgt, vmax, meta.colormap_stops, base, meta.render);
+      const small = document.createElement('canvas');
+      small.width = nJ; small.height = nI;
+      const sctx = small.getContext('2d');
+      if (sctx) {
+        const img = sctx.createImageData(nJ, nI);
+        img.data.set(px);
+        sctx.putImageData(img, 0, 0);
+        const r0 = countryCellRect(pr, latMax, lngMin);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(small, r0.x, r0.y, r0.w * nJ, r0.h * nI);
+      }
+    }
     ctx.globalCompositeOperation = 'destination-in';
     ctx.fillStyle = '#000';
     ctx.fill(outline, 'evenodd');
     return off;
-  }, [pr, outline, fcells, vmax, stops]);
+  }, [pr, outline, fcells, vmax, meta]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
