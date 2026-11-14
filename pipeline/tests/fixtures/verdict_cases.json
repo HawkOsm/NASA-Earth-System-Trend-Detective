@@ -1,0 +1,332 @@
+[
+ {
+  "slope_per_decade": 0.54,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 0.54 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.54,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Falling by 0.54 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.0,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Flat, changing by 0.00 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.004,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 0.004 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.004,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Falling by 0.004 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.00012,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 0.00012 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.00012,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Falling by 0.00012 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 1.23e-05,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 1.2e-05 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 1.7,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 1.70 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -23.456,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Falling by 23.46 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 123.4,
+  "p": 1e-06,
+  "units": "C",
+  "expected": "Rising by 123.40 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 1e-12,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 1e-12,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0009999,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0009999,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p < 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.001,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p = 0.001)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.001,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p = 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0010001,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p = 0.001)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0010001,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p = 0.001)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0123,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p = 0.012)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0123,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p = 0.012)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0495,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0495,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.04999,
+  "units": "C",
+  "expected": "Rising by 0.21 C per decade — statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.04999,
+  "units": "mm/day",
+  "expected": "Falling by 0.08 mm/day per decade — statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.05,
+  "units": "C",
+  "expected": "Possible trend, needs more years: the best estimate is rising by 0.21 C per decade, but it is not yet statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.05,
+  "units": "mm/day",
+  "expected": "Possible trend, needs more years: the best estimate is falling by 0.08 mm/day per decade, but it is not yet statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0500001,
+  "units": "C",
+  "expected": "Possible trend, needs more years: the best estimate is rising by 0.21 C per decade, but it is not yet statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0500001,
+  "units": "mm/day",
+  "expected": "Possible trend, needs more years: the best estimate is falling by 0.08 mm/day per decade, but it is not yet statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0732,
+  "units": "C",
+  "expected": "Possible trend, needs more years: the best estimate is rising by 0.21 C per decade, but it is not yet statistically significant (p = 0.073)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0732,
+  "units": "mm/day",
+  "expected": "Possible trend, needs more years: the best estimate is falling by 0.08 mm/day per decade, but it is not yet statistically significant (p = 0.073)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.0999,
+  "units": "C",
+  "expected": "Possible trend, needs more years: the best estimate is rising by 0.21 C per decade, but it is not yet statistically significant (p = 0.1)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.0999,
+  "units": "mm/day",
+  "expected": "Possible trend, needs more years: the best estimate is falling by 0.08 mm/day per decade, but it is not yet statistically significant (p = 0.1)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.1,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 0.1)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.1,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 0.1)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.1001,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 0.1)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.1001,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 0.1)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.37,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 0.37)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.37,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 0.37)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.5,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 0.5)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.5,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 0.5)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 0.9999,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 1)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 0.9999,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 1)."
+ },
+ {
+  "slope_per_decade": 0.21,
+  "p": 1.0,
+  "units": "C",
+  "expected": "No clear trend: the best estimate is rising by 0.21 C per decade, but this could be chance (p = 1)."
+ },
+ {
+  "slope_per_decade": -0.08,
+  "p": 1.0,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.08 mm/day per decade, but this could be chance (p = 1)."
+ },
+ {
+  "slope_per_decade": 0.0,
+  "p": 0.8,
+  "units": "m/s",
+  "expected": "No clear trend: the best estimate is flat, changing by 0.00 m/s per decade, but this could be chance (p = 0.8)."
+ },
+ {
+  "slope_per_decade": 0.0,
+  "p": 0.03,
+  "units": "m/s",
+  "expected": "Flat, changing by 0.00 m/s per decade — statistically significant (p = 0.03)."
+ },
+ {
+  "slope_per_decade": 0.009999,
+  "p": 0.2,
+  "units": "m/s",
+  "expected": "No clear trend: the best estimate is rising by 0.01 m/s per decade, but this could be chance (p = 0.2)."
+ },
+ {
+  "slope_per_decade": 0.01,
+  "p": 0.2,
+  "units": "m/s",
+  "expected": "No clear trend: the best estimate is rising by 0.01 m/s per decade, but this could be chance (p = 0.2)."
+ },
+ {
+  "slope_per_decade": -0.0099,
+  "p": 0.06,
+  "units": "mm/day",
+  "expected": "Possible trend, needs more years: the best estimate is falling by 0.0099 mm/day per decade, but it is not yet statistically significant (p = 0.06)."
+ },
+ {
+  "slope_per_decade": 1.23e-05,
+  "p": 0.0495,
+  "units": "m/s",
+  "expected": "Rising by 1.2e-05 m/s per decade — statistically significant (p = 0.05)."
+ },
+ {
+  "slope_per_decade": -0.00012,
+  "p": 0.9999,
+  "units": "mm/day",
+  "expected": "No clear trend: the best estimate is falling by 0.00012 mm/day per decade, but this could be chance (p = 1)."
+ },
+ {
+  "slope_per_decade": 1234.5678,
+  "p": 1e-12,
+  "units": "m/s",
+  "expected": "Rising by 1234.57 m/s per decade — statistically significant (p < 0.001)."
+ }
+]

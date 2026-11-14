@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GlobeGL, { type GlobeMethods } from 'react-globe.gl';
 import type { Landmark } from './landmarks';
 
@@ -17,6 +17,8 @@ interface GlobeProps {
   onPick: (pos: LatLng) => void;
   /** When set, landmarks are drawn as cyan points + labels (debug alignment mode). */
   landmarks?: Landmark[];
+  /** Selected grid-cell centre, drawn as a small white point. */
+  marker?: LatLng | null;
   /** Expose the react-globe.gl ref as window.__globe (debug/testing). */
   exposeRef?: boolean;
 }
@@ -29,8 +31,16 @@ declare global {
 }
 
 const CYAN = '#00ffff';
+const WHITE = '#ffffff';
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, exposeRef }: GlobeProps) {
+interface PointDatum {
+  lat: number;
+  lng: number;
+  color: string;
+  radius: number;
+}
+
+export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, exposeRef }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -49,6 +59,12 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, expo
       window.removeEventListener('resize', update);
     };
   }, []);
+
+  const points = useMemo<PointDatum[]>(() => {
+    const list: PointDatum[] = (landmarks ?? []).map((l) => ({ lat: l.lat, lng: l.lng, color: CYAN, radius: 0.25 }));
+    if (marker) list.push({ lat: marker.lat, lng: marker.lng, color: WHITE, radius: 0.45 });
+    return list;
+  }, [landmarks, marker]);
 
   const handleReady = () => {
     const g = globeRef.current;
@@ -69,12 +85,14 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, expo
           showAtmosphere={true}
           onGlobeReady={handleReady}
           onGlobeClick={({ lat, lng }) => onPick({ lat, lng })}
-          pointsData={landmarks ?? []}
+          pointsData={points}
           pointLat="lat"
           pointLng="lng"
-          pointColor={() => CYAN}
-          pointRadius={0.25}
+          pointColor={(d) => (d as PointDatum).color}
+          pointRadius={(d) => (d as PointDatum).radius}
           pointAltitude={0.01}
+          pointsMerge={false}
+          onPointClick={(d) => onPick({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
           labelsData={landmarks ?? []}
           labelLat="lat"
           labelLng="lng"

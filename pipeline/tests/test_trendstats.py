@@ -175,3 +175,12 @@ def test_texture_orientation(lat, lon):
     bg = colorize(np.zeros((1, 1)), np.zeros((1, 1)), 1.0, "RdBu_r")[0, 0]
     ys2, xs2 = np.nonzero(np.any(rgb != bg, axis=-1))
     assert abs(xs2.mean() + 0.5 - ex) <= 2 and abs(ys2.mean() + 0.5 - ey) <= 2
+
+
+def test_verdict_fixture_reproduces():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "verdict_cases.json")
+    with open(path, encoding="utf-8") as f:
+        cases = json.load(f)
+    assert len(cases) >= 40
+    for c in cases:
+        assert verdict(c["slope_per_decade"], c["p"], c["units"]) == c["expected"]

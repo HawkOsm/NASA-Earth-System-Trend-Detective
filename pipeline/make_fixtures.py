@@ -4,9 +4,41 @@ import os
 
 import numpy as np
 
-from trendstats import KEYS, trend_1d
+from trendstats import KEYS, trend_1d, verdict
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "stats_cases.json")
+
+
+VERDICT_OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures",
+                           "verdict_cases.json")
+
+
+def build_verdict_cases():
+    """(slope_per_decade, p, units) triples covering every verdict branch and formatting edge."""
+    c = []
+    for slope in (0.54, -0.54, 0.0, 0.004, -0.004, 0.00012, -0.00012, 0.0000123, 1.7, -23.456, 123.4):
+        c.append((slope, 1e-6, "C"))
+    for p in (0.0, 1e-12, 0.0009999, 0.001, 0.0010001, 0.0123, 0.0495, 0.04999, 0.05, 0.0500001,
+              0.0732, 0.0999, 0.1, 0.1001, 0.37, 0.5, 0.9999, 1.0):
+        c.append((0.21, p, "C"))
+        c.append((-0.08, p, "mm/day"))
+    c.append((0.0, 0.8, "m/s"))
+    c.append((0.0, 0.03, "m/s"))
+    c.append((0.009999, 0.2, "m/s"))
+    c.append((0.01, 0.2, "m/s"))
+    c.append((-0.0099, 0.06, "mm/day"))
+    c.append((0.0000123, 0.0495, "m/s"))
+    c.append((-0.00012, 0.9999, "mm/day"))
+    c.append((1234.5678, 1e-12, "m/s"))
+    return c
+
+
+def write_verdict_cases():
+    out = [{"slope_per_decade": s, "p": p, "units": u, "expected": verdict(s, p, u)}
+           for s, p, u in build_verdict_cases()]
+    with open(VERDICT_OUT, "w") as f:
+        json.dump(out, f, indent=1, ensure_ascii=False)
+    print(f"wrote {len(out)} verdict cases to {VERDICT_OUT}")
 
 
 def ar1(rng, n, phi, sd):
@@ -73,3 +105,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    write_verdict_cases()
