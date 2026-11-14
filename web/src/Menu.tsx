@@ -162,6 +162,7 @@ export default function Menu(p: MenuProps) {
               <strong>{meta ? meta.label : variable}</strong> <span className="menu-dim">change per decade</span>
             </div>
             {meta && <p className="menu-def">{meta.definition}</p>}
+            {meta && meta.caveat && <p className="menu-def menu-caveat">{meta.caveat}</p>}
           </Row>
 
           <Row label="Period" className="menu-period">
@@ -206,6 +207,12 @@ export default function Menu(p: MenuProps) {
                 Plain map = no significant trend · {Math.round(shown.fracSignificant * 100)}% {shareOfText(meta.surface)} shows one
               </div>
               {shown.recomputed && <div className="menu-dim menu-note">Recomputed for this period at about 100 km detail.</div>}
+              {meta.quality && !shown.recomputed && (
+                <div className="menu-dim menu-note menu-quality">
+                  Of the significant area: {Math.round(meta.quality.robust * 100)}% robust, {Math.round(meta.quality.caution * 100)}% use with
+                  caution, {Math.round(meta.quality.doubtful * 100)}% doubtful.
+                </div>
+              )}
             </Row>
           )}
 

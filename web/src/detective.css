@@ -69,3 +69,10 @@
 }
 
 .dt-line-extra { display: block; margin-top: 2px; color: #aeb6c8; font-size: 0.85rem; }
+
+/* Quality grade at the end of a line (same colours as the badge in the click panel). */
+.dt-grade { font-weight: 600; white-space: nowrap; }
+.grade-text-robust { color: #5fcf91; }
+.grade-text-caution { color: #f0b940; }
+.grade-text-doubtful { color: #f07f55; }
+.dt-line-reason { color: #cdd3df; }

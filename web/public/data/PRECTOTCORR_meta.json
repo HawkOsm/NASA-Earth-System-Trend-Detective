@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "Average amount of rain and snow (as water) falling per day over the year.",
+  "caveat": "Precipitation is corrected with rain gauges and satellites over land; over oceans and near the poles it is mostly model-generated, and satellite changes can show up as jumps.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.2121320473572302,
-  "global_mean_slope_decade": -0.022374585647748746
+  "global_mean_slope_decade": -0.022374585647748746,
+  "quality": {
+    "robust": 0.9314,
+    "caution": 0.0634,
+    "doubtful": 0.0052,
+    "stepYearMode": 2004
+  }
 }

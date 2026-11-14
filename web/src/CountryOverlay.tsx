@@ -228,7 +228,7 @@ export default function CountryOverlay(p: Props) {
                 <>
                   <section className="co-card" aria-label={sea ? 'Whole sea' : 'Whole country'}>
                     <h3 className="co-card-title">{sea ? 'Whole sea' : 'Whole country'}</h3>
-                    <ResultSummary a={ready.analysis} area={true} country={true} />
+                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} />
                   </section>
                   <section className="co-card" aria-label="Trend chart">
                     <ResultChart a={ready.analysis} period={p.period} country={true} />

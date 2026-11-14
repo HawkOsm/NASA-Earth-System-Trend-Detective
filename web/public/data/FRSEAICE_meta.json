@@ -10,6 +10,7 @@
   "zero_means_absent": true,
   "surface": "sea",
   "definition": "The share of the sea surface covered by ice, averaged over the year; places that never have sea ice show no data.",
+  "caveat": "Sea ice comes from satellite observations, not from the model, so it is one of the better-measured variables here.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.3763088997106137,
-  "global_mean_slope_decade": -0.21619121774005393
+  "global_mean_slope_decade": -0.21619121774005393,
+  "quality": {
+    "robust": 0.6905,
+    "caution": 0.3047,
+    "doubtful": 0.0048,
+    "stepYearMode": 2005
+  }
 }

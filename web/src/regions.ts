@@ -10,6 +10,7 @@
 import { dataUrl } from './data';
 import { rateUnits, rateUnitsLong } from './format';
 import { verdict, verdictKind, type VerdictKind } from './stats/trend';
+import type { VarQuality } from './quality';
 import type { NoDataEntry, RankResult, RankedEntry, SummaryMeta } from './whatsChanging';
 
 export interface RegionVar {
@@ -24,6 +25,8 @@ export interface RegionVar {
   /** Area-weighted share (0..1) of the cells with data where the map shows a significant rise / fall (BH q < 0.05). */
   fracRising: number;
   fracFalling: number;
+  /** Quality checks of the region's series (pipeline/export_quality.py); absent in an older regions.json. */
+  quality?: { step: boolean; oneYear: boolean; reversal: boolean; endSensitive: boolean; grade: VarQuality['grade']; stepYear: number | null; outlierYear: number | null };
 }
 
 export interface RegionRec {
@@ -80,10 +83,11 @@ export const MIN_COVERAGE = 0.05;
  * wording are reused), plus the second sentence of each line. A variable without a value for the region (sea ice)
  * is listed as "no data".
  */
-export function regionRank(rec: RegionRec, meta: SummaryMeta): { rank: RankResult; extras: Map<string, string> } {
+export function regionRank(rec: RegionRec, meta: SummaryMeta): { rank: RankResult; extras: Map<string, string>; qualities: Map<string, VarQuality> } {
   const ranked: RankedEntry[] = [];
   const noData: NoDataEntry[] = [];
   const extras = new Map<string, string>();
+  const qualities = new Map<string, VarQuality>();
   const order = new Map<string, number>();
   meta.variables.forEach((v, idx) => {
     order.set(v.variable, idx);
@@ -110,9 +114,13 @@ export function regionRank(rec: RegionRec, meta: SummaryMeta): { rank: RankResul
     });
     const extra = shareSentence(rec, r);
     if (extra) extras.set(v.variable, extra);
+    if (r.quality) {
+      const { grade, stepYear, outlierYear, ...flags } = r.quality;
+      qualities.set(v.variable, { grade, flags, stepYear, outlierYear });
+    }
   });
   ranked.sort((a, b) => TIER[a.kind] - TIER[b.kind] || b.strength - a.strength || order.get(a.variable)! - order.get(b.variable)!);
-  return { rank: { cell: { lat: rec.centre[0], lng: rec.centre[1] }, cellKm: REGION_CELL_KM, ranked, noData }, extras };
+  return { rank: { cell: { lat: rec.centre[0], lng: rec.centre[1] }, cellKm: REGION_CELL_KM, ranked, noData }, extras, qualities };
 }
 
 let cached: Promise<RegionRec[]> | null = null;

@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "How much ozone there is in the whole column of air above you (the layer that blocks harmful sunlight), averaged over the year.",
+  "caveat": "Ozone combines satellite measurements with the model; the satellite instruments changed in late 2004, which can appear as a jump.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.1413050674831181,
-  "global_mean_slope_decade": -0.30589818915323386
+  "global_mean_slope_decade": -0.30589818915323386,
+  "quality": {
+    "robust": 0.9885,
+    "caution": 0.0115,
+    "doubtful": 0.0,
+    "stepYearMode": null
+  }
 }

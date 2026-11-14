@@ -43,6 +43,7 @@ import {
 import { splitLines, type LngLat } from './coastlines';
 import type { CityTrend } from './CountryMap';
 import { analyze } from './analysis';
+import type { Grade, QualityResult } from './quality';
 import { rulesFromMeta, surfaceMessage } from './noData';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
 import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
@@ -53,6 +54,11 @@ import { useRangeMap } from './useRangeMap';
 import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './period';
 
 const DEFAULT_VARIABLE = VARIABLES[0];
+
+/** The window.__lastResult.quality hook: grade, flags and the headline numbers. */
+function lastQuality(q: QualityResult) {
+  return { grade: q.grade, flags: { ...q.flags }, stepYear: q.flags.step ? q.stepYear : null, outlierYear: q.flags.oneYear ? q.outlierYear : null, pPettitt: q.pPettitt, ratio: q.ratio, fit: q.fit };
+}
 
 declare global {
   interface Window {
@@ -80,6 +86,16 @@ declare global {
       annual: number[];
       years: number[];
       period: [number, number];
+      /** Quality checks of this trend (quality.ts): grade, the four flags and the numbers behind them. */
+      quality: {
+        grade: Grade;
+        flags: { step: boolean; oneYear: boolean; reversal: boolean; endSensitive: boolean };
+        stepYear: number | null;
+        outlierYear: number | null;
+        pPettitt: number | null;
+        ratio: number | null;
+        fit: number | null;
+      };
     };
     __countryOverlay?: { open: boolean };
     __provinces?: {
@@ -259,6 +275,7 @@ export default function App() {
       annual: a.annual,
       years: a.years,
       period: [per[0], per[1]],
+      quality: lastQuality(a.quality),
     };
     setPanel({ ...base, status: 'ready', analysis: a, nCells: cells.length });
   };
@@ -348,6 +365,7 @@ export default function App() {
       annual: a.annual,
       years: a.years,
       period: [per[0], per[1]],
+      quality: lastQuality(a.quality),
     };
     setCountryPanel({ status: 'ready', data, analysis: a, nYears: a.nYears, nCellsUsed: mean.nUsed });
   };
@@ -965,6 +983,7 @@ export default function App() {
             onAreaChange={chooseArea}
             onCountryArea={selectCountryArea}
             inCountry={inCountry ? { name: inCountry.name, onShow: () => selectCountry(inCountry, panel.center) } : null}
+            caveat={meta.caveat}
             onRetry={() => load(panel.center, variable, sizeDeg)}
             period={period}
             fullPeriod={isFull}

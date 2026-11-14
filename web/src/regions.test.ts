@@ -12,8 +12,12 @@ const fixture = JSON.parse(readFileSync(FIXTURE, 'utf8')) as { years: [number, n
 const rec = (name: string) => fixture.regions.find((r) => r.name === name)!;
 
 describe('regionRank against the pipeline fixture (Europe, Africa)', () => {
-  it('the fixture is what is shipped', () => {
-    for (const r of fixture.regions) expect(shipped.regions.find((x) => x.name === r.name)).toEqual(r);
+  it('the fixture is what is shipped (the shipped file also carries the evaluation layer\'s `quality` per variable)', () => {
+    const withoutQuality = (g: RegionRec): RegionRec => ({
+      ...g,
+      variables: Object.fromEntries(Object.entries(g.variables).map(([v, e]) => [v, e ? { ...e, quality: undefined } : e])),
+    });
+    for (const r of fixture.regions) expect(withoutQuality(shipped.regions.find((x) => x.name === r.name)!)).toEqual(r);
   });
   it('Europe: values copied, ranked significant > possible > none, strength = |slope| / spread', () => {
     const { rank } = regionRank(rec('Europe'), meta);

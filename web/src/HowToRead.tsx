@@ -74,6 +74,16 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           some regional trends, especially for precipitation and around sea ice, can reflect changes in the
           observing system rather than the climate. A trend is not a forecast.
         </p>
+        <h3>Robust, use with caution, doubtful</h3>
+        <p>
+          Next to every trend that is significant or possible we say how far it can be trusted. <strong>Robust</strong>: the change
+          is gradual, not driven by one year, and the same in both halves of the record. <strong>Use with caution</strong>: one warning
+          sign, for example a jump in one year (which can come from a change in the satellites feeding the dataset), the two halves
+          disagreeing, or the direction flipping when the first or last five years are left out. <strong>Doubtful</strong>: the trend
+          depends on a single unusual year, or there are several warning signs. In the Detective, a trend that is significant on its own
+          but not after allowing for the many variables tested at one place is at best &ldquo;use with caution&rdquo;. These checks only catch
+          patterns that are known signs of trouble; they cannot prove the data is right, and a robust trend can still be wrong.
+        </p>
         <h3>Data source</h3>
         <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid.</p>
       </div>

@@ -1,0 +1,77 @@
+{
+ "nlat": 181,
+ "nlon": 288,
+ "bytes": 1813772,
+ "variables": [
+  {
+   "variable": "T2M",
+   "count": 52128,
+   "flagsOffset": 0,
+   "stepYearOffset": 52128,
+   "outlierYearOffset": 156384
+  },
+  {
+   "variable": "PRECTOTCORR",
+   "count": 52128,
+   "flagsOffset": 260640,
+   "stepYearOffset": 312768,
+   "outlierYearOffset": 417024
+  },
+  {
+   "variable": "WS2M",
+   "count": 52128,
+   "flagsOffset": 521280,
+   "stepYearOffset": 573408,
+   "outlierYearOffset": 677664
+  },
+  {
+   "variable": "T2M_MAX",
+   "count": 52128,
+   "flagsOffset": 781920,
+   "stepYearOffset": 834048,
+   "outlierYearOffset": 938304
+  },
+  {
+   "variable": "GWETROOT",
+   "count": 14931,
+   "flagsOffset": 1042560,
+   "stepYearOffset": 1057492,
+   "outlierYearOffset": 1087356
+  },
+  {
+   "variable": "EVLAND",
+   "count": 14931,
+   "flagsOffset": 1117220,
+   "stepYearOffset": 1132152,
+   "outlierYearOffset": 1162016
+  },
+  {
+   "variable": "RH2M",
+   "count": 52128,
+   "flagsOffset": 1191880,
+   "stepYearOffset": 1244008,
+   "outlierYearOffset": 1348264
+  },
+  {
+   "variable": "FRSNO",
+   "count": 8733,
+   "flagsOffset": 1452520,
+   "stepYearOffset": 1461256,
+   "outlierYearOffset": 1478724
+  },
+  {
+   "variable": "FRSEAICE",
+   "count": 11388,
+   "flagsOffset": 1496192,
+   "stepYearOffset": 1507580,
+   "outlierYearOffset": 1530356
+  },
+  {
+   "variable": "TO3",
+   "count": 52128,
+   "flagsOffset": 1553132,
+   "stepYearOffset": 1605260,
+   "outlierYearOffset": 1709516
+  }
+ ]
+}

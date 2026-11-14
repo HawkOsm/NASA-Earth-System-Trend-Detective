@@ -10,6 +10,7 @@
   "zero_means_absent": true,
   "surface": "land",
   "definition": "The share of the land surface covered by snow, averaged over the year; places that never have snow show no data.",
+  "caveat": "Snow cover is computed by the model from snowfall and melting, not taken from satellite snow maps.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.08903550002961574,
-  "global_mean_slope_decade": -0.32673578106725387
+  "global_mean_slope_decade": -0.32673578106725387,
+  "quality": {
+    "robust": 0.9571,
+    "caution": 0.0429,
+    "doubtful": 0.0,
+    "stepYearMode": 2011
+  }
 }

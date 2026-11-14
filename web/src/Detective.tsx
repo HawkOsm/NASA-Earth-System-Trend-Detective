@@ -24,13 +24,15 @@ import { formatLatLng } from './format';
 import { loadSeaMask, loadSeas, pickSea } from './sea';
 import { loadRegions, regionRank, type RegionRec } from './regions';
 import { loadSummary, rankAt, type RankResult, type Summary } from './whatsChanging';
+import { loadQuality, qualityAt, type QualityData } from './qualityData';
+import { BADGE_LABEL, type Grade, type QualityFlags, type VarQuality } from './quality';
 
 declare global {
   interface Window {
     __detective?: {
       open: boolean;
       messages: number;
-      last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string }[] } | null;
+      last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string; grade: Grade | null; flags: QualityFlags | null }[] } | null;
     };
     __askDetective?: (text: string) => void;
   }
@@ -144,14 +146,25 @@ export default function Detective(p: DetectiveProps) {
 
   /** Run one lookup that needs the trends; on failure say so and offer "Try again" (never invent numbers). */
   const withSummary = async (
-    job: (rank: (lat: number, lng: number) => RankResult, summary: Summary) => Promise<void>,
+    job: (
+      rank: (lat: number, lng: number) => RankResult,
+      summary: Summary,
+      quality: (lat: number, lng: number) => Map<string, VarQuality> | undefined,
+    ) => Promise<void>,
     redo: () => Promise<void>,
   ) => {
     try {
       setStatus((s) => (s === 'ready' ? s : 'loading'));
       const summary = await loadSummary();
       setStatus('ready');
-      await job((lat, lng) => rankAt(summary, lat, lng), summary);
+      // The quality flags are an addition: if they cannot be loaded the answer is still given, without grades.
+      let qd: QualityData | null = null;
+      try {
+        qd = await loadQuality();
+      } catch (err) {
+        console.error(err);
+      }
+      await job((lat, lng) => rankAt(summary, lat, lng), summary, (lat, lng) => (qd ? qualityAt(qd, summary, lat, lng) : undefined));
       failedJob.current = null;
     } catch (err) {
       console.error(err);
@@ -193,11 +206,11 @@ export default function Detective(p: DetectiveProps) {
   const answerSpot = (lat: number, lng: number, preface?: string) => {
     const lng0 = wrapLng(lng);
     const run = () =>
-      withSummary(async (rank) => {
+      withSummary(async (rank, _summary, quality) => {
         const { inside, lift } = await describeSpot(lat, lng0);
         const r = rank(lat, lng0);
         const header = spotHeader(lat, lng0, inside);
-        reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header), {
+        reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng)), {
           note: preface,
           choices: followUps(lift),
         });
@@ -218,7 +231,7 @@ export default function Detective(p: DetectiveProps) {
 
   const answerPlace = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
     const run = () =>
-      withSummary(async (rank) => {
+      withSummary(async (rank, _summary, quality) => {
         const r = rank(place.lat, place.lng);
         const header = placeHeader(place, r.cellKm);
         const lift: LiftTarget | null =
@@ -227,7 +240,7 @@ export default function Detective(p: DetectiveProps) {
             : place.countryIdx !== null && place.country
               ? { kind: 'country', idx: place.countryIdx, name: place.country }
               : null;
-        reportAnswer(placeLabel(place), r, buildAnswer(r, header), {
+        reportAnswer(placeLabel(place), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng)), {
           note: placeNote(place, read, others),
           choices: [...otherChoices(others), ...followUps(lift)],
         });
@@ -242,13 +255,13 @@ export default function Detective(p: DetectiveProps) {
         const regions = await loadRegions();
         const rec: RegionRec | undefined = regions.find((g) => g.name === place.name);
         if (!rec) throw new Error(`regions.json has no ${place.name}`);
-        const { rank, extras } = regionRank(rec, summary);
+        const { rank, extras, qualities } = regionRank(rec, summary);
         const header = placeHeader({ ...place, nCells: rec.nCells }, rank.cellKm);
         const countries: Choice[] = rec.topCountries.map((name): Choice => ({ label: name, action: { t: 'country', name } }));
         reportAnswer(
           rec.name,
           rank,
-          buildAnswer(rank, header, [], extras),
+          buildAnswer(rank, header, [], extras, qualities),
           { note: placeNote(place, read, others), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
           true,
         );
@@ -268,10 +281,10 @@ export default function Detective(p: DetectiveProps) {
 
   const answerTheme = (t: Theme) => {
     const run = () =>
-      withSummary(async (rank) => {
+      withSummary(async (rank, _summary, quality) => {
         const r = rank(t.lat, t.lng);
         const { lift } = await describeSpot(t.lat, t.lng);
-        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest), { choices: followUps(lift) });
+        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng)), { choices: followUps(lift) });
       }, run);
     return run();
   };
@@ -528,6 +541,14 @@ function AnswerView({ answer, variable, onShow }: { answer: Answer; variable: st
               <li key={l.variable} className={`dt-line dt-${l.kind}`}>
                 <span className="dt-line-text">
                   <strong>{l.label}:</strong> {rest}
+                  {l.grade && l.grade !== 'none' && l.grade !== 'unchecked' && (
+                    <span className={`dt-grade grade-text-${l.grade}`}>{` · ${BADGE_LABEL[l.grade]}`}</span>
+                  )}
+                  {l.reasons.map((r) => (
+                    <span key={r} className="dt-line-extra dt-line-reason">
+                      {r}
+                    </span>
+                  ))}
                   {l.extra && <span className="dt-line-extra">{l.extra}</span>}
                 </span>
                 <button
