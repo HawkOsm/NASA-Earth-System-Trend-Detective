@@ -268,17 +268,43 @@ On `main` (the live site is unaffected by these):
 - `pipeline/experiments/`: the two experiment scripts and their raw output.
 - This report.
 
-**On a branch, waiting for you:** `multi-record`. It changes the independent check on the site to ask every
-available record (two for land temperature, up to four for rainfall) and to report "Confirmed by k of n
-independent records", with the "Confirmed only" map following the same rule. See the pull request for its
-verification status; if it is not there yet, the work was still running when this file was committed.
+**On a branch, waiting for you:** `multi-record` (see its pull request). It changes the independent check on the
+site to ask every available record and to say how many agree.
+
+- **Records:** land temperature against NASA GISTEMP and GHCN-CAMS; rainfall against GPCP, CMAP, GPCC and PREC/L
+  (four over land, two over the sea).
+- **Rule:** *Confirmed* when more than half of the available records show a significant change in the same
+  direction; *Partly confirmed* when some but not most do (grade at best "Use with caution"); *Not confirmed*
+  when none does; *Contradicted* when more records show the opposite (grade "Doubtful").
+- **Where:** the point panel, the country and sea view, the Detective, the menu's summary line and the
+  "Confirmed only" map.
+
+Over the area where MERRA-2 shows a significant trend, with this rule:
+
+| | Confirmed | Partly | Not confirmed | Contradicted |
+|---|---|---|---|---|
+| Land temperature, 2 records | 89.9% | 7.7% | 1.9% | 0.5% |
+| Rainfall, up to 4 records | 20.1% | 43.5% | 27.7% | 8.8% |
+
+What it shows at the example places: Cebu "Confirmed by 3 of 4", Shanghai "4 of 4", Porto Velho "3 of 4",
+Manila "Confirmed by 2 of 4 independent records only" with the grade lowered to "Use with caution". The three
+start-strip findings all stay Robust and Confirmed.
+
+Checked: I recomputed both rows of the table with my own code (rainfall from the cached records directly) and
+they match the branch's files exactly; the per-record trends match to rounding; the eleven example places and
+the menu lines were checked in a browser on a build of the branch, with no console errors; 448 browser-side and
+223 pipeline tests pass. I tightened the rule after the first build: it had counted "1 of 2" and "2 of 4" as
+Confirmed, which made 53% of rainfall trends look confirmed.
+
+Not checked: the "Not confirmed by any" and "Contradicted" sentences on a live place (only in unit tests), the
+phone layout of the longer menu lines, and countries other than the Philippines and Turkey.
 
 ## 9. Recommended next steps, in order
 
 | # | Step | Why | Effort | Needs you |
 |---|---|---|---|---|
 | 1 | Settle eligibility: cite the listed NASA article in the form text now; cross-check with Giovanni | Section 2 | 0.5 h + 2–3 h | Earthdata sign-in for Giovanni |
-| 2 | Review and merge the `multi-record` branch | Cebu is mislabelled on the live site until then | 0.5 h | Yes |
+| 2 | Review and merge the `multi-record` pull request | Cebu is labelled "Not confirmed" on the live site until then | 10 min | Yes |
 | 3 | Make the repository public | Judges cannot see the code | 5 min | Yes |
 | 4 | Lead the deck and summary with "can this trend be trusted?" and the four-record rainfall result | One focused story (organiser advice) | 1 h | No |
 | 5 | Rename "Robust" to "No warning signs" where there is no independent record | Section 7 | 0.5 h | Your call |
