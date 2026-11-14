@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "How much water vapour the air 2 metres above the ground holds compared with the most it could hold, averaged over the year.",
+  "caveat": "Humidity is tied to weather observations where stations exist and to the model elsewhere.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.28018590063779186,
-  "global_mean_slope_decade": 0.05804038917024347
+  "global_mean_slope_decade": 0.05804038917024347,
+  "quality": {
+    "robust": 0.8284,
+    "caution": 0.1419,
+    "doubtful": 0.0297,
+    "stepYearMode": 2005
+  }
 }

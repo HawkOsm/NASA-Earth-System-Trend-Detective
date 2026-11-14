@@ -2,6 +2,7 @@ import { monthlyAnomalies, type PointSeries } from './power';
 import { fmtRate, senIntercept, trend, verdict, verdictKind, type TrendResult, type VerdictKind } from './stats/trend';
 import { displayUnits, rateUnitsLong } from './format';
 import { filterToPeriod, isFullPeriod, type Period } from './period';
+import { qualityOf, type QualityResult } from './quality';
 
 export const MIN_YEARS = 10;
 
@@ -33,6 +34,8 @@ export interface Analysis {
   /** Valid years and annual values inside the period (the ones used for the statistics). */
   years: number[];
   annual: number[];
+  /** Quality checks of this trend (quality.ts): flags, grade and the numbers behind them. */
+  quality: QualityResult;
 }
 
 const nz = (v: number): number | null => (Number.isNaN(v) ? null : v);
@@ -100,6 +103,7 @@ export function analyze(series: PointSeries, period?: Period): Analysis | null {
     period: per,
     years,
     annual: ann,
+    quality: qualityOf(years, ann),
   };
 }
 

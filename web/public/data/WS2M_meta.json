@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "Average wind speed 2 metres above the ground over the year.",
+  "caveat": "Wind near the surface is computed by the model from winds higher up; ocean trends are sensitive to changes in satellite wind measurements.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.14143236848302654,
-  "global_mean_slope_decade": 0.013162439731885288
+  "global_mean_slope_decade": 0.013162439731885288,
+  "quality": {
+    "robust": 0.9124,
+    "caution": 0.0812,
+    "doubtful": 0.0063,
+    "stepYearMode": 2007
+  }
 }

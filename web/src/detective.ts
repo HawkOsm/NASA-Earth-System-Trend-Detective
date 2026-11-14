@@ -5,6 +5,7 @@
  */
 import type { CityRec, CountryRec } from './country';
 import { formatLatLng } from './format';
+import { holmAdjust, lineQuality, type Grade, type LineQuality, type QualityFlags, type VarQuality } from './quality';
 import type { RankResult, RankedEntry } from './whatsChanging';
 import { plainLine } from './whatsChanging';
 import type { SeaRec } from './sea';
@@ -568,6 +569,11 @@ export interface AnswerLine {
   p: number;
   /** A second sentence (region answers: the share of the map that agrees), or null. */
   extra: string | null;
+  /** Quality grade after the many-tests rule, or null when no quality data was given (never shown as a guess). */
+  grade: Grade | null;
+  flags: QualityFlags | null;
+  /** Lines under the badge (short reason for the first flag, many-tests note); empty when robust or unknown. */
+  reasons: string[];
 }
 
 export interface Answer {
@@ -591,18 +597,35 @@ function listLabels(labels: string[]): string {
 }
 
 /** Build the answer for a rank result. `header` is the full first line; `suggestVars` (optional) adds suggestion buttons. */
-export function buildAnswer(rank: RankResult, header: string, suggestVars: string[] = [], extras?: Map<string, string>): Answer {
+export function buildAnswer(
+  rank: RankResult,
+  header: string,
+  suggestVars: string[] = [],
+  extras?: Map<string, string>,
+  qualities?: Map<string, VarQuality>,
+): Answer {
   const shown: RankedEntry[] = rank.ranked.filter((e) => e.kind !== 'none');
   const rest = rank.ranked.filter((e) => e.kind === 'none');
-  const lines: AnswerLine[] = shown.map((e) => ({
-    variable: e.variable,
-    label: e.label,
-    text: plainLine(e),
-    kind: e.kind as 'significant' | 'possible',
-    slopePerDecade: e.slopePerDecade,
-    p: e.p,
-    extra: extras?.get(e.variable) ?? null,
-  }));
+  // MANY_TESTS: Holm over the raw p of every variable with data at this place.
+  const adj = holmAdjust(rank.ranked.map((e) => e.p));
+  const adjOf = new Map(rank.ranked.map((e, i) => [e.variable, adj[i]]));
+  const lines: AnswerLine[] = shown.map((e) => {
+    const vq = qualities?.get(e.variable);
+    const lq: LineQuality | null =
+      vq && vq.grade !== 'none' && vq.grade !== 'unchecked' ? lineQuality(vq, e.kind, adjOf.get(e.variable)!, rank.ranked.length) : null;
+    return {
+      variable: e.variable,
+      label: e.label,
+      text: plainLine(e),
+      kind: e.kind as 'significant' | 'possible',
+      slopePerDecade: e.slopePerDecade,
+      p: e.p,
+      extra: extras?.get(e.variable) ?? null,
+      grade: lq ? lq.grade : null,
+      flags: lq ? lq.flags : null,
+      reasons: lq ? lq.reasons : [],
+    };
+  });
   let nothing: string | null = null;
   if (rank.ranked.length === 0) nothing = 'None of the variables has data for this spot, so I have nothing to rank.';
   else if (lines.length === 0)
@@ -642,7 +665,7 @@ export function themeHeader(t: Theme, cellKm: number): string {
 
 /** Flat summary for window.__detective: what the last answer showed. */
 export function lastSummary(place: string, rank: RankResult, answer: Answer, region = false) {
-  const lines = answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind }));
+  const lines = answer.lines.map((l) => ({ variable: l.variable, slopePerDecade: l.slopePerDecade, p: l.p, kind: l.kind, grade: l.grade, flags: l.flags }));
   if (region) return { place, cell: null, lines, region: true };
   return { place, cell: { lat: rank.cell.lat, lng: rank.cell.lng }, lines };
 }

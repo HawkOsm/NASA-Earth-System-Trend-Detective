@@ -7,6 +7,7 @@ import type { Cell } from './power';
 import type { RegionBox } from './region';
 import type { LatLng } from './Globe';
 import { fmtPValue } from './stats/trend';
+import { QualityBlock } from './QualityBadge';
 
 interface PanelBase {
   /** Snapped grid cell of the click (marker position). */
@@ -90,6 +91,8 @@ interface PanelProps {
   onCountryArea: () => void;
   /** The country the selected spot lies in (null: none / not known yet). */
   inCountry?: { name: string; onShow: () => void } | null;
+  /** The variable's one-line caveat (meta.caveat), shown under the quality grade. */
+  caveat?: string;
 }
 
 export default function Panel({
@@ -105,6 +108,7 @@ export default function Panel({
   detail,
   onCountryArea,
   inCountry,
+  caveat,
 }: PanelProps) {
   const { cell } = state;
   return (
@@ -160,7 +164,7 @@ export default function Panel({
         </p>
       )}
 
-      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} />}
+      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} caveat={caveat} />}
 
       {detail}
     </aside>
@@ -187,7 +191,7 @@ export function ResultChart({ a, period, country = false }: { a: Analysis; perio
 }
 
 /** The rate, p-value and 95% range tiles, and the verdict. */
-export function ResultSummary({ a, area, country = false }: { a: Analysis; area: boolean; country?: boolean }) {
+export function ResultSummary({ a, area, country = false, caveat }: { a: Analysis; area: boolean; country?: boolean; caveat?: string }) {
   return (
     <>
       <div className="tiles">
@@ -211,6 +215,7 @@ export function ResultSummary({ a, area, country = false }: { a: Analysis; area:
       </div>
       {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
+      <QualityBlock a={a} caveat={caveat} />
     </>
   );
 }
@@ -220,17 +225,19 @@ export function Result({
   area,
   period,
   country = false,
+  caveat,
 }: {
   a: Analysis;
   area: boolean;
   period: Period;
   /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
   country?: boolean;
+  caveat?: string;
 }) {
   return (
     <>
       <ResultChart a={a} period={period} country={country} />
-      <ResultSummary a={a} area={area} country={country} />
+      <ResultSummary a={a} area={area} country={country} caveat={caveat} />
     </>
   );
 }

@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "land",
   "definition": "How much water evaporates from soil, plants and puddles into the air each day, averaged over the year; land only.",
+  "caveat": "Evaporation is computed by the model, not measured.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.23755522478201288,
-  "global_mean_slope_decade": 0.00032520906161917013
+  "global_mean_slope_decade": 0.00032520906161917013,
+  "quality": {
+    "robust": 0.8523,
+    "caution": 0.1291,
+    "doubtful": 0.0185,
+    "stepYearMode": 2005
+  }
 }

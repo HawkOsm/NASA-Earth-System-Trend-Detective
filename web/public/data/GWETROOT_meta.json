@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "land",
   "definition": "How wet the soil is in the root zone (the top metre), from 0% (bone dry) to 100% (soaked), averaged over the year; land only.",
+  "caveat": "Soil moisture is not measured directly: the model computes it from rain, evaporation and soil properties.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.1963657614876127,
-  "global_mean_slope_decade": 0.10050357550395814
+  "global_mean_slope_decade": 0.10050357550395814,
+  "quality": {
+    "robust": 0.8421,
+    "caution": 0.1447,
+    "doubtful": 0.0132,
+    "stepYearMode": 1998
+  }
 }

@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "The highest air temperature (2 metres above the ground, measured every hour) reached at any moment of the year.",
+  "caveat": "This is the single hottest hour of each year: one extreme value a year, so it is noisier than the yearly average.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.44520703224537317,
-  "global_mean_slope_decade": 0.1721160702359779
+  "global_mean_slope_decade": 0.1721160702359779,
+  "quality": {
+    "robust": 0.9796,
+    "caution": 0.0193,
+    "doubtful": 0.0011,
+    "stepYearMode": 2013
+  }
 }

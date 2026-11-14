@@ -28,6 +28,8 @@ export interface VariableMeta {
   /** Where the variable has values: land-only and sea-only variables have no sea / country pieces (no files). */
   surface?: 'land' | 'sea' | 'any';
   definition: string;
+  /** One sentence on how well this variable is measured (config.py "caveat"). */
+  caveat?: string;
   years: [number, number];
   vmax: number;
   colormap_stops: string[];
@@ -37,12 +39,18 @@ export interface VariableMeta {
   grid: GridMeta;
   frac_significant: number;
   global_mean_slope_decade: number;
+  /** Area-weighted shares (0..1) of the map-significant area by grade, full period (pipeline/export_quality.py). */
+  quality?: { robust: number; caution: number; doubtful: number; stepYearMode: number | null };
 }
 
 const BASE = import.meta.env.BASE_URL;
 
+const VERSIONS: Record<string, string> = typeof __DATA_VERSIONS__ === 'undefined' ? {} : __DATA_VERSIONS__;
+
+/** URL of a data file. The ?v=<content hash> changes only when the file does, so it can be cached forever. */
 export function dataUrl(file: string): string {
-  return `${BASE}data/${file}`;
+  const v = VERSIONS[file];
+  return `${BASE}data/${file}${v ? `?v=${v}` : ''}`;
 }
 
 export function trendTextureUrl(variable: string): string {

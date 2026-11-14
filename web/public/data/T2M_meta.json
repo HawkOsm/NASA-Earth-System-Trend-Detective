@@ -10,6 +10,7 @@
   "zero_means_absent": false,
   "surface": "any",
   "definition": "Average air temperature 2 metres above the ground over the year.",
+  "caveat": "Air temperature is tied to many weather observations and is among the most reliable variables here.",
   "years": [
     1981,
     2025
@@ -152,5 +153,11 @@
     }
   ],
   "frac_significant": 0.6897809099367372,
-  "global_mean_slope_decade": 0.17182049442434208
+  "global_mean_slope_decade": 0.17182049442434208,
+  "quality": {
+    "robust": 0.9424,
+    "caution": 0.0524,
+    "doubtful": 0.0052,
+    "stepYearMode": 2006
+  }
 }
