@@ -4,6 +4,9 @@ Field names and what each asks for are taken from the official Project Submissio
 (https://www.spaceappschallenge.org/resources/project-submission-guide/, read on 14 November 2026).
 Everything must be in English. Paste, then read once: the numbers below are the ones the site shows.
 
+A plain-text copy for pasting, with every paragraph on one line and no formatting marks, is in
+`SUBMISSION_FORM.txt` (made from this file on 15 November; if you change one, change the other).
+
 ---
 
 ## Project Name
@@ -178,7 +181,7 @@ No data from the partner space agencies is used.
 - Natural Earth (public domain, https://www.naturalearthdata.com): coastlines, countries, provinces and states,
   seas, populated places. Countries and coastlines through the `world-atlas` package.
 - Open-source libraries: React, Vite, TypeScript, react-globe.gl, three.js, uPlot, topojson-client, Vitest,
-- NumPy, SciPy, xarray, zarr, Matplotlib, pytest.
+  NumPy, SciPy, xarray, zarr, Matplotlib, pytest.
 - Statistical methods: Theil (1950) and Sen (1968); Mann (1945) and Kendall (1975); Hamed and Rao (1998);
   Benjamini and Hochberg (1995); Pettitt (1979); Holm (1979).
 - AI coding tools, as described above.
