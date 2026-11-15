@@ -57,6 +57,7 @@ import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends
 import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data';
 import { useRangeMap } from './useRangeMap';
 import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './period';
+import EmptyMapNote from './EmptyMapNote';
 
 const DEFAULT_VARIABLE = VARIABLES[0];
 
@@ -1046,6 +1047,13 @@ export default function App() {
             }
           />
           <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} />
+          <EmptyMapNote
+            shown={range.shown}
+            period={period}
+            fullYears={fullYears}
+            covered={!!panel || waterPanel || overlayOpen || recomputing !== null}
+            onReset={resetPeriod}
+          />
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}
