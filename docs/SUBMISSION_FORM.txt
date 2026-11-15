@@ -95,6 +95,40 @@ One part of the site uses AI at runtime: the Detective sends a typed question to
 FIELD: NASA Data
 ======================================================================
 
+[Note, do not paste: the form takes one resource at a time, as a "Link Text" and a full URL. Enter these ten pairs. All ten addresses were opened on 15 November 2026.]
+
+1. Link Text: NASA POWER (Prediction Of Worldwide Energy Resources)
+   URL: https://power.larc.nasa.gov/
+
+2. Link Text: MERRA-2 reanalysis (NASA GMAO)
+   URL: https://gmao.gsfc.nasa.gov/gmao-products/merra-2/
+
+3. Link Text: NASA GISTEMP v4 surface temperature
+   URL: https://data.giss.nasa.gov/gistemp/
+
+4. Link Text: GPM IMERG precipitation
+   URL: https://gpm.nasa.gov/data/imerg
+
+5. Link Text: NASA GIBS (MODIS Terra monthly snow cover, MOD10CM)
+   URL: https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api
+
+6. Link Text: AIRS monthly air temperature (AIRS3STM v7.0)
+   URL: https://disc.gsfc.nasa.gov/datasets/AIRS3STM_7.0/summary
+
+7. Link Text: GLDAS-2.1 Noah monthly land model (GLDAS_NOAH10_M)
+   URL: https://disc.gsfc.nasa.gov/datasets/GLDAS_NOAH10_M_2.1/summary
+
+8. Link Text: OMI total column ozone (OMTO3d v004)
+   URL: https://disc.gsfc.nasa.gov/datasets/OMTO3d_004/summary
+
+9. Link Text: NASA GES DISC (the archive of AIRS, GLDAS and OMI)
+   URL: https://disc.gsfc.nasa.gov/
+
+10. Link Text: NASA article: Time-Series Analysis of Remotely-Sensed SeaWiFS Chlorophyll in River-Influenced Coastal Regions
+   URL: https://ntrs.nasa.gov/citations/20090042747
+
+[Note, do not paste: the longer text below is only for a free-text box, if the form has one for this field.]
+
 - NASA POWER (Prediction Of Worldwide Energy Resources), NASA Langley Research Center, https://power.larc.nasa.gov: the annual archive on AWS for the map, and the monthly point and regional APIs for the live panel. Acknowledgement requested by the project: "These data were obtained from the NASA Langley Research Center (LaRC) POWER Project funded through the NASA Earth Science/Applied Science Program."
 - MERRA-2, NASA Global Modeling and Assimilation Office: the reanalysis behind NASA POWER's variables.
 - GISTEMP v4, NASA Goddard Institute for Space Studies, https://data.giss.nasa.gov/gistemp/: the independent temperature record used by the evaluation layer.
@@ -109,6 +143,28 @@ FIELD: NASA Data
 ======================================================================
 FIELD: Space Agency Partner Data and Other References
 ======================================================================
+
+[Note, do not paste: if this field also takes a "Link Text" and a URL, enter these six pairs. No partner space agency data is used.]
+
+1. Link Text: GPCP v2.3 precipitation (NOAA PSL)
+   URL: https://psl.noaa.gov/data/gridded/data.gpcp.html
+
+2. Link Text: CMAP precipitation (NOAA PSL)
+   URL: https://psl.noaa.gov/data/gridded/data.cmap.html
+
+3. Link Text: PREC/L precipitation (NOAA PSL)
+   URL: https://psl.noaa.gov/data/gridded/data.precl.html
+
+4. Link Text: GPCC precipitation (Deutscher Wetterdienst, via NOAA PSL)
+   URL: https://psl.noaa.gov/data/gridded/data.gpcc.html
+
+5. Link Text: GHCN-CAMS land air temperature (NOAA PSL)
+   URL: https://psl.noaa.gov/data/gridded/data.ghcncams.html
+
+6. Link Text: Natural Earth (borders, coastlines, places)
+   URL: https://www.naturalearthdata.com/
+
+[Note, do not paste: the text below is only for a free-text box, if the form has one for this field.]
 
 No data from the partner space agencies is used.
 
