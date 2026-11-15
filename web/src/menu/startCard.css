@@ -42,3 +42,12 @@
 @media (max-width: 760px) {
   body.menu-open .start { display: none; }
 }
+
+/* A short window (a phone on its side): the full strip was taller than the globe area, so its top, with "Got it",
+   slid under the page header and could not be tapped. Show the headlines only and never grow past the area. */
+@media (max-height: 520px) {
+  .start { max-height: calc(100% - 16px); overflow-y: auto; padding: 8px 10px; bottom: 8px; }
+  .start-lead { margin-bottom: 6px; }
+  .start-rate, .start-record { display: none; }
+  .start-item { padding: 6px 10px; }
+}

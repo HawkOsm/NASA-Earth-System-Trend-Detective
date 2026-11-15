@@ -124,6 +124,12 @@ interface PointDatum {
   radius: number;
 }
 
+/** A finger tap: down and up within this many milliseconds and pixels. */
+const TAP_MS = 500;
+const TAP_PX = 10;
+/** For this long after a tap picked a place, the library's own click for the same tap is ignored. */
+const TAP_ECHO_MS = 600;
+
 export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines = true }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
@@ -276,6 +282,48 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     return hit ? { lat: hit.lat, lng: hit.lng } : { lat: fallback.lat, lng: fallback.lng };
   };
 
+  // A finger tap. The globe library decides what a click hit from where the pointer last HOVERED, and a finger does
+  // not hover: the first tap on a spot did nothing and only the second one counted. So a tap (finger down and up within
+  // TAP_MS and TAP_PX, on the canvas) is turned into a pick here, and the library's own click that may follow it is
+  // dropped so one tap never picks twice. Mouse clicks are left to the library.
+  const tap = useRef<{ id: number; x: number; y: number; t: number } | null>(null);
+  const tapPickedAt = useRef(0);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const down = (e: PointerEvent) => {
+      tap.current = e.pointerType === 'touch' && e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const s = tap.current;
+      tap.current = null;
+      if (!s || e.pointerId !== s.id || !(e.target instanceof HTMLCanvasElement)) return;
+      if (performance.now() - s.t > TAP_MS || Math.hypot(e.clientX - s.x, e.clientY - s.y) > TAP_PX) return; // a drag or a long press
+      const r = e.target.getBoundingClientRect();
+      const hit = globeRef.current?.toGlobeCoords(e.clientX - r.left, e.clientY - r.top);
+      if (!hit || !Number.isFinite(hit.lat) || !Number.isFinite(hit.lng)) return; // the tap missed the globe
+      tapPickedAt.current = performance.now();
+      onPickRef.current({ lat: hit.lat, lng: hit.lng });
+    };
+    const cancel = () => {
+      tap.current = null;
+    };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', cancel);
+    return () => {
+      el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', cancel);
+    };
+  }, []);
+  /** A pick from the library's own click handlers, unless a tap has just made the same pick. */
+  const pickFromLibrary = (pos: LatLng) => {
+    if (performance.now() - tapPickedAt.current > TAP_ECHO_MS) onPick(pos);
+  };
+
   return (
     <div ref={wrapRef} style={{ position: 'absolute', inset: 0 }}>
       {size.width > 0 && size.height > 0 && (
@@ -287,7 +335,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           backgroundColor="#05070d"
           showAtmosphere={true}
           onGlobeReady={handleReady}
-          onGlobeClick={({ lat, lng }) => onPick({ lat, lng })}
+          onGlobeClick={({ lat, lng }) => pickFromLibrary({ lat, lng })}
           pointsData={points}
           pointLat="lat"
           pointLng="lng"
@@ -295,7 +343,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           pointRadius={(d) => (d as PointDatum).radius}
           pointAltitude={0.01}
           pointsMerge={false}
-          onPointClick={(d) => onPick({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
+          onPointClick={(d) => pickFromLibrary({ lat: (d as PointDatum).lat, lng: (d as PointDatum).lng })}
           labelsData={labels}
           labelLat="lat"
           labelLng="lng"
@@ -306,7 +354,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
           labelIncludeDot={(d: object) => (d as LabelDatum).dot > 0}
           labelAltitude={0.012}
           labelsTransitionDuration={0}
-          onLabelClick={(_label, ev, c) => onPick(surfaceAt(ev, c))}
+          onLabelClick={(_label, ev, c) => pickFromLibrary(surfaceAt(ev, c))}
         />
       )}
       {zoomedIn && (
