@@ -40,26 +40,26 @@ the top bar starts it again (`web/src/tour/`).
 5. **Read the grade.** Every verdict comes with a grade (Robust, Use with caution, Doubtful) and, for air temperature
    and rainfall, a line saying whether an independent record confirms the trend. See "Evaluation layer".
 
-| A country lifted out of the map | One place in detail | The Detective |
-|---|---|---|
+| A country lifted out of the map                                                                                 | One place in detail                                                                              | The Detective                                                                            |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | ![Turkey lifted out of the map, with its trend, its grid cells and its provinces](web/public/about/country.jpg) | ![The panel of one place: yearly values, trend line, rate and range](web/public/about/place.jpg) | ![The Detective answering a typed question about Europe](web/public/about/detective.jpg) |
 
 The pictures are screenshots of the site itself, taken on 15 November 2026.
 
 ## Variables
 
-| Name | What it is | Units |
-|---|---|---|
-| Air temperature (`T2M`) | Average air temperature 2 metres above the ground | °C |
-| Hottest temperature of the year (`T2M_MAX`) | The highest hourly air temperature reached in the year (the annual maximum, not an average of daily maxima) | °C |
-| Precipitation (`PRECTOTCORR`) | Average rain and snow (as water) per day | mm/day |
-| Soil moisture (`GWETROOT`) | Wetness of the root zone (top metre), land only | % (percentage points per decade) |
-| Evaporation from land (`EVLAND`) | Water evaporating from soil, plants and puddles per day, land only | mm/day |
-| Humidity (`RH2M`) | Relative humidity of the air 2 metres above the ground | % |
-| Snow cover (`FRSNO`) | Share of the land covered by snow, averaged over the year | % |
-| Sea ice (`FRSEAICE`) | Share of the sea covered by ice, averaged over the year | % |
-| Wind speed (`WS2M`) | Average wind speed 2 metres above the ground | m/s |
-| Ozone layer (`TO3`) | Total ozone in the air column above the place | Dobson units |
+| Name                                          | What it is                                                                                                  | Units                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Air temperature (`T2M`)                     | Average air temperature 2 metres above the ground                                                           | °C                              |
+| Hottest temperature of the year (`T2M_MAX`) | The highest hourly air temperature reached in the year (the annual maximum, not an average of daily maxima) | °C                              |
+| Precipitation (`PRECTOTCORR`)               | Average rain and snow (as water) per day                                                                    | mm/day                           |
+| Soil moisture (`GWETROOT`)                  | Wetness of the root zone (top metre), land only                                                             | % (percentage points per decade) |
+| Evaporation from land (`EVLAND`)            | Water evaporating from soil, plants and puddles per day, land only                                          | mm/day                           |
+| Humidity (`RH2M`)                           | Relative humidity of the air 2 metres above the ground                                                      | %                                |
+| Snow cover (`FRSNO`)                        | Share of the land covered by snow, averaged over the year                                                   | %                                |
+| Sea ice (`FRSEAICE`)                        | Share of the sea covered by ice, averaged over the year                                                     | %                                |
+| Wind speed (`WS2M`)                         | Average wind speed 2 metres above the ground                                                                | m/s                              |
+| Ozone layer (`TO3`)                         | Total ozone in the air column above the place                                                               | Dobson units                     |
 
 The menu groups them as Temperature, Water, Ice & snow and Air (`web/src/data/demos.ts`, `pipeline/core/config.py`).
 
@@ -154,7 +154,6 @@ mean of its valid members and has no data when less than half of its weight is v
 - Hottest temperature of the year is the single hottest hour, so it is noisier than an average. Soil moisture and ozone
   are model-based in MERRA-2 (ozone is assimilated from satellite instruments whose mix changed over time) and trends
   in them can reflect changes in observations.
-
 - The autocorrelation correction is partial (lag 1 only). On strongly autocorrelated synthetic noise the
   false-positive rate is still above the nominal 5%.
 - MERRA-2 is a reanalysis: a weather model blended with observations, not direct measurements. Some regional
@@ -264,6 +263,7 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
   GPCP +0.09 (not significant), CMAP +0.56, GPCC +0.44, PREC/L +0.48 (all significant): GPCP alone said "not confirmed", three of
   four confirm. A rainfall trend that none of the four records confirms is therefore the strong signal that MERRA-2 may be wrong;
   one that some confirm and others do not is less clear-cut. Read MERRA-2 rainfall trends with that in mind. A plain-language guide to the whole evaluation layer is in `docs/EVALUATION.md`.
+
 - **"Confirmed only" map** (Menu, row Show; `pipeline/evaluation/export_confirmed.py`, `web/src/map/confirmedMap.ts`): redraws the temperature or
   rainfall map with only the trends the independent records confirm, full period only. A MERRA-2 cell counts as confirmed if its
   trend is map-significant, the reference box around it is eligible and the class at that box, for the cell's own sign, is
@@ -303,14 +303,14 @@ gives the summary. This check is information next to the grade; it never changes
 
 Over the boxes where both have a full record, and of the area where MERRA-2's trend over the shared years is significant:
 
-| Variable | Instrument | Years | Boxes | MERRA-2 significant | Confirmed | Not confirmed | Contradicted |
-|---|---|---|---|---|---|---|---|
-| Rainfall | GPM | 2001-2025 | 10,800 | 27% of the area | 22% | 73% | 5% |
-| Snow cover | MODIS | 20 years in 2004-2025 | 1,270 | 12% | 28% | 72% | 0% |
-| Air temperature | AIRS | 2003-2025 | 14,152 | 40% | 54% | 44% | 2% |
-| Evaporation from land | GLDAS (a model) | 2001-2025 | 3,749 | 38% | 45% | 48% | 7% |
-| Soil moisture | GLDAS (a model) | 2001-2025 | 3,749 | 37% | 31% | 55% | 14% |
-| Ozone | OMI | 2005-2025 | 10,778 | 30% | 72% | 28% | 0% |
+| Variable              | Instrument      | Years                 | Boxes  | MERRA-2 significant | Confirmed | Not confirmed | Contradicted |
+| --------------------- | --------------- | --------------------- | ------ | ------------------- | --------- | ------------- | ------------ |
+| Rainfall              | GPM             | 2001-2025             | 10,800 | 27% of the area     | 22%       | 73%           | 5%           |
+| Snow cover            | MODIS           | 20 years in 2004-2025 | 1,270  | 12%                 | 28%       | 72%           | 0%           |
+| Air temperature       | AIRS            | 2003-2025             | 14,152 | 40%                 | 54%       | 44%           | 2%           |
+| Evaporation from land | GLDAS (a model) | 2001-2025             | 3,749  | 38%                 | 45%       | 48%           | 7%           |
+| Soil moisture         | GLDAS (a model) | 2001-2025             | 3,749  | 37%                 | 31%       | 55%           | 14%          |
+| Ozone                 | OMI             | 2005-2025             | 10,778 | 30%                 | 72%       | 28%           | 0%           |
 
 The rainfall result repeats what the long records say: most of MERRA-2's significant rainfall trends are not seen by an
 independent source. Air temperature does best, as in the long check, though over 23 years fewer trends are confirmed than over 45.
@@ -456,10 +456,6 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   Data Assimilation System, GLDAS_NOAH10_M), both from NASA GES DISC (https://disc.gsfc.nasa.gov); **OMI** total column ozone
   (NASA Aura, OMTO3d v004), from NASA Goddard's TOMS/OMI archive and NASA GES DISC.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
-- Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
-  trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was
-  read for the idea only. The implementation is original CPU code and no third-party code was copied. The
-  streaks show the 1981–2025 mean NASA POWER U2M/V2M wind, not the trend.
 
 These data were obtained from the NASA Langley Research Center (LaRC) POWER Project funded through the NASA
 Earth Science/Applied Science Program. This project is not affiliated with or endorsed by NASA.
@@ -489,8 +485,7 @@ The page cannot hold an API key, so the question goes through a small server of 
 (`proxy/server.js`, no dependencies): it holds the key in Secret Manager, answers only this site's address, cuts a question
 at 300 characters, allows 12 questions a minute per address and 1,500 a day, and returns only the checked fields. The
 question text is sent to Google for this; the Detective says so under its text box. Deploying it:
-`gcloud run deploy trend-detective-ai --source proxy --region europe-west1 --allow-unauthenticated
---set-secrets GEMINI_API_KEY=gemini-api-key:latest --max-instances 2`.
+`gcloud run deploy trend-detective-ai --source proxy --region europe-west1 --allow-unauthenticated --set-secrets GEMINI_API_KEY=gemini-api-key:latest --max-instances 2`.
 
 ## License
 
