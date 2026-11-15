@@ -283,7 +283,7 @@ Over the boxes where both have a full record, and of the area where MERRA-2's tr
 | Air temperature | AIRS | 2003-2025 | 14,152 | 40% | 54% | 44% | 2% |
 | Evaporation from land | GLDAS (a model) | 2001-2025 | 3,749 | 38% | 45% | 48% | 7% |
 | Soil moisture | GLDAS (a model) | 2001-2025 | 3,749 | 37% | 31% | 55% | 14% |
-<!-- SATELLITE-ROW -->
+| Ozone | OMI | 2005-2025 | 10,778 | 30% | 72% | 28% | 0% |
 
 The rainfall result repeats what the long records say: most of MERRA-2's significant rainfall trends are not seen by an
 independent source. Air temperature does best, as in the long check, though over 23 years fewer trends are confirmed than over 45.
@@ -302,6 +302,12 @@ independent source. Air temperature does best, as in the long check, though over
   the same server. GLDAS is a land model driven by observations, not an instrument, so the panel calls its line a "model check".
   Its soil moisture is in kg per square metre and MERRA-2's is in percent of saturation: the two trends are compared by direction
   and significance, and each is printed in its own units.
+- **OMI** (ozone): total column ozone, product OMTO3d v004, daily 1 degree, 2005-2025 (`pipeline/instruments/omi_o3.py`). The odd
+  days of each month are used; days already downloaded from NASA Goddard's anonymous text archive are read from disk and the rest
+  come from NASA GES DISC (two days read from both sources differ by at most 0.5 Dobson units, the rounding of the text files).
+  OMI needs sunlight, so there is no yearly value in the polar night. **MERRA-2 takes in OMI's ozone itself from late 2004**, so
+  the high agreement is expected and is not an independent confirmation; the panel says so. MERRA-2 also takes in AIRS
+  measurements of the atmosphere, so the AIRS line is not fully independent either.
 - Limits: MODIS sees snow under clear sky only and MERRA-2's snow cover is a model's fraction of the land, so their levels differ
   (the check compares trends, not levels). GPM IMERG is calibrated with rain gauges over land, as GPCC-based records are.
 
@@ -371,6 +377,7 @@ done
 .venv/bin/python instruments/earthdata.py airs_t     # AIRS air temperature (needs an Earthdata token, see the script)
 .venv/bin/python instruments/earthdata.py gldas_et   # GLDAS evaporation
 .venv/bin/python instruments/earthdata.py gldas_sm   # GLDAS root-zone soil moisture
+.venv/bin/python instruments/omi_o3.py               # OMI ozone (Earthdata token for the days not on disk)
 .venv/bin/python -m evaluation.instrument_check     # satellite check: MERRA-2 against GPM and MODIS over their own years
 ```
 
@@ -417,8 +424,8 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   Precipitation Measurement mission), read from NASA POWER's public archive on AWS; **MODIS** snow cover (NASA Terra, product
   MOD10CM), read from NASA GIBS (Global Imagery Browse Services, https://gibs.earthdata.nasa.gov); **AIRS** near-surface air
   temperature (NASA Aqua, AIRS3STM v7.0) and **GLDAS-2.1** Noah evapotranspiration and root-zone soil moisture (NASA Global Land
-  Data Assimilation System, GLDAS_NOAH10_M), both from NASA GES DISC (https://disc.gsfc.nasa.gov).
-  <!-- SATELLITE-CREDIT -->
+  Data Assimilation System, GLDAS_NOAH10_M), both from NASA GES DISC (https://disc.gsfc.nasa.gov); **OMI** total column ozone
+  (NASA Aura, OMTO3d v004), from NASA Goddard's TOMS/OMI archive and NASA GES DISC.
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was

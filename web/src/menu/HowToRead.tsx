@@ -118,7 +118,8 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           both MERRA-2 and the record are averaged over a box of about 220 km and their trends over the same years are put side by
           side. The panel of a place says whether they agree. This does not change the grade, which is about the whole period. The
           snow check exists only where MODIS saw every month of the year, so it covers mid-latitude and mountain snow, not the Arctic.
-          GLDAS is a model driven by observations, not a measurement, so its line is called a model check.
+          GLDAS is a model driven by observations, not a measurement, so its line is called a model check. MERRA-2 takes in OMI&rsquo;s
+          ozone measurements itself, so agreement with OMI is expected and is not an independent confirmation.
         </p>
         <h3>Data source</h3>
         <p>

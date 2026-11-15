@@ -80,8 +80,8 @@ system can leave jumps and drifts in it. So:
 - the comparison also finds individual years where MERRA-2 departs from the first record (GISTEMP or GPCP),
   names them, and shows the trend without them.
 - a satellite check compares MERRA-2 with the instruments and the model the challenge names, over their own
-  years: rainfall with GPM, snow cover with MODIS, air temperature with AIRS, and evaporation and soil moisture
-  with the GLDAS land model. The panel of a place says whether the two trends agree.
+  years: rainfall with GPM, snow cover with MODIS, air temperature with AIRS, ozone with OMI, and evaporation and
+  soil moisture with the GLDAS land model. The panel of a place says whether the two trends agree.
 
 Over the area where MERRA-2 shows a significant trend, most of the records confirm 90% for land temperature
 (8% partly, 2% not confirmed) and 20% for rainfall (43% partly, 28% confirmed by none, 9% contradicted). The
@@ -106,7 +106,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 478 browser-side and 239
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 479 browser-side and 240
 pipeline-side tests; GitHub Pages for hosting.
 
 ## Use of Super Intelligence (SI)
@@ -153,8 +153,10 @@ project is AI-generated: the pictures in the deck are screenshots of the site. N
   root-zone soil moisture (NASA Global Land Data Assimilation System), read from NASA GES DISC
   (https://disc.gsfc.nasa.gov), the archive behind Giovanni, which is the first tool on this challenge's Resources
   list: the satellite check for air temperature, evaporation and soil moisture.
-- The challenge description itself names MERRA-2 and GLDAS among the models, and MODIS, AIRS and GPM among the
-  instruments, whose data a response should analyse. All five are used here.
+- **OMI** total column ozone (NASA Aura, OMTO3d v004), from NASA Goddard's TOMS/OMI archive and NASA GES DISC: the
+  satellite check for ozone.
+- The challenge description itself names MERRA-2 and GLDAS among the models, and MODIS, OMI, AIRS and GPM among
+  the instruments, whose data a response should analyse. All six are used here.
 - **"Time-Series Analysis of Remotely-Sensed SeaWiFS Chlorophyll in River-Influenced Coastal Regions"**
   (Acker and co-authors, NASA Goddard Earth Sciences Data and Information Services Center), the research
   article listed in this challenge's Resources. Its workflow is the one this project implements: an

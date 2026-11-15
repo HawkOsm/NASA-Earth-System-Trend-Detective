@@ -28,6 +28,7 @@ export function InstrumentLine({ check }: { check: InstrumentCheck }) {
     <div className={`refcheck instcheck instcheck-${check.cls}`} data-inst-class={check.cls}>
       <span className="refcheck-label">{check.label}</span>
       <p className="refcheck-text">{check.sentence}</p>
+      {check.note && <p className="refcheck-text refcheck-caveat">{check.note}</p>}
     </div>
   );
 }

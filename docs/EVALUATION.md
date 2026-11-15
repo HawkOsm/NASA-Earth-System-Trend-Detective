@@ -83,11 +83,13 @@ is compared with MERRA-2 over the years they share, on 2 degree boxes (about 220
 | Snow cover | MODIS (Terra) | NASA GIBS | 20 full years in 2004-2025 | the same, where MODIS saw every month of the year |
 | Air temperature | AIRS (Aqua) | NASA GES DISC | 2003-2025 | the same |
 | Evaporation, soil moisture | GLDAS-2.1 (a land model, not an instrument) | NASA GES DISC | 2001-2025 | the same, as a "model check"; soil moisture by direction only (different units) |
-<!-- EVAL-SAT-ROW -->
+| Ozone | OMI (Aura) | NASA Goddard archive and NASA GES DISC | 2005-2025 | the same, with a note that MERRA-2 uses OMI's ozone itself |
 
 Of MERRA-2's significant trends in those years, GPM confirms 22% of the rainfall area (73% not confirmed, 5%
 contradicted), MODIS 28% of the snow area it can see (72% not confirmed), AIRS 54% of the temperature area (44% not
-confirmed, 2% contradicted), and GLDAS 45% for evaporation and 31% for soil moisture (7% and 14% contradicted).
+confirmed, 2% contradicted), GLDAS 45% for evaporation and 31% for soil moisture (7% and 14% contradicted), and OMI 72% of the ozone area
+(none contradicted). The ozone figure is not an independent result: MERRA-2 takes in OMI's ozone measurements
+from late 2004, so it mostly shows that the reanalysis follows its input.
 The satellite check is information only: it never changes a grade, because the grade is about the whole period.
 AIRS and GLDAS are read from NASA GES DISC with a NASA Earthdata account. Code: `pipeline/evaluation/instrument_check.py`, `pipeline/instruments/` (`earthdata.py` for AIRS and GLDAS),
 `web/src/evaluation/instrument.ts`.

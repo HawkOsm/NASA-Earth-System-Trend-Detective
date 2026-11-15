@@ -42,11 +42,14 @@ INSTRUMENTS = {
                         what="rainfall measured from space"),
     "FRSNO": dict(key="modis_snow", short="MODIS", array="annual", lat_limit=90.0, scale=1.0,
                   name="MODIS snow cover (NASA Terra)", what="snow cover seen from space"),
+    # MERRA-2 assimilates OMI total ozone (and MLS profiles) from late 2004 on, so this is not an independent test.
     "TO3": dict(key="omi_o3", short="OMI", array="annual", lat_limit=90.0, scale=1.0,
-                name="OMI total ozone (NASA Aura)", what="ozone measured from space"),
+                name="OMI total ozone (NASA Aura), OMTO3d v004", what="ozone measured from space",
+                note="MERRA-2 takes in OMI's ozone measurements itself, so agreement is expected here and is not an independent confirmation."),
     "T2M": dict(key="airs_t", short="AIRS", array="annual", lat_limit=90.0, scale=1.0,
                 name="AIRS near-surface air temperature (NASA Aqua), AIRS3STM v7.0",
-                what="air temperature measured from space"),
+                what="air temperature measured from space",
+                note="MERRA-2 also takes in AIRS measurements of the atmosphere, so the two are not fully independent."),
     # GLDAS is a land-surface model driven by observations, not an instrument: the panel calls it a model check.
     "EVLAND": dict(key="gldas_et", short="GLDAS", array="annual", lat_limit=90.0, scale=1.0, label="Model check",
                    name="GLDAS-2.1 Noah evapotranspiration (NASA GLDAS)", what="NASA's land model, driven by observations"),
@@ -156,7 +159,8 @@ def build(var, log=print):
     out = {
         "variable": var,
         "instrument": {"short": spec["short"], "name": spec["name"], "what": spec["what"],
-                       "label": spec.get("label", "Satellite check"), "units": spec.get("units")},
+                       "label": spec.get("label", "Satellite check"), "units": spec.get("units"),
+                       "note": spec.get("note")},
         "years": [int(years[0]), int(years[-1])],
         "nYears": int(len(years)),
         "lat0": LAT0, "dlat": DLAT, "nlat": NLAT, "lon0": LON0, "dlon": DLON, "nlon": NLON,

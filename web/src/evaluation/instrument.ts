@@ -12,7 +12,7 @@ export interface InstrumentData {
   variable: string;
   /** `label`: the small heading in the panel ("Satellite check", or "Model check" for GLDAS); `units`: the
    *  instrument's own units when they differ from the site's (then the two trends are compared by sign only). */
-  instrument: { short: string; name: string; what: string; label?: string; units?: string | null };
+  instrument: { short: string; name: string; what: string; label?: string; units?: string | null; note?: string | null };
   years: [number, number];
   nYears: number;
   lat0: number;
@@ -49,6 +49,8 @@ export interface InstrumentCheck {
   instSlope: number;
   instP: number;
   sentence: string;
+  /** A caveat about the record itself (for example: MERRA-2 uses this instrument's data), or null. */
+  note: string | null;
 }
 
 /** The class of one box from the two trends (pipeline/evaluation/instrument_check.py classify). */
@@ -110,7 +112,7 @@ export function instrumentCheck(d: InstrumentData | null, lat: number, lng: numb
   const ip = d.instP[k];
   if (ms === null || mp === null || is === null || ip === null || ms === undefined || mp === undefined || is === undefined || ip === undefined) return null;
   const cls = instrumentClass(ms, mp, is, ip);
-  return { cls, label: d.instrument.label ?? 'Satellite check', short: d.instrument.short, years: d.years, merraSlope: ms, merraP: mp, instSlope: is, instP: ip, sentence: instrumentSentence(cls, d, ms, is, unitsLong) };
+  return { cls, label: d.instrument.label ?? 'Satellite check', short: d.instrument.short, years: d.years, merraSlope: ms, merraP: mp, instSlope: is, instP: ip, sentence: instrumentSentence(cls, d, ms, is, unitsLong), note: d.instrument.note ?? null };
 }
 
 const pc = (x: number | null) => (x === null ? '–' : `${Math.round(x * 100)}%`);
@@ -125,7 +127,7 @@ export function instrumentSummaryLine(d: InstrumentData | null): string | null {
 // ---- loader ------------------------------------------------------------------------------------------------------------
 
 /** Variables with a satellite record (pipeline/evaluation/instrument_check.py INSTRUMENTS that were built). */
-export const INSTRUMENT_VARIABLES = ['PRECTOTCORR', 'FRSNO', 'T2M', 'EVLAND', 'GWETROOT'] as const;
+export const INSTRUMENT_VARIABLES = ['PRECTOTCORR', 'FRSNO', 'T2M', 'TO3', 'EVLAND', 'GWETROOT'] as const;
 export const hasInstrument = (variable: string): boolean => (INSTRUMENT_VARIABLES as readonly string[]).includes(variable);
 
 const cache = new Map<string, Promise<InstrumentData | null>>();

@@ -28,7 +28,7 @@ version is reviewed.
 | Link to Final Project (public link) | The site is public. The repository is private |
 | Detailed Project Description | Ready |
 | Use of Super Intelligence (the guide's name for AI tools) | Drafted; read it once |
-| NASA Data (at least one NASA data set is needed for a Global Award) | Ready: NASA POWER, MERRA-2, GISTEMP, GPM IMERG, MODIS, AIRS, GLDAS (AIRS and GLDAS from GES DISC, the archive behind Giovanni). The challenge text itself names MERRA-2, MODIS, AIRS, GPM and GLDAS |
+| NASA Data (at least one NASA data set is needed for a Global Award) | Ready: NASA POWER, MERRA-2, GISTEMP, GPM IMERG, MODIS, AIRS, OMI, GLDAS (AIRS, OMI and GLDAS from GES DISC, the archive behind Giovanni). The challenge text itself names MERRA-2, MODIS, OMI, AIRS, GPM and GLDAS, and all six are used |
 | Space Agency Partner Data and Other References | Ready |
 
 Rules from the guide that affect us:
@@ -73,8 +73,8 @@ Rules from the guide that affect us:
       Rainfall at Cebu was considered too: three of four rainfall records confirm it (GPCP does not), at about
       half the size MERRA-2 shows. Shanghai, confirmed by all four, was preferred.
 - [x] Evaluation layer live: a grade on every trend, an independent check for temperature and rainfall, and a
-      satellite check against GPM (rainfall), MODIS (snow cover), AIRS (air temperature) and the GLDAS model
-      (evaporation, soil moisture) over their own years.
+      satellite check against GPM (rainfall), MODIS (snow cover), AIRS (air temperature), OMI (ozone) and the
+      GLDAS model (evaporation, soil moisture) over their own years.
       Guide: [EVALUATION.md](EVALUATION.md).
 - [x] README describes the site as it is now.
 - [x] No two source files differ only in letter case, so the project builds on Windows and macOS as well as Linux.
