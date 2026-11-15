@@ -389,6 +389,7 @@ done
 .venv/bin/python -m maps.export_summary       # summary.bin: slope / p / BH-adjusted p of every variable in every coarse cell
 .venv/bin/python -m areas.regions              # continents and the world, for the Detective
 .venv/bin/python -m evaluation.export_quality       # pattern checks and grades (after export.py: it adds to the meta files)
+.venv/bin/python -m evaluation.reference_more fetch # download the other independent records (GHCN-CAMS, CMAP, GPCC, PREC/L) into the cache; the next step needs them
 .venv/bin/python -m evaluation.reference            # comparison with GISTEMP and GPCP (needs the GISTEMP file, see docs/EVALUATION.md)
 .venv/bin/python -m evaluation.reference rewrite    # rewrite reference/*.json from the cache, adding the other records (GHCN-CAMS, CMAP, GPCC, PREC/L)
 .venv/bin/python instruments/gpm.py            # GPM IMERG rainfall from NASA POWER's archive (about 1.5 GB, cached)
