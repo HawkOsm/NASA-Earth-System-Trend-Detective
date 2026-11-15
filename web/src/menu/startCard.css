@@ -27,6 +27,11 @@
 .start-detective .start-headline { color: #f5d66b; }
 .start-detective .start-record { color: #9aa4bb; }
 
+/* Wider than a phone: the menu is a 310 px column down the left edge, so the strip starts to the right of it.
+   (At 1366 px the centred strip used to lie over the menu's lower rows.) */
+@media (min-width: 761px) {
+  .start { left: 334px; }
+}
 /* Phone widths: full width, one finding per row. */
 @media (max-width: 760px) {
   .start { left: 8px; right: 8px; bottom: 8px; }

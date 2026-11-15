@@ -114,6 +114,8 @@ interface Steps {
   variable?: string | null;
   /** "Gemini read this as: ..." (null when the reader was not used or read nothing). */
   aiNote?: string | null;
+  /** Set by applySteps when it put the period back to the whole record. */
+  periodReset?: boolean;
 }
 /** The AI reader is on unless the address says `?ai=0`. */
 const AI_ON = aiEnabled(typeof window === 'undefined' ? '' : window.location.search);
@@ -233,8 +235,23 @@ export default function Detective(p: DetectiveProps) {
    */
   const liftTimer = useRef<number | null>(null);
   useEffect(() => () => { if (liftTimer.current !== null) window.clearTimeout(liftTimer.current); }, []);
+  /** Anything the visitor does next (a new question, a button, a click on the globe) calls off a view that was about to open. */
+  const cancelPendingView = () => {
+    if (liftTimer.current !== null) window.clearTimeout(liftTimer.current);
+    liftTimer.current = null;
+  };
+  /** The years the Detective itself set for an earlier question (null: it set none, or they were put back). */
+  const myPeriod = useRef<[number, number] | null>(null);
   const applySteps = (steps: Steps | null) => {
-    if (steps?.period) p.onPeriod(steps.period);
+    if (steps?.period) {
+      p.onPeriod(steps.period);
+      myPeriod.current = steps.period;
+    } else if (steps && myPeriod.current) {
+      // A new question that names no years must not silently keep the years of the previous question.
+      p.onPeriod(p.fullYears);
+      myPeriod.current = null;
+      steps.periodReset = true;
+    }
     if (steps?.variable && steps.variable !== p.variable) p.onShowVariable(steps.variable);
   };
   const openView = (steps: Steps | null, lift: LiftTarget | null) => {
@@ -243,7 +260,7 @@ export default function Detective(p: DetectiveProps) {
     // After the globe has turned (the flight takes about a second); at once when motion is to be reduced.
     liftTimer.current = window.setTimeout(() => p.onLift(lift), prefersReducedMotion() ? 0 : TURN_MS);
   };
-  const stepsNote = (steps: Steps | null, lift: LiftTarget | null, region = false): string | undefined => {
+  const stepsNote = (steps: Steps | null, lift: LiftTarget | null, region: string | null = null): string | undefined => {
     if (!steps) return undefined;
     const parts: string[] = [];
     if (steps.aiNote) parts.push(steps.aiNote);
@@ -253,8 +270,9 @@ export default function Detective(p: DetectiveProps) {
       if (steps.adjusted) parts.push(`That is the nearest I can do: at least ten years inside ${p.fullYears[0]}–${p.fullYears[1]}.`);
       parts.push(`The ranking below is for ${YEARS_TEXT}, the only years I have ready.`);
     }
+    if (steps.periodReset) parts.push(`You named no years this time, so the period is back to ${p.fullYears[0]}–${p.fullYears[1]}.`);
     if (lift) parts.push(`I am turning the globe there and opening the view of ${lift.name}.`);
-    else if (region) parts.push('I have turned the globe there. A continent has no view of its own: tap a country below to open one.');
+    else if (region) parts.push(`I have turned the globe there. ${region === 'World' ? 'The whole world' : 'A continent'} has no view of its own: tap a country below to open one.`);
     return parts.length ? parts.join(' ') : undefined;
   };
   const joinNotes = (...notes: (string | undefined)[]): string | undefined => notes.filter(Boolean).join(' ') || undefined;
@@ -350,7 +368,7 @@ export default function Detective(p: DetectiveProps) {
           rec.name,
           rank,
           buildAnswer(rank, header, [], extras, qualities, areaLineChecks(rank, areaRefs, 'regions', rec.name)),
-          { note: joinNotes(placeNote(place, read, others), stepsNote(steps, null, true)), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
+          { note: joinNotes(placeNote(place, read, others), stepsNote(steps, null, rec.name)), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
           true,
         );
       }, run);
@@ -389,6 +407,7 @@ export default function Detective(p: DetectiveProps) {
   const ask = (raw: string) => {
     const input = raw.trim();
     if (!input) return;
+    cancelPendingView();
     push({ from: 'user', text: input });
     enqueue(async () => {
       let idx: PlaceIndex;
@@ -469,6 +488,7 @@ export default function Detective(p: DetectiveProps) {
   };
 
   const onClick = (pos: { lat: number; lng: number }) => {
+    cancelPendingView();
     const lng = wrapLng(pos.lng);
     push({ from: 'user', text: `Clicked the globe at ${formatLatLng({ lat: pos.lat, lng })}` });
     p.onFly(pos.lat, lng);
@@ -476,6 +496,7 @@ export default function Detective(p: DetectiveProps) {
   };
 
   const runAction = (a: Action, label: string) => {
+    cancelPendingView();
     switch (a.t) {
       case 'theme': {
         const t = THEMES.find((x) => x.id === a.id)!;
