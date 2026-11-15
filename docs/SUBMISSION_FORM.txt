@@ -144,7 +144,9 @@ FIELD: NASA Data
 FIELD: Space Agency Partner Data and Other References
 ======================================================================
 
-[Note, do not paste: if this field also takes a "Link Text" and a URL, enter these six pairs. No partner space agency data is used.]
+[Note, do not paste: this field takes one resource at a time, as a "Link Text" and a full URL. The 29 pairs below are everything the project uses that is not NASA's. The first six are the data; the rest are code and tools. All 29 addresses were opened on 15 November 2026.]
+
+[DATA (no partner space agency data is used; these are the independent records and the map outlines)]
 
 1. Link Text: GPCP v2.3 precipitation (NOAA PSL)
    URL: https://psl.noaa.gov/data/gridded/data.gpcp.html
@@ -161,8 +163,83 @@ FIELD: Space Agency Partner Data and Other References
 5. Link Text: GHCN-CAMS land air temperature (NOAA PSL)
    URL: https://psl.noaa.gov/data/gridded/data.ghcncams.html
 
-6. Link Text: Natural Earth (borders, coastlines, places)
+6. Link Text: Natural Earth (borders, coastlines, seas, places)
    URL: https://www.naturalearthdata.com/
+
+[CODE OF THE SITE (open-source libraries)]
+
+7. Link Text: React
+   URL: https://react.dev/
+
+8. Link Text: Vite
+   URL: https://vite.dev/
+
+9. Link Text: TypeScript
+   URL: https://www.typescriptlang.org/
+
+10. Link Text: react-globe.gl
+   URL: https://github.com/vasturiano/react-globe.gl
+
+11. Link Text: three.js
+   URL: https://threejs.org/
+
+12. Link Text: uPlot
+   URL: https://github.com/leeoniya/uPlot
+
+13. Link Text: topojson-client
+   URL: https://github.com/topojson/topojson-client
+
+14. Link Text: world-atlas (Natural Earth outlines as a package)
+   URL: https://github.com/topojson/world-atlas
+
+15. Link Text: Vitest
+   URL: https://vitest.dev/
+
+[CODE OF THE DATA PIPELINE (open-source libraries)]
+
+16. Link Text: NumPy
+   URL: https://numpy.org/
+
+17. Link Text: SciPy
+   URL: https://scipy.org/
+
+18. Link Text: xarray
+   URL: https://xarray.dev/
+
+19. Link Text: Zarr
+   URL: https://zarr.dev/
+
+20. Link Text: s3fs
+   URL: https://s3fs.readthedocs.io/
+
+21. Link Text: Pillow
+   URL: https://python-pillow.org/
+
+22. Link Text: Matplotlib
+   URL: https://matplotlib.org/
+
+23. Link Text: pytest
+   URL: https://docs.pytest.org/
+
+24. Link Text: pyMannKendall (used to check the statistics)
+   URL: https://github.com/mmhs013/pyMannKendall
+
+[TOOLS AND SERVICES]
+
+25. Link Text: Claude Code (AI coding tool, Anthropic)
+   URL: https://claude.com/product/claude-code
+
+26. Link Text: Google Antigravity (AI coding tool)
+   URL: https://antigravity.google/
+
+27. Link Text: Google Gemini API (reads the Detective's questions)
+   URL: https://ai.google.dev/
+
+28. Link Text: Google Cloud Run (runs the small server in front of Gemini)
+   URL: https://cloud.google.com/run
+
+29. Link Text: GitHub Pages (hosts the site)
+   URL: https://pages.github.com/
 
 [Note, do not paste: the text below is only for a free-text box, if the form has one for this field.]
 
