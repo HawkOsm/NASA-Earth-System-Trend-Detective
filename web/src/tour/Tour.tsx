@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { TOUR_STEPS, stepFinished, type TourState, type TourTarget } from './tourSteps';
+import { TOUR_STEPS, stepFinished, stepNeedsMenu, type TourState, type TourTarget } from './tourSteps';
 import './tour.css';
 
 declare global {
@@ -15,9 +15,12 @@ interface Props {
   onBegin: () => void;
   /** The tour ended (finished or skipped). */
   onEnd: () => void;
+  /** The current step points at a control inside the menu (true) or not (false): the page opens the menu's sub-menus
+   *  only for those steps. */
+  onMenu: (needed: boolean) => void;
 }
 
-/** The control a step asks for, if it is on the page and visible (the menu opens every sub-menu while the tour runs). */
+/** The control a step asks for, if it is on the page and visible (the menu opens every sub-menu for the steps that point into it). */
 function findTarget(target: TourTarget): { el: Element } | null {
   if (!target) return null;
   const optWithText = (text: string) =>
@@ -51,7 +54,7 @@ interface Box {
  * The guided tour (tourSteps.ts): a card that says what to click, and a ring around the control. The card never covers
  * the page: clicks go to the real controls, and each one moves the tour on.
  */
-export default function Tour({ active, state, onBegin, onEnd }: Props) {
+export default function Tour({ active, state, onBegin, onEnd, onMenu }: Props) {
   const [index, setIndex] = useState(0);
   const [box, setBox] = useState<Box | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,10 @@ export default function Tour({ active, state, onBegin, onEnd }: Props) {
   useEffect(() => {
     if (!active) setIndex(0);
   }, [active]);
+
+  useEffect(() => {
+    onMenu(stepNeedsMenu(step));
+  }, [step, onMenu]);
 
   // The visitor did what the step asks: move on.
   useEffect(() => {

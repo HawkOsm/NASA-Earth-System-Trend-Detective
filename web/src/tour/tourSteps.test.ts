@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOUR_STEPS, shouldAutoStart, stepFinished, type TourState } from './tourSteps';
+import { TOUR_STEPS, shouldAutoStart, stepFinished, stepNeedsMenu, type TourState } from './tourSteps';
 
 const base: TourState = { overlayOpen: false, variable: 'T2M', lift: true, panelOpen: false, detectiveOpen: false };
 const step = (key: string) => TOUR_STEPS.find((s) => s.key === key)!;
@@ -46,5 +46,12 @@ describe('guided tour', () => {
     expect(shouldAutoStart('?tour=0', false)).toBe(false);
     expect(shouldAutoStart('?tour=1', true)).toBe(true);
     expect(shouldAutoStart('?flat=1', false)).toBe(true);
+  });
+
+  it('opens the menu only for the steps that point into it, so the globe is free for the others', () => {
+    expect(TOUR_STEPS.filter((s) => stepNeedsMenu(s)).map((s) => s.key)).toEqual(['variable', 'point']);
+    expect(stepNeedsMenu(step('lift'))).toBe(false);
+    expect(stepNeedsMenu(step('place'))).toBe(false);
+    expect(stepNeedsMenu(null)).toBe(false);
   });
 });

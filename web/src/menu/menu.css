@@ -69,9 +69,15 @@
 .globe-wrap.country-open .menu-wrap { visibility: hidden; }
 
 /* Phones are too narrow for a side column: the names are a row across the top (under the Detective pill), and a
-   dropped sub-menu takes the full width under them. */
+   dropped sub-menu takes the full width under them. Here the menu does have a box: on a phone it lies across the
+   middle of the globe, where the halo alone cannot keep the text readable over red and white. The box takes the taps
+   that land on it, so a tap between two rows does not open a country behind the menu. It may grow to the full height
+   of the map, so that every sub-menu open at once still fits without scrolling inside the box. */
 @media (max-width: 760px) {
-  .menu-wrap { left: 8px; right: 8px; top: 44px; width: auto; max-height: 60%; }
+  .menu-wrap {
+    left: 8px; right: 8px; top: 44px; width: auto; max-height: calc(100% - 52px); padding: 2px 10px 4px;
+    pointer-events: auto; background: rgba(8, 11, 20, 0.86); border: 1px solid rgba(58, 74, 106, 0.6); border-radius: 8px;
+  }
   .menu { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 2px 18px; overscroll-behavior: contain; }
   .menu-seg-head { padding: 6px 0; }
   .menu-seg.is-open { flex-basis: 100%; order: 1; margin-bottom: 4px; }

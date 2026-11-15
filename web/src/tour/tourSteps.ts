@@ -119,3 +119,9 @@ export function shouldAutoStart(search: string, seen: boolean): boolean {
   if (q === '1') return true;
   return !seen;
 }
+
+/** The steps whose control sits inside the menu. Only for these does the menu open every sub-menu: on a phone the open
+ *  menu lies over the globe, and the steps that ask for a click on the globe need it out of the way. */
+export function stepNeedsMenu(step: TourStep | null): boolean {
+  return !!step && (step.target === 'group-water' || step.target === 'click-point');
+}

@@ -14,7 +14,7 @@ Line numbers are those of 15 November and will drift.
 
 ## 1. Fixed during the review
 
-Nine things turned out to be real faults, small enough to fix at once. All are live.
+Eleven things turned out to be real faults, small enough to fix at once. All are live.
 
 | What | How it showed | Measured |
 |---|---|---|
@@ -27,6 +27,8 @@ Nine things turned out to be real faults, small enough to fix at once. All are l
 | "A continent has no view of its own" was said about the world | Wrong word | Now "The whole world" |
 | On a phone the first tap on the globe did nothing | The globe only answered a tap after an earlier touch had told it where the finger was | Live, touch input: the first tap now opens the view; a finger drag still turns the globe (27.7°) without opening anything |
 | The start strip slid under the top bar on a phone held sideways | "Got it" could not be tapped, so the strip could not be closed | Live at 844 x 390: the strip sits below the bar and "Got it" takes the tap |
+| The phone menu had no background | Its text lay on the globe and was hard to read over red and white; with every part open it scrolled inside itself | At 390 x 844: a dark box, nothing hidden (was 177 px); a tap on the box no longer opens the country behind it. The tour now opens the menu only for its two menu steps, so the globe is free for the others |
+| "Back to the globe" and the × scrolled out of sight | In a long country view, the place panel and "How to read this" the way out was lost after scrolling | At 390 x 844 and 1366 x 768: scrolled to the end, each button is still in the window and takes the press |
 
 ## 2. Code: the hardest places, most confusing first
 
@@ -178,7 +180,7 @@ From the walk-through at 1366 x 768 (96 screenshots). "Seen" means I looked at t
 | 12 | "Significant on its own, but not after allowing for the 8 variables tested at this place" has no help text | Not changed |
 | 13 | "Confirmed only" is not explained beside the button | Not changed |
 | 14 | "about" in the menu and "How to read this" in the top bar open the same text; the country view has a third, different "How to read this view" | Not changed |
-| 15 | "How to read this" is 1,118 words in a box that shows about a quarter; the close button scrolls away (Escape works) | Not changed |
+| 15 | "How to read this" is 1,118 words in a box that shows about a quarter; the close button scrolls away (Escape works) | The close button now stays in sight; the length is not changed |
 | 16 | Each variable has its own colours and nothing says which colour is the worrying one | Not changed |
 | 17 | Small controls: the ⓘ icons are 20 x 19 px; "2°" and "5°" are 15 px wide | Not changed |
 | 18 | One low-contrast number: the large rate on the Black Sea view, ratio 2.9 where 3 is the minimum | Not changed |
@@ -201,8 +203,8 @@ From the walk-through at 390 x 844 and, turned on its side, 844 x 390 (117 scree
 |---|---|---|
 | 1 | The first tap on the globe did nothing; only a second tap opened a country | Tested; fixed |
 | 2 | With the phone on its side the start strip slid under the top bar and "Got it" could not be tapped | Tested; fixed |
-| 3 | The phone menu has no background: its text lies directly on the globe and is hard to read on red and white. With every part open it also scrolls inside itself (about 177 px hidden; "All significant / Confirmed only" is cut in half) | Seen; not changed |
-| 4 | In a long country view "Back to the globe" scrolls out of sight, and so does the × of the place panel. The only way back is to scroll to the top | Seen; not changed |
+| 3 | The phone menu has no background: its text lies directly on the globe and is hard to read on red and white. With every part open it also scrolls inside itself (about 177 px hidden; "All significant / Confirmed only" is cut in half) | Seen; fixed |
+| 4 | In a long country view "Back to the globe" scrolls out of sight, and so does the × of the place panel. The only way back is to scroll to the top | Seen; fixed |
 | 5 | A Detective question jumps straight to a full-screen country view, which hides the "Gemini read this as" note and the answer | Not changed |
 | 6 | The Detective's answer area is about four lines tall on a phone | Not changed |
 | 7 | The tour's step 3 says "Left" and "Middle", which describes the laptop layout; on a phone the parts are stacked. Its cards also cover what they describe | Not changed |
@@ -215,7 +217,7 @@ From the walk-through at 390 x 844 and, turned on its side, 844 x 390 (117 scree
 | 14 | "Plain map" in the Scale row and the Click options are not explained where they stand (as on the laptop) | Not changed |
 
 The reviewer walked the tour before the last site update and did not walk it again afterwards. I ran the tour at
-phone width with a mouse after the two fixes and it passes; nobody has run it with a finger.
+phone width with a mouse after the fixes and it passes; nobody has run it with a finger.
 
 ## 5. If you read only a few things
 

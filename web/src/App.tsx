@@ -222,6 +222,9 @@ export default function App() {
     }
     return shouldAutoStart(window.location.search, seen);
   });
+  // The tour's current step points at a control inside the menu: the menu then opens every sub-menu. Not for the other
+  // steps, because on a phone the open menu lies over the globe the visitor is asked to click.
+  const [tourMenu, setTourMenu] = useState(false);
   const endTour = useCallback(() => {
     setTourActive(false);
     try {
@@ -1101,7 +1104,7 @@ export default function App() {
             referenceLine={referenceMenuLine}
             instrumentLine={instrumentMenuLine}
             confirmed={{ enabled: confirmedAllowed, on: confirmedOn, onChange: setConfirmedChoice, line: confirmedLine }}
-            showAll={tourActive}
+            showAll={tourMenu}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
                 Detective
@@ -1229,6 +1232,7 @@ export default function App() {
           setCountryMode(true);
         }}
         onEnd={endTour}
+        onMenu={setTourMenu}
       />
       {showHelp && <HowToRead onClose={() => setShowHelp(false)} />}
     </div>
