@@ -132,14 +132,14 @@
   <p class="kicker">Can the answer be trusted?</p>
   <h1>It checks its own data, and says so</h1>
   <div class="cols" style="grid-template-columns: 1fr 1fr 1.1fr; align-items: start;">
-    <div><img class="shot" src="img/check_shanghai.png" alt="Shanghai rainfall: Robust, confirmed by GPCP"><p class="small" style="margin:8px 2px 0">Shanghai, rainfall: confirmed by an independent record</p></div>
-    <div><img class="shot" src="img/check_cebu.png" alt="Cebu rainfall: Use with caution, not confirmed by GPCP"><p class="small" style="margin:8px 2px 0">Cebu, rainfall: significant in MERRA-2, not confirmed</p></div>
+    <div><img class="shot" src="img/check_shanghai.png" alt="Shanghai rainfall: Robust, confirmed by 4 of 4 independent records"><p class="small" style="margin:8px 2px 0">Shanghai, rainfall: confirmed by all four independent records</p></div>
+    <div><img class="shot" src="img/check_manila.png" alt="Manila rainfall: Use with caution, confirmed by only 2 of 4 independent records"><p class="small" style="margin:8px 2px 0">Manila, rainfall: significant in MERRA-2, but only two of four records agree</p></div>
     <div>
-      <p class="small" style="margin:0 0 4px">Where MERRA-2 shows a significant trend, an independent record confirms it on</p>
-      <p style="margin:0 0 2px"><span class="num good">97%</span> <span style="font-size:19px">of land, for temperature</span></p>
-      <p class="small" style="margin:0 0 14px">NASA GISTEMP: thermometers and ships</p>
-      <p style="margin:0 0 2px"><span class="num warn">26%</span> <span style="font-size:19px">for rainfall</span></p>
-      <p class="small" style="margin:0 0 16px">GPCP: rain gauges and satellites</p>
+      <p class="small" style="margin:0 0 4px">Where MERRA-2 shows a significant trend, most of the independent records confirm it on</p>
+      <p style="margin:0 0 2px"><span class="num good">90%</span> <span style="font-size:19px">of land, for temperature</span></p>
+      <p class="small" style="margin:0 0 14px">2 records: NASA GISTEMP and GHCN-CAMS</p>
+      <p style="margin:0 0 2px"><span class="num warn">20%</span> <span style="font-size:19px">for rainfall</span></p>
+      <p class="small" style="margin:0 0 16px">4 records: GPCP, CMAP, GPCC and PREC/L. On 28%, none of them does</p>
       <p style="margin:0; font-size:18px; line-height:1.4">Every trend also gets a grade from four pattern checks: a jump, one year that decides the answer, a reversal, and dependence on the first or last years.</p>
     </div>
   </div>
@@ -152,14 +152,14 @@
   <h1>Three findings, each confirmed independently</h1>
   <div class="cols" style="grid-template-columns: 1.25fr 1fr; align-items: start;">
     <table>
-      <tr><th>Place</th><th>What changed, per decade</th><th>Independent record</th></tr>
-      <tr><td>Istanbul</td><td class="r">Air temperature +0.54 °C</td><td>NASA GISTEMP +0.55</td></tr>
-      <tr><td>Shanghai</td><td class="r">Rainfall +0.36 mm/day</td><td>GPCP +0.26</td></tr>
-      <tr><td>The Amazon at Porto Velho</td><td class="r">Rainfall −0.67 mm/day</td><td>GPCP −0.36</td></tr>
+      <tr><th>Place</th><th>What changed, per decade</th><th>Independent records</th></tr>
+      <tr><td>Istanbul</td><td class="r">Air temperature +0.54 °C</td><td>2 of 2 confirm (NASA GISTEMP +0.55)</td></tr>
+      <tr><td>Shanghai</td><td class="r">Rainfall +0.36 mm/day</td><td>4 of 4 confirm (GPCP +0.26)</td></tr>
+      <tr><td>The Amazon at Porto Velho</td><td class="r">Rainfall −0.67 mm/day</td><td>3 of 4 confirm (GPCP −0.36)</td></tr>
     </table>
     <div class="card">
       <h2 style="font-size:20px">Data, credits and use of AI</h2>
-      <p style="font-size:15px; line-height:1.5"><b>NASA data:</b> NASA POWER (Langley Research Center), built on MERRA-2 (GMAO); NASA GISTEMP (GISS). <b>Other:</b> GPCP rainfall (NOAA PSL); Natural Earth for borders and places; wind-streak idea from cambecc/earth. <b>AI:</b> built with AI coding tools (Claude Code), disclosed in the README; no AI runs on the site; every picture here is a screenshot of it.</p>
+      <p style="font-size:15px; line-height:1.5"><b>NASA data:</b> NASA POWER (Langley Research Center), built on MERRA-2 (GMAO); NASA GISTEMP (GISS). <b>Other:</b> GPCP, CMAP, PREC/L rainfall and GHCN-CAMS temperature (NOAA), GPCC rainfall (DWD); Natural Earth for borders and places; wind-streak idea from cambecc/earth. <b>AI:</b> built with AI coding tools (Claude Code), disclosed in the README; no AI runs on the site; every picture here is a screenshot of it.</p>
     </div>
   </div>
   <p class="lead" style="margin-top:26px; font-size:24px; color:#10233f"><b>Try it:</b> hawkosm.github.io/NASA-Earth-System-Trend-Detective</p>

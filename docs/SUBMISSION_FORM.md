@@ -25,9 +25,9 @@ changing there.
 
 What sets it apart is that it does not stop at "significant". Every trend gets a grade, and for air temperature
 and rainfall the site compares NASA's reanalysis with independent measurement records and says, at each place,
-whether the trend is confirmed. That matters because a trend map is easy to draw and easy to believe: the
-project found that independent records confirm 97% of MERRA-2's significant land-temperature trends but only
-26% of its significant rainfall trends, and it tells the visitor so.
+how many of them confirm the trend. That matters because a trend map is easy to draw and easy to believe: the
+project found that most independent records confirm 90% of MERRA-2's significant land-temperature trends but
+only 20% of its significant rainfall trends, and it tells the visitor so.
 
 ## Link to Project Demo
 
@@ -72,34 +72,38 @@ system can leave jumps and drifts in it. So:
 - four pattern checks look at each trend for a jump, a single year that decides the answer, a reversal between
   the two halves of the record, and dependence on the first or last five years. The result is a grade: Robust,
   Use with caution, or Doubtful. The checks were calibrated on synthetic series where the truth is known.
-- for air temperature (against NASA GISTEMP) and rainfall (against GPCP), the trend at each place is compared
-  with the independent record for the surrounding box and labelled Confirmed, Not confirmed or Contradicted.
-- the comparison also finds individual years where MERRA-2 departs from the record, names them, and shows the
-  trend without them.
+- for air temperature (against NASA GISTEMP and GHCN-CAMS) and rainfall (against GPCP, CMAP, GPCC and PREC/L),
+  the trend at each place is compared with every independent record available for the surrounding box. It is
+  labelled Confirmed when more than half of them show a significant change in the same direction, Partly
+  confirmed when some but not most do, Not confirmed when none does, and Contradicted when more show the
+  opposite. The site names the records on each side.
+- the comparison also finds individual years where MERRA-2 departs from the first record (GISTEMP or GPCP),
+  names them, and shows the trend without them.
 
-Over the area where MERRA-2 shows a significant trend, the independent record confirms 97% for land
-temperature, and 26% for rainfall (68% not confirmed, 6% contradicted). An unconfirmed trend stays visible but
-is labelled "Use with caution".
+Over the area where MERRA-2 shows a significant trend, most of the records confirm 90% for land temperature
+(8% partly, 2% not confirmed) and 20% for rainfall (43% partly, 28% confirmed by none, 9% contradicted). The
+rainfall records also disagree with each other, which is why the site asks all of them instead of one. A trend
+that is only partly confirmed or not confirmed stays visible but is labelled "Use with caution".
 
 **Three findings a visitor can reproduce in one click** (the start strip on the site), each significant
-(p < 0.001), graded Robust, and confirmed by the independent record:
+(p < 0.001), graded Robust, and confirmed by most of the independent records:
 
-| Place | Change per decade | Independent record |
+| Place | Change per decade | Independent records |
 |---|---|---|
-| Istanbul | Air temperature +0.54 °C | NASA GISTEMP +0.55 °C |
-| Shanghai | Rainfall +0.36 mm/day | GPCP +0.26 mm/day |
-| The Amazon at Porto Velho | Rainfall −0.67 mm/day | GPCP −0.36 mm/day |
+| Istanbul | Air temperature +0.54 °C | 2 of 2 confirm (NASA GISTEMP +0.55 °C) |
+| Shanghai | Rainfall +0.36 mm/day | 4 of 4 confirm (GPCP +0.26 mm/day) |
+| The Amazon at Porto Velho | Rainfall −0.67 mm/day | 3 of 4 confirm (GPCP −0.36 mm/day) |
 
 **Benefits and aim.** A student, journalist or local planner can ask a plain question about a real place and
 get an answer with its uncertainty and its reliability stated, from NASA data, without installing anything.
 The aim is a trend tool that is honest about what the data can and cannot support.
 
-**Limits it states openly.** Only two of the ten variables have an independent record so far. The independent
-check covers single places and the full 1981–2025 period. Trends are straight-line descriptions of the past,
+**Limits it states openly.** Only two of the ten variables have independent records so far. The independent
+check covers the full 1981–2025 period, and the records are not fully independent of each other. Trends are straight-line descriptions of the past,
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 402 browser-side and 176
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 452 browser-side and 223
 pipeline-side tests; GitHub Pages for hosting.
 
 ## Use of Super Intelligence (SI)
@@ -151,8 +155,11 @@ project is AI-generated: the pictures in the deck are screenshots of the site. N
 
 No data from the partner space agencies is used.
 
-- GPCP v2.3 monthly precipitation, from NOAA's Physical Sciences Laboratory
-  (https://psl.noaa.gov/data/gridded/data.gpcp.html): the independent rainfall record.
+- Independent rainfall records, all read from NOAA's Physical Sciences Laboratory
+  (https://psl.noaa.gov/data/gridded/): GPCP v2.3 and CMAP (rain gauges and satellites), PREC/L (rain gauges;
+  NOAA Climate Prediction Center) and GPCC Full Data v2025 (rain gauges; Deutscher Wetterdienst).
+- GHCN-CAMS land air temperature (NOAA Climate Prediction Center, same site): the second independent
+  temperature record.
 - Natural Earth (public domain, https://www.naturalearthdata.com): coastlines, countries, provinces and states,
   seas, populated places. Countries and coastlines through the `world-atlas` package.
 - cambecc/earth (https://github.com/cambecc/earth): the idea of showing wind as moving streaks. No code copied.

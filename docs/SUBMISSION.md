@@ -77,9 +77,10 @@ Rules from the guide that affect us:
 - [x] README describes the site as it is now.
 - [x] No two source files differ only in letter case, so the project builds on Windows and macOS as well as Linux.
 - [x] A trend of exactly zero is never reported as significant (`web/src/verdicts.ts`).
-- [x] Credits: NASA POWER, MERRA-2, GISTEMP, GPCP, Natural Earth, cambecc/earth, libraries and methods.
+- [x] Credits: NASA POWER, MERRA-2, GISTEMP, GHCN-CAMS, GPCP, CMAP, GPCC, PREC/L, Natural Earth, cambecc/earth,
+      libraries and methods.
 
 ## Known gaps
 
 - Phone and real-GPU behaviour have not been checked by a person.
-- The independent check covers air temperature and rainfall only, single places only, and 1981–2025 only.
+- The independent check covers air temperature and rainfall only, and 1981–2025 only.

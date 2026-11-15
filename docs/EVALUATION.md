@@ -170,7 +170,7 @@ weighted; `reference/confirmed_<VAR>.json`):
 | *Before: GPCP alone* | 21.2% | 5.1% | | 13.0% | 3.1% |
 
 Temperature looks small here only because half of the significant area is sea, where the record is not air temperature; on land
-almost all of it is confirmed (97% in the box table above). Code: `pipeline/export_confirmed.py`.
+almost all of it is confirmed (90% by both records and 97% by GISTEMP alone, in the box table above). Code: `pipeline/export_confirmed.py`.
 
 ## 4. How good are the checks themselves? (calibration)
 
