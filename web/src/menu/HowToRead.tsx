@@ -58,7 +58,7 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         </p>
         <h3>Choosing the period</h3>
         <p>
-          You can choose the period with the two sliders in the Menu (top left of the map, under Period); the map, the side panel and the country view
+          You can choose the period with the two sliders under Period in the menu (left edge of the map); the map, the side panel and the country view
           then use only those years. Shorter periods have fewer years, so trends are noisier and harder to prove
           significant. Below about 15 years almost nothing passes the test that allows for every place on the map being tested at
           once. The map then follows a different rule, and the Scale part of the menu says so: it draws every change, strong where a

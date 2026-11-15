@@ -63,7 +63,7 @@
 
 /* The menu and the Detective would overlap on a narrow window: the menu steps aside while the Detective is open. */
 @media (max-width: 860px) {
-  .globe-wrap.detective-open .menu-wrap { visibility: hidden; right: 8px; }
+  .globe-wrap.detective-open .menu-wrap { visibility: hidden; }
   .dt-pill { top: 8px; right: 8px; }
   .dt-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: min(70vh, 520px); border-radius: 16px; }
 }

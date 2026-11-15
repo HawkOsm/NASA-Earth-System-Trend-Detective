@@ -1,4 +1,4 @@
-/** What the menu shows (Menu.tsx): whether it is open, and which of its sub-menus are dropped down. */
+/** What the menu shows (Menu.tsx): which of its sub-menus are dropped down. */
 
 export const SEGMENTS = [
   { key: 'data', label: 'Data' },
@@ -11,17 +11,15 @@ export const SEGMENTS = [
 export type SegmentKey = (typeof SEGMENTS)[number]['key'];
 
 export interface MenuState {
-  /** The menu is open: its sub-menus are in a row along the top. */
-  open: boolean;
-  /** Sub-menus that are dropped down (shown only while the menu is open). */
+  /** Sub-menus that are dropped down. */
   on: SegmentKey[];
 }
 
-export const MENU_STORAGE_KEY = 'trend-detective.menu.v1';
+export const MENU_STORAGE_KEY = 'trend-detective.menu.v2';
 
-/** A wide window starts open with the variable and colour scale dropped down; a phone starts with a clear map. */
+/** A wide window starts with the variable and colour scale dropped down; a phone starts with every sub-menu folded. */
 export function defaultMenuState(narrow: boolean): MenuState {
-  return narrow ? { open: false, on: [] } : { open: true, on: ['data', 'scale'] };
+  return narrow ? { on: [] } : { on: ['data', 'scale'] };
 }
 
 const isKey = (k: unknown): k is SegmentKey => SEGMENTS.some((s) => s.key === k);
@@ -30,10 +28,10 @@ const isKey = (k: unknown): k is SegmentKey => SEGMENTS.some((s) => s.key === k)
 export function parseMenuState(raw: string | null, narrow: boolean): MenuState {
   if (!raw) return defaultMenuState(narrow);
   try {
-    const v = JSON.parse(raw) as { open?: unknown; on?: unknown };
-    if (typeof v !== 'object' || v === null || typeof v.open !== 'boolean' || !Array.isArray(v.on)) return defaultMenuState(narrow);
+    const v = JSON.parse(raw) as { on?: unknown };
+    if (typeof v !== 'object' || v === null || !Array.isArray(v.on)) return defaultMenuState(narrow);
     const on = v.on;
-    return { open: v.open, on: SEGMENTS.map((s) => s.key).filter((k) => on.includes(k) && isKey(k)) };
+    return { on: SEGMENTS.map((s) => s.key).filter((k) => on.includes(k) && isKey(k)) };
   } catch {
     return defaultMenuState(narrow);
   }

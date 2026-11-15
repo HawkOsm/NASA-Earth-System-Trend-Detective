@@ -1,34 +1,27 @@
-/* ---- control menu (top-left over the globe): a button that holds a row of dropdown sub-menus ----
+/* ---- control menu: a column of dropdown sub-menus down the left edge of the globe (a row across the top on a phone) ----
    Nothing here has a box: the text and controls float over the map, with a dark halo so they read on any colour.
    The wrappers take no clicks, so the globe stays clickable between them. */
 .menu-wrap {
-  position: absolute; left: 12px; top: 10px; right: 128px; z-index: 6; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 10px; pointer-events: none; color: #f2f4f8; font-size: 0.92rem; line-height: 1.35;
+  position: absolute; left: 12px; top: 10px; z-index: 6; box-sizing: border-box; width: min(310px, calc(100% - 24px));
+  max-height: calc(100% - 20px); display: flex; flex-direction: column; pointer-events: none;
+  color: #f2f4f8; font-size: 0.92rem; line-height: 1.35;
   text-shadow: 0 0 1px #05070c, 0 0 2px #05070c, 0 0 3px #05070c, 0 0 5px #05070c, 0 0 9px #05070c, 0 0 16px rgba(5, 7, 12, 0.9);
 }
 .menu-wrap button, .menu-wrap a, .menu-wrap input, .menu-wrap label { pointer-events: auto; }
 .menu-wrap button { text-shadow: inherit; }
 
-.menu-toggle {
-  padding: 4px 2px; font: inherit; font-size: 1rem; font-weight: 600; color: #fff; cursor: pointer; background: none; border: 0;
-}
-.menu-toggle:hover { color: #f5d66b; }
-
-/* The sub-menus sit side by side; a folded one is only its name, a dropped one is a column under its name. */
-.menu { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 30px; max-width: 100%; }
-.menu-seg { min-width: 0; max-width: 100%; flex: 0 0 auto; }
-.menu-seg-data.is-open { flex: 0 1 330px; }
-.menu-seg-period.is-open { flex: 0 1 270px; }
-.menu-seg-scale.is-open { flex: 0 1 250px; }
-.menu-seg-click.is-open { flex: 0 1 210px; }
-.menu-seg-layers.is-open { flex: 0 1 240px; }
+/* The sub-menus one under the other; a folded one is only its name. A short window scrolls the column. */
+.menu { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.menu::-webkit-scrollbar { display: none; }
+.menu-seg { min-width: 0; flex: 0 0 auto; }
+.menu-seg.is-open { margin-bottom: 8px; }
 .menu-seg-head {
   padding: 3px 0; font: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   color: #f2f4f8; cursor: pointer; background: none; border: 0;
 }
 .menu-seg-head:hover, .menu-seg-head[aria-expanded='true'] { color: #f5d66b; }
 .menu-seg-body { margin-top: 2px; }
-.menu-extra { display: flex; align-items: center; gap: 0 12px; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, 0.45); }
+.menu-extra { display: flex; align-items: center; gap: 0 12px; margin-top: 4px; }
 
 .menu-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
 .menu-opt {
@@ -38,7 +31,7 @@
 .menu-opt:hover:not(:disabled) { color: #fff; }
 .menu-opt[aria-pressed='true'] { color: #f5d66b; font-weight: 600; border-bottom-color: #f5d66b; }
 .menu-opt:disabled { color: #aab2c2; cursor: default; }
-.menu-opt:focus-visible, .menu-toggle:focus-visible, .menu-link:focus-visible, .menu-seg-head:focus-visible, .menu-info:focus-visible {
+.menu-opt:focus-visible, .menu-link:focus-visible, .menu-seg-head:focus-visible, .menu-info:focus-visible {
   outline: 2px solid #6aa3ff; outline-offset: 1px;
 }
 .menu-dim { color: #dfe4ee; }
@@ -73,17 +66,15 @@
 /* "Whole globe" lives in the menu (Layers); the globe's own floating button is hidden. */
 .whole-globe { display: none; }
 
-/* Room for what else sits at the top right: the Detective pill, its panel, or the side panel. */
-.globe-wrap.detective-open .menu-wrap { right: 384px; }
-/* With the side panel open the globe area is already narrower, and the Detective pill is hidden. */
-.globe-wrap.has-panel .menu-wrap { right: 12px; }
 .globe-wrap.country-open .menu-wrap { visibility: hidden; }
 
-/* Narrow screens: a dropped sub-menu takes the full width, and the menu scrolls inside itself when it is tall. */
+/* Phones are too narrow for a side column: the names are a row across the top (under the Detective pill), and a
+   dropped sub-menu takes the full width under them. */
 @media (max-width: 760px) {
-  .menu-wrap { left: 8px; right: 8px; top: 6px; gap: 6px; }
-  .menu { gap: 6px 22px; max-height: 58vh; overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; }
-  .menu-seg.is-open { flex-basis: 100%; }
+  .menu-wrap { left: 8px; right: 8px; top: 44px; width: auto; max-height: 60%; }
+  .menu { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 2px 18px; overscroll-behavior: contain; }
+  .menu-seg-head { padding: 6px 0; }
+  .menu-seg.is-open { flex-basis: 100%; order: 1; margin-bottom: 4px; }
+  .menu-extra { margin-top: 0; }
   .menu-opt { padding: 5px 0; }
-  .globe-wrap.has-panel .menu { display: none; }
 }
