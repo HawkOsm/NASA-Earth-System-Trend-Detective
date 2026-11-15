@@ -1,1 +1,1 @@
-{"instruments":[{"variable":"PRECTOTCORR","short":"GPM","years":[2001,2025]},{"variable":"FRSNO","short":"MODIS","years":[2004,2025]}]}
+{"instruments":[{"variable":"PRECTOTCORR","short":"GPM","years":[2001,2025]},{"variable":"FRSNO","short":"MODIS","years":[2004,2025]},{"variable":"T2M","short":"AIRS","years":[2003,2025]},{"variable":"EVLAND","short":"GLDAS","years":[2001,2025]},{"variable":"GWETROOT","short":"GLDAS","years":[2001,2025]}]}

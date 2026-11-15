@@ -1,7 +1,8 @@
 """Satellite check: MERRA-2 against an instrument the challenge names, over the instrument's own years.
 
-The independent records of reference.py cover 1981-2025. The satellite instruments (GPM, MODIS, OMI) start around
-2000, so they cannot join that check. Here each one is compared with MERRA-2 over the years they share:
+The independent records of reference.py cover 1981-2025. The satellite instruments (GPM, MODIS, AIRS, OMI) and the
+GLDAS land model start around 2000, so they cannot join that check. Here each one is compared with MERRA-2 over the
+years they share:
 
   both on 2 degree boxes (mean of the valid cells, a box needs half of its area valid in every shared year),
   Theil-Sen slope and Mann-Kendall p of both over the shared years (trendstats.trend_grid),
@@ -43,6 +44,17 @@ INSTRUMENTS = {
                   name="MODIS snow cover (NASA Terra)", what="snow cover seen from space"),
     "TO3": dict(key="omi_o3", short="OMI", array="annual", lat_limit=90.0, scale=1.0,
                 name="OMI total ozone (NASA Aura)", what="ozone measured from space"),
+    "T2M": dict(key="airs_t", short="AIRS", array="annual", lat_limit=90.0, scale=1.0,
+                name="AIRS near-surface air temperature (NASA Aqua), AIRS3STM v7.0",
+                what="air temperature measured from space"),
+    # GLDAS is a land-surface model driven by observations, not an instrument: the panel calls it a model check.
+    "EVLAND": dict(key="gldas_et", short="GLDAS", array="annual", lat_limit=90.0, scale=1.0, label="Model check",
+                   name="GLDAS-2.1 Noah evapotranspiration (NASA GLDAS)", what="NASA's land model, driven by observations"),
+    # Root-zone soil moisture: GLDAS gives kg per square metre, MERRA-2 percent of saturation. The two trends are
+    # compared by sign and significance; each is printed in its own units.
+    "GWETROOT": dict(key="gldas_sm", short="GLDAS", array="annual", lat_limit=90.0, scale=1.0, label="Model check",
+                     units="kg/m²", name="GLDAS-2.1 Noah root-zone soil moisture (NASA GLDAS)",
+                     what="NASA's land model, driven by observations"),
 }
 
 
@@ -143,7 +155,8 @@ def build(var, log=print):
     }
     out = {
         "variable": var,
-        "instrument": {"short": spec["short"], "name": spec["name"], "what": spec["what"]},
+        "instrument": {"short": spec["short"], "name": spec["name"], "what": spec["what"],
+                       "label": spec.get("label", "Satellite check"), "units": spec.get("units")},
         "years": [int(years[0]), int(years[-1])],
         "nYears": int(len(years)),
         "lat0": LAT0, "dlat": DLAT, "nlat": NLAT, "lon0": LON0, "dlon": DLON, "nlon": NLON,

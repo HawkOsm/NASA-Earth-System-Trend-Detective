@@ -280,10 +280,13 @@ Over the boxes where both have a full record, and of the area where MERRA-2's tr
 |---|---|---|---|---|---|---|---|
 | Rainfall | GPM | 2001-2025 | 10,800 | 27% of the area | 22% | 73% | 5% |
 | Snow cover | MODIS | 20 years in 2004-2025 | 1,270 | 12% | 28% | 72% | 0% |
+| Air temperature | AIRS | 2003-2025 | 14,152 | 40% | 54% | 44% | 2% |
+| Evaporation from land | GLDAS (a model) | 2001-2025 | 3,749 | 38% | 45% | 48% | 7% |
+| Soil moisture | GLDAS (a model) | 2001-2025 | 3,749 | 37% | 31% | 55% | 14% |
 <!-- SATELLITE-ROW -->
 
 The rainfall result repeats what the long records say: most of MERRA-2's significant rainfall trends are not seen by an
-independent source.
+independent source. Air temperature does best, as in the long check, though over 23 years fewer trends are confirmed than over 45.
 
 - **GPM** (rainfall): IMERG monthly precipitation as NASA POWER distributes it (its public archive on AWS,
   `s3://nasa-power/imerg/spatial/power_imerg_monthly_spatial_utc.zarr`), 2001-2025, boxes between 60 S and 60 N. POWER does
@@ -292,8 +295,13 @@ independent source.
   `MODIS_Terra_L3_Snow_Cover_Monthly_Average_Pct`; the map tiles are decoded exactly through the layer's colour table, one
   colour per percent). A year counts only when all twelve months were observed, which leaves 20 years between 2004 and 2025 and
   drops the places with a polar night or persistent winter cloud: the check covers mid-latitude and mountain snow, not the Arctic.
-- **AIRS** (air temperature) and **GLDAS** (soil moisture, evaporation) could not be added: every source found needs a NASA
-  Earthdata sign-in or serves formats the pipeline cannot read, and the public NEO archive was retired in September 2026.
+- **AIRS** (air temperature): the level-3 monthly retrieval AIRS3STM v7.0, near-surface air temperature, mean of the day and night
+  passes, 2003-2025, from NASA GES DISC through its OPeNDAP server (`pipeline/instruments/earthdata.py`). This needs a NASA
+  Earthdata account; the script requests one variable per month and never downloads the HDF files.
+- **GLDAS** (evaporation, root-zone soil moisture): GLDAS-2.1 Noah monthly, 1 degree, land between 60 S and 90 N, 2001-2025, from
+  the same server. GLDAS is a land model driven by observations, not an instrument, so the panel calls its line a "model check".
+  Its soil moisture is in kg per square metre and MERRA-2's is in percent of saturation: the two trends are compared by direction
+  and significance, and each is printed in its own units.
 - Limits: MODIS sees snow under clear sky only and MERRA-2's snow cover is a model's fraction of the land, so their levels differ
   (the check compares trends, not levels). GPM IMERG is calibrated with rain gauges over land, as GPCC-based records are.
 
@@ -314,7 +322,7 @@ maps/         trend per grid cell, map textures, the grid for the period map, wi
 areas/        countries, provinces, seas and oceans, continents
 evaluation/   pattern checks and grades, the comparison with independent records, the "Confirmed only" map,
               the satellite check
-instruments/  fetch the satellite records (GPM, MODIS)
+instruments/  fetch the satellite and model records (GPM, MODIS, AIRS, GLDAS, OMI)
 experiments/  the measured comparisons of significance tests and trend methods (not used by the site)
 tests/        pytest, and the fixture files that tie Python and TypeScript together
 ```
@@ -336,7 +344,7 @@ data/        the list of variables, loading of data files, the "no data" rule, n
 
 ## Running the pipeline
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No login or API key is needed; the data is read
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/). No login or API key is needed for the site's data (only the AIRS, GLDAS and part of the OMI records of the satellite check need a NASA Earthdata account); the data is read
 anonymously from NASA POWER's public archive on AWS (about 10 MB per variable). The exported `web/public/data` is about 168 MB for the ten variables (about 17-19 MB per variable: country series, sea series, period-map grid, textures).
 
 ```bash
@@ -360,6 +368,9 @@ done
 .venv/bin/python -m evaluation.reference rewrite    # rewrite reference/*.json from the cache, adding the other records (GHCN-CAMS, CMAP, GPCC, PREC/L)
 .venv/bin/python instruments/gpm.py            # GPM IMERG rainfall from NASA POWER's archive (about 1.5 GB, cached)
 .venv/bin/python instruments/modis_snow.py     # MODIS snow cover from NASA GIBS (about 60 MB, cached)
+.venv/bin/python instruments/earthdata.py airs_t     # AIRS air temperature (needs an Earthdata token, see the script)
+.venv/bin/python instruments/earthdata.py gldas_et   # GLDAS evaporation
+.venv/bin/python instruments/earthdata.py gldas_sm   # GLDAS root-zone soil moisture
 .venv/bin/python -m evaluation.instrument_check     # satellite check: MERRA-2 against GPM and MODIS over their own years
 ```
 
@@ -404,7 +415,9 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   v2025 gauge precipitation (Deutscher Wetterdienst, Global Precipitation Climatology Centre, https://psl.noaa.gov/data/gridded/data.gpcc.html).
 - Satellite check (`pipeline/evaluation/instrument_check.py`, `pipeline/instruments/`): **GPM IMERG** precipitation (NASA Global
   Precipitation Measurement mission), read from NASA POWER's public archive on AWS; **MODIS** snow cover (NASA Terra, product
-  MOD10CM), read from NASA GIBS (Global Imagery Browse Services, https://gibs.earthdata.nasa.gov).
+  MOD10CM), read from NASA GIBS (Global Imagery Browse Services, https://gibs.earthdata.nasa.gov); **AIRS** near-surface air
+  temperature (NASA Aqua, AIRS3STM v7.0) and **GLDAS-2.1** Noah evapotranspiration and root-zone soil moisture (NASA Global Land
+  Data Assimilation System, GLDAS_NOAH10_M), both from NASA GES DISC (https://disc.gsfc.nasa.gov).
   <!-- SATELLITE-CREDIT -->
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading

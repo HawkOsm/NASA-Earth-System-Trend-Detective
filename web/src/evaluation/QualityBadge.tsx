@@ -26,7 +26,7 @@ export function ReferenceLine({ check }: { check: RefCheck }) {
 export function InstrumentLine({ check }: { check: InstrumentCheck }) {
   return (
     <div className={`refcheck instcheck instcheck-${check.cls}`} data-inst-class={check.cls}>
-      <span className="refcheck-label">Satellite check</span>
+      <span className="refcheck-label">{check.label}</span>
       <p className="refcheck-text">{check.sentence}</p>
     </div>
   );

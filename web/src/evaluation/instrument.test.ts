@@ -79,6 +79,18 @@ describe('satellite check: sentences', () => {
     expect(instrumentSentence('contradicted', d, 0.7, -0.4, 'mm/day')).toContain('GPM shows the opposite of MERRA-2 over these years: -0.40 mm/day per decade against +0.70 mm/day per decade, both significant');
     expect(instrumentSentence('neither', d, 0.03, -0.03, 'mm/day')).toContain('neither GPM (-0.03 mm/day per decade) nor MERRA-2 (+0.03 mm/day per decade) shows a significant change over these years');
   });
+  it('a record in other units is printed in its own units and compared by direction only', () => {
+    const g = tiny({ instrument: { short: 'GLDAS', name: 'GLDAS', what: "NASA's land model, driven by observations", label: 'Model check', units: 'kg/m²' } });
+    const k = instrumentBoxIndex(grid, -8.76, -63.9);
+    g.merraSlope[k] = -5.627;
+    g.merraP[k] = 0.001;
+    g.instSlope[k] = -49.47;
+    g.instP[k] = 0.00001;
+    const c = instrumentCheck(g, -8.76, -63.9, 'percentage points');
+    expect(c?.label).toBe('Model check');
+    expect(c?.sentence).toContain('GLDAS shows -49.47 kg/m² per decade and MERRA-2 -5.63 percentage points per decade over the same years, both significant. They point the same way');
+    expect(instrumentCheck(tiny(), 0, 0, 'mm/day')).toBeNull();
+  });
   it('the menu line gives the shares over MERRA-2\'s significant trends', () => {
     expect(instrumentSummaryLine(d)).toBe("GPM, 2001–2025: of MERRA-2's significant trends in those years, 22% confirmed · 73% not confirmed · 5% contradicted");
     expect(instrumentSummaryLine(null)).toBeNull();

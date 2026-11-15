@@ -10,7 +10,9 @@ export const INSTRUMENT_ALPHA = 0.05;
 
 export interface InstrumentData {
   variable: string;
-  instrument: { short: string; name: string; what: string };
+  /** `label`: the small heading in the panel ("Satellite check", or "Model check" for GLDAS); `units`: the
+   *  instrument's own units when they differ from the site's (then the two trends are compared by sign only). */
+  instrument: { short: string; name: string; what: string; label?: string; units?: string | null };
   years: [number, number];
   nYears: number;
   lat0: number;
@@ -38,6 +40,8 @@ export type InstrumentClass = 'agree' | 'not_confirmed' | 'contradicted' | 'inst
 
 export interface InstrumentCheck {
   cls: InstrumentClass;
+  /** Heading of the line in the panel. */
+  label: string;
   short: string;
   years: [number, number];
   merraSlope: number;
@@ -78,12 +82,13 @@ export function instrumentSentence(
   const span = d.years[1] - d.years[0] + 1;
   const per = `${d.years[0]}–${d.years[1]}${d.nYears < span ? ` (${d.nYears} of those years have a full record)` : ''}`;
   const m = `${signedRate(merraSlope)} ${unitsLong} per decade`;
-  const i = `${signedRate(instSlope)} ${unitsLong} per decade`;
+  const i = `${signedRate(instSlope)} ${d.instrument.units ?? unitsLong} per decade`;
   const tail = ` (the roughly ${boxKm(d.dlat)} km box around this place).`;
   const head = `${short} (${what}), ${per}: `;
   switch (cls) {
     case 'agree':
-      return `${head}${short} shows ${i} and MERRA-2 ${m} over the same years, both significant. They agree${tail}`;
+      // Different units (soil moisture: kg/m² against percent): only the direction can be compared.
+      return `${head}${short} shows ${i} and MERRA-2 ${m} over the same years, both significant. ${d.instrument.units ? 'They point the same way' : 'They agree'}${tail}`;
     case 'not_confirmed':
       return `${head}MERRA-2 shows ${m} over these years, significant, but ${short} shows ${i}, not significant. Not confirmed for these years${tail}`;
     case 'contradicted':
@@ -105,7 +110,7 @@ export function instrumentCheck(d: InstrumentData | null, lat: number, lng: numb
   const ip = d.instP[k];
   if (ms === null || mp === null || is === null || ip === null || ms === undefined || mp === undefined || is === undefined || ip === undefined) return null;
   const cls = instrumentClass(ms, mp, is, ip);
-  return { cls, short: d.instrument.short, years: d.years, merraSlope: ms, merraP: mp, instSlope: is, instP: ip, sentence: instrumentSentence(cls, d, ms, is, unitsLong) };
+  return { cls, label: d.instrument.label ?? 'Satellite check', short: d.instrument.short, years: d.years, merraSlope: ms, merraP: mp, instSlope: is, instP: ip, sentence: instrumentSentence(cls, d, ms, is, unitsLong) };
 }
 
 const pc = (x: number | null) => (x === null ? '–' : `${Math.round(x * 100)}%`);
@@ -120,7 +125,7 @@ export function instrumentSummaryLine(d: InstrumentData | null): string | null {
 // ---- loader ------------------------------------------------------------------------------------------------------------
 
 /** Variables with a satellite record (pipeline/evaluation/instrument_check.py INSTRUMENTS that were built). */
-export const INSTRUMENT_VARIABLES = ['PRECTOTCORR', 'FRSNO'] as const;
+export const INSTRUMENT_VARIABLES = ['PRECTOTCORR', 'FRSNO', 'T2M', 'EVLAND', 'GWETROOT'] as const;
 export const hasInstrument = (variable: string): boolean => (INSTRUMENT_VARIABLES as readonly string[]).includes(variable);
 
 const cache = new Map<string, Promise<InstrumentData | null>>();

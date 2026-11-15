@@ -1,8 +1,16 @@
 import { useEffect } from 'react';
 import { INSTRUMENT_VARIABLES } from '../evaluation/instrument';
 
-/** The ozone paragraph is shown only once the OMI record is part of the satellite check. */
-const HAS_OZONE_CHECK = (INSTRUMENT_VARIABLES as readonly string[]).includes('TO3');
+/** What each variable of the satellite check is compared with (only the ones that are built are listed). */
+const CHECKED_WITH: Record<string, string> = {
+  PRECTOTCORR: 'rainfall with GPM',
+  FRSNO: 'snow cover with MODIS',
+  T2M: 'air temperature with AIRS',
+  TO3: 'ozone with OMI',
+  EVLAND: 'evaporation with GLDAS',
+  GWETROOT: 'soil moisture with GLDAS',
+};
+const CHECKED_LIST = (INSTRUMENT_VARIABLES as readonly string[]).map((v) => CHECKED_WITH[v]).filter(Boolean).join(', ');
 
 export default function HowToRead({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -105,14 +113,18 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         </p>
         <h3>Satellite check</h3>
         <p>
-          Some variables can also be compared with a NASA instrument that measures them from space: rainfall with GPM, snow cover with
-          MODIS{HAS_OZONE_CHECK ? ', ozone with OMI' : ''}. These records start around 2000, so the comparison covers the instrument&rsquo;s own years, not 1981–2025:
-          both MERRA-2 and the instrument are averaged over a box of about 220 km and their trends over the same years are put side by
+          Some variables can also be compared with a NASA instrument that measures them from space, or with NASA&rsquo;s GLDAS land
+          model: {CHECKED_LIST}. These records start around 2000, so the comparison covers the record&rsquo;s own years, not 1981–2025:
+          both MERRA-2 and the record are averaged over a box of about 220 km and their trends over the same years are put side by
           side. The panel of a place says whether they agree. This does not change the grade, which is about the whole period. The
           snow check exists only where MODIS saw every month of the year, so it covers mid-latitude and mountain snow, not the Arctic.
+          GLDAS is a model driven by observations, not a measurement, so its line is called a model check.
         </p>
         <h3>Data source</h3>
-        <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid. Satellite check: GPM IMERG (via NASA POWER) and MODIS (via NASA GIBS){HAS_OZONE_CHECK ? ', OMI (NASA Goddard)' : ''}.</p>
+        <p>
+          NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid. Satellite check: GPM IMERG (via NASA POWER), MODIS (via NASA
+          GIBS), AIRS, OMI and GLDAS (NASA GES DISC).
+        </p>
       </div>
     </div>
   );

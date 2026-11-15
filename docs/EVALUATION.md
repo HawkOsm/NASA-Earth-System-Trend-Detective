@@ -71,7 +71,7 @@ Code: `pipeline/evaluation/reference.py` and `pipeline/evaluation/reference_mult
 `PRECTOTCORR.json` (the `records` list with each record's trend per box, and the `consensus` and `byCount` summaries);
 `web/src/evaluation/reference.ts` reads them in the browser.
 
-### C. The satellite check (rainfall and snow cover)
+### C. The satellite check
 
 The challenge names instruments a trend tool should use: MODIS, OMI, AIRS, GPM, and the GLDAS model. Their records
 start around 2000, so they cannot take part in the 1981-2025 check. Each one that could be read without a sign-in
@@ -81,11 +81,15 @@ is compared with MERRA-2 over the years they share, on 2 degree boxes (about 220
 |---|---|---|---|---|
 | Rainfall | GPM IMERG | NASA POWER's public archive | 2001-2025 | GPM's trend and MERRA-2's over the same years, and whether they agree |
 | Snow cover | MODIS (Terra) | NASA GIBS | 20 full years in 2004-2025 | the same, where MODIS saw every month of the year |
+| Air temperature | AIRS (Aqua) | NASA GES DISC | 2003-2025 | the same |
+| Evaporation, soil moisture | GLDAS-2.1 (a land model, not an instrument) | NASA GES DISC | 2001-2025 | the same, as a "model check"; soil moisture by direction only (different units) |
+<!-- EVAL-SAT-ROW -->
 
 Of MERRA-2's significant trends in those years, GPM confirms 22% of the rainfall area (73% not confirmed, 5%
-contradicted) and MODIS 28% of the snow area it can see (72% not confirmed). The satellite check is information
-only: it never changes a grade, because the grade is about the whole period. AIRS and GLDAS are missing because
-every source found needs a NASA Earthdata sign-in. Code: `pipeline/evaluation/instrument_check.py`, `pipeline/instruments/`,
+contradicted), MODIS 28% of the snow area it can see (72% not confirmed), AIRS 54% of the temperature area (44% not
+confirmed, 2% contradicted), and GLDAS 45% for evaporation and 31% for soil moisture (7% and 14% contradicted).
+The satellite check is information only: it never changes a grade, because the grade is about the whole period.
+AIRS and GLDAS are read from NASA GES DISC with a NASA Earthdata account. Code: `pipeline/evaluation/instrument_check.py`, `pipeline/instruments/` (`earthdata.py` for AIRS and GLDAS),
 `web/src/evaluation/instrument.ts`.
 
 ## 3. What we measured
