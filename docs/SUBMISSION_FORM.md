@@ -92,8 +92,9 @@ Over the area where MERRA-2 shows a significant trend, most of the records confi
 rainfall records also disagree with each other, which is why the site asks all of them instead of one. A trend
 that is only partly confirmed or not confirmed stays visible but is labelled "Use with caution".
 
-**Three findings a visitor can reproduce in one click** (listed under "About" on the site), each significant
-(p < 0.001), graded Robust, and confirmed by most of the independent records:
+**Three examples of what the site found.** Any place on Earth can be opened; these three are shown as examples
+because each is significant (p < 0.001), graded Robust, and confirmed by most of the independent records. Buttons
+under "About" on the site open them, so anyone can see the same numbers:
 
 | Place | Change per decade | Independent records |
 |---|---|---|
