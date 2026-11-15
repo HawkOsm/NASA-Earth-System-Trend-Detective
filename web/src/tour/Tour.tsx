@@ -17,8 +17,8 @@ interface Props {
   onEnd: () => void;
 }
 
-/** The control a step asks for, or the Menu button when the control is inside a closed menu. */
-function findTarget(target: TourTarget): { el: Element; viaMenu: boolean } | null {
+/** The control a step asks for, if it is on the page and visible (the menu opens every sub-menu while the tour runs). */
+function findTarget(target: TourTarget): { el: Element } | null {
   if (!target) return null;
   const optWithText = (text: string) =>
     [...document.querySelectorAll('.menu .menu-opt')].find((b) => (b.textContent ?? '').trim() === text) ?? null;
@@ -36,11 +36,7 @@ function findTarget(target: TourTarget): { el: Element; viaMenu: boolean } | nul
   else if (target === 'detective-pill') el = document.querySelector('.dt-pill');
   else if (target === 'detective-input') el = document.querySelector('.dt-input');
   const found = visible(el);
-  if (found) return { el: found, viaMenu: false };
-  if (target === 'group-water' || target === 'click-point') {
-    const toggle = visible(document.querySelector('.menu-toggle'));
-    if (toggle) return { el: toggle, viaMenu: true };
-  }
+  if (found) return { el: found };
   return null;
 }
 
@@ -58,16 +54,17 @@ interface Box {
 export default function Tour({ active, state, onBegin, onEnd }: Props) {
   const [index, setIndex] = useState(0);
   const [box, setBox] = useState<Box | null>(null);
-  const [viaMenu, setViaMenu] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   /** The control that was last scrolled into view (a control low in the menu is outside its visible part on a phone). */
   const scrolled = useRef<Element | null>(null);
   const [cardPos, setCardPos] = useState<{ left: number; top: number } | null>(null);
   const step = active ? TOUR_STEPS[index] : null;
 
-  // A new run starts at the first step.
+  // A new run starts at the first step. The index is put back when a run ENDS, not when the next one starts:
+  // otherwise the first render of a new run still holds the old step, and if the page already satisfies that step
+  // (Water is chosen, say) the tour would jump past the welcome card.
   useEffect(() => {
-    if (active) setIndex(0);
+    if (!active) setIndex(0);
   }, [active]);
 
   // The visitor did what the step asks: move on.
@@ -84,15 +81,13 @@ export default function Tour({ active, state, onBegin, onEnd }: Props) {
       const t = findTarget(step.target);
       if (!t) {
         setBox(null);
-        setViaMenu(false);
         return;
       }
-      if (!t.viaMenu && scrolled.current !== t.el) {
+      if (scrolled.current !== t.el) {
         scrolled.current = t.el;
         t.el.scrollIntoView({ block: 'center', inline: 'nearest' });
       }
       const r = t.el.getBoundingClientRect();
-      setViaMenu(t.viaMenu);
       setBox((old) =>
         old && Math.abs(old.left - r.left) < 0.5 && Math.abs(old.top - r.top) < 0.5 && Math.abs(old.width - r.width) < 0.5 && Math.abs(old.height - r.height) < 0.5
           ? old
@@ -176,7 +171,6 @@ export default function Tour({ active, state, onBegin, onEnd }: Props) {
         </div>
         <h2 className="tour-title">{step.title}</h2>
         <p className="tour-text">
-          {viaMenu ? 'Open the Menu first (the ringed button), then: ' : ''}
           {step.text}
         </p>
         <div className="tour-actions">

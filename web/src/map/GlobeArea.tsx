@@ -4,6 +4,11 @@ import Globe, { type LatLng, type PointOfView } from './Globe';
 import type { RegionBox } from '../point/region';
 import type { Landmark } from './landmarks';
 
+/**
+ * True if this browser can make a WebGL context. Each call MAKES one (on a throwaway canvas), and a browser keeps only
+ * about sixteen alive: calling this on every render made it drop the oldest, which is the globe's own. Call it once and
+ * keep the answer: use HAS_WEBGL below.
+ */
 export function hasWebGL(): boolean {
   try {
     const c = document.createElement('canvas');
@@ -41,7 +46,9 @@ interface Props {
   mapLines: boolean;
 }
 
-const webgl = typeof document !== 'undefined' ? hasWebGL() : false;
+/** Whether WebGL is available, tested once when the page loads. */
+export const HAS_WEBGL = typeof document !== 'undefined' ? hasWebGL() : false;
+const webgl = HAS_WEBGL;
 
 export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines }: Props) {
   const flat = <FlatMap textureUrl={textureUrl} onPick={onPick} marker={marker} box={box} mapLines={mapLines} />;

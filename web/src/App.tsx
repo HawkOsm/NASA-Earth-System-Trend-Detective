@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import GlobeArea, { hasWebGL } from './map/GlobeArea';
+import GlobeArea, { HAS_WEBGL } from './map/GlobeArea';
 import { prefersReducedMotion } from './map/wind/WindLayer';
 import type { LatLng, PointOfView } from './map/Globe';
 import Menu from './menu/Menu';
@@ -1038,7 +1038,7 @@ export default function App() {
     [],
   );
 
-  const windAvailable = !forceFlat && hasWebGL();
+  const windAvailable = !forceFlat && HAS_WEBGL;
   const windOn = windChoice ?? (variable === 'WS2M' && !prefersReducedMotion());
 
   const textureUrl =
