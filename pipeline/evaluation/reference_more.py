@@ -247,11 +247,6 @@ def rel_trend(y):
     return (t[0] / m * 100, t[1] / m * 100, t[2] / m * 100, t[3]) if m else (np.nan,) * 4
 
 
-def cell_area_weights(lat):
-    """Relative area of the full-resolution MERRA-2 cells per latitude row (cos lat), km2 scale not needed: only ratios."""
-    return np.cos(np.radians(lat))
-
-
 def merra_area_series(var, hemi):
     """Annual hemispheric area (million km2) covered by a percent variable (snow cover, sea ice): sum of fraction x cell
     area over the hemisphere's cells; a cell with no data (never snow / never ice, or the other surface) counts as 0."""
@@ -285,7 +280,6 @@ def hemi_row(name, merra, rec, out=print, unit="million km2"):
 
 # ---------------------------------------------------------------- the whole report
 
-TEMP_RECORDS = [("ghcncams", "t2", "GHCN-CAMS 0.5 deg averaged to 2 deg boxes")]
 RAIN_RECORDS = [("gpcc", "GPCC v2025"), ("cmap", "CMAP standard"), ("precl", "PREC/L")]
 
 

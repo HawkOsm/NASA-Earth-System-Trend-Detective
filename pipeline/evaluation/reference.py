@@ -312,10 +312,6 @@ def compute(var, R, M, land):
     return o
 
 
-def _lat_lon(nlat, lat0, dlat, nlon, lon0, dlon):
-    return lat0 + dlat * np.arange(nlat), lon0 + dlon * np.arange(nlon)
-
-
 def load_country_mask():
     return np.fromfile(os.path.join(config.WEB_DATA_DIR, "country_mask.bin"), dtype=np.uint8).reshape(361, 576)
 

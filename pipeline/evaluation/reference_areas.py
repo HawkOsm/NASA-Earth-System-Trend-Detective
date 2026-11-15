@@ -21,7 +21,6 @@ Run from the pipeline directory:  .venv/bin/python -m evaluation.reference_areas
 """
 import json
 import os
-import sys
 
 import numpy as np
 

@@ -29,11 +29,10 @@ from core import config
 from maps import export_summary as ES
 from core import products
 from areas import regions as RG
-from evaluation.quality import CODE_GRADE, GRADE_CODE, NODATA, quality_1d, quality_grid
+from evaluation.quality import GRADE_CODE, NODATA, quality_1d, quality_grid
 
 T = np.array(config.YEARS, dtype=np.float64)
 DATA = config.WEB_DATA_DIR
-BITS = {"step": 1, "oneYear": 2, "reversal": 4, "endSensitive": 8}
 
 
 def flag_bits(q):

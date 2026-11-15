@@ -12,7 +12,6 @@ c = those significant with the opposite sign.
   unconfirmed (k = 0 and c = 0)
 Everything is computed from the cached records (pipeline/cache); nothing is fetched.
 """
-import math
 import os
 
 import numpy as np

@@ -13,7 +13,7 @@ import os
 import numpy as np
 
 from core import config
-from maps.export_wind import NLAT as CNLAT, NLON as CNLON, block_average
+from maps.export_wind import block_average
 
 MISSING = -32768
 FILL_LIMIT = -900.0
