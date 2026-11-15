@@ -2,17 +2,23 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { signedRate } from '../point/analysis';
 import CountryMap, { insideText, type CityTrend } from './CountryMap';
 import type { CountryPanelState } from './CountryPanel';
-import { cityMark, provinceHeading, sortProvinces, type ProvinceTrend } from './country';
+import { cityMark, countryMeanSeries, provinceHeading, sortProvinces, type ProvinceTrend } from './country';
+import { DecadeChart, RangePlot, RateRows, SeriesChart, Sparkline, TrendHistogram, rateColour, type RateRow } from './CountryCharts';
+import { useCountryVariables } from './useCountryVariables';
 import type { VariableMeta } from '../data/data';
-import { summarize, type DetailCell, type Ring } from '../point/detail';
+import { ALPHA_CELL, parseStops, summarize, type DetailCell, type Ring } from '../point/detail';
 import { VARIABLE_GROUPS } from '../data/demos';
 import { rateUnits, rateUnitsLong } from '../data/format';
 import { formatTick, overlayBarCss } from '../map/legend';
 import { MIN_YEARS } from '../point/analysis';
 import PeriodBar from '../menu/PeriodBar';
-import { ResultChart, ResultSummary } from '../point/Panel';
+import type { Analysis } from '../point/analysis';
+import { fmtPValue } from '../stats/trend';
+import { ReferenceLine } from '../evaluation/QualityBadge';
+import { BADGE_LABEL, reasonSentences } from '../evaluation/quality';
 import { combineGrade, hasReference } from '../evaluation/reference';
 import { areaCheck, loadAreaReference, type AreaCheck, type AreaRefData } from '../evaluation/referenceAreas';
+import type { RefClass } from '../evaluation/reference';
 import { periodText, type Period } from '../menu/period';
 import { cellKm } from './sea';
 import { surfaceMessage } from '../data/noData';
@@ -47,6 +53,89 @@ interface Props {
 }
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+/** Provinces shown before "Show all": this many from each end of the sorted list. */
+const PROV_ENDS = 5;
+
+const REF_CHIP: Record<RefClass, string> = {
+  confirmed: 'Confirmed',
+  partly: 'Partly confirmed',
+  unconfirmed: 'Not confirmed',
+  contradicted: 'Contradicted',
+  info: 'Independent check',
+  none: 'Independent check',
+};
+
+/** "Rising" / "Possibly falling" / "No clear trend": the verdict as one or three words. */
+function trendWord(a: Analysis): string {
+  if (a.slopeDecade === 0) return 'No change';
+  if (a.kind === 'none') return 'No clear trend';
+  const dir = a.slopeDecade > 0 ? 'rising' : 'falling';
+  return a.kind === 'significant' ? dir[0].toUpperCase() + dir.slice(1) : `Possibly ${dir}`;
+}
+
+type ChipKey = 'sig' | 'grade' | 'ref' | 'note';
+
+/**
+ * The whole area in one card: the rate as the headline, its 95% range drawn against the independent records, and
+ * the verdict, quality grade and independent check as chips. A chip opens the sentence(s) it stands for.
+ */
+function SummaryCard({ a, units, colour, caveat, reference }: { a: Analysis; units: string; colour: string; caveat?: string; reference: AreaCheck | null }) {
+  const [open, setOpen] = useState<ChipKey | null>(null);
+  const q = a.quality;
+  const grade = combineGrade(q.grade, reference ? reference.cls : null);
+  const sentences = reasonSentences(q, a.years, rateUnitsLong(a.units));
+  const badge = grade === 'robust' || grade === 'caution' || grade === 'doubtful' ? BADGE_LABEL[grade] : null;
+  const records = reference ? reference.records.filter((r) => r.available && r.slope !== null).map((r) => ({ short: r.short, slope: r.slope as number })) : [];
+  const refCls = reference ? reference.cls ?? 'info' : null;
+  const refLabel = reference && refCls ? (refCls === 'confirmed' && reference.n > 1 ? `Confirmed ${reference.k} of ${reference.n}` : REF_CHIP[refCls]) : null;
+  const chip = (key: ChipKey, label: string, tone: string) => (
+    <button key={key} className={`chip chip-${tone}${open === key ? ' open' : ''}`} aria-expanded={open === key} aria-controls="co-chip-panel" onClick={() => setOpen(open === key ? null : key)}>
+      {label}
+    </button>
+  );
+  return (
+    <>
+      <div className="hero">
+        <div className="hero-rate" style={{ color: colour }}>
+          {signedRate(a.slopeDecade)}
+        </div>
+        <div className="hero-side">
+          <div className="hero-word">{trendWord(a)}</div>
+          <div className="hero-units">{units} per decade</div>
+        </div>
+      </div>
+      <div className="co-cap">{records.length ? 'Rate and its 95% range, against independent records' : 'Rate and its 95% range'}</div>
+      <RangePlot a={a} records={records} colour={colour} />
+      <div className={`chips quality quality-${grade}`} data-grade={grade} data-pattern-grade={q.grade}>
+        {chip('sig', a.kind === 'significant' ? 'Significant' : a.kind === 'possible' ? 'Possible trend' : 'Not significant', a.kind)}
+        {(badge || sentences.length > 0) && chip('grade', badge ?? 'Pattern checks', badge ? grade : 'none')}
+        {refLabel && refCls && chip('ref', refLabel, `ref-${refCls}`)}
+        {caveat && chip('note', 'Data note', 'none')}
+      </div>
+      {open && (
+        <div id="co-chip-panel" className="chip-panel">
+          {open === 'sig' && (
+            <>
+              <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
+              <p className="quality-reason">
+                p-value {fmtPValue(a.p)} (lower = less likely chance). 95% range {signedRate(a.ciLowDecade)} to {signedRate(a.ciHighDecade)} {units} per decade.
+              </p>
+            </>
+          )}
+          {open === 'grade' &&
+            sentences.map((s) => (
+              <p key={s} className="quality-reason">
+                {s}
+              </p>
+            ))}
+          {open === 'ref' && reference && <ReferenceLine check={reference} />}
+          {open === 'note' && <p className="quality-reason">{caveat}</p>}
+        </div>
+      )}
+    </>
+  );
+}
 
 /** The selected country lifted to the whole screen: the piece in the middle, its data in cards around it. */
 export default function CountryOverlay(p: Props) {
@@ -184,6 +273,39 @@ export default function CountryOverlay(p: Props) {
   const [hoverProv, setHoverProv] = useState<number | null>(null);
   const provRows = useMemo(() => (provs ? sortProvinces(provs.map((pv, index) => ({ pv, index, name: pv.name, slopeDecade: pv.slopeDecade }))) : []), [provs]);
   const provHeading = useMemo(() => (provs ? provinceHeading(provs.map((pv) => pv.type)) : ''), [provs]);
+  const [allProvs, setAllProvs] = useState(false);
+  const [howto, setHowto] = useState(false);
+
+  const stops = useMemo(() => parseStops(meta.colormap_stops), [meta]);
+  // The area's value in every year of the record (the same mean the statistics use), for the charts.
+  const data = ready ? ready.data : null;
+  const mean = useMemo(() => (data ? countryMeanSeries(data.cells, data.values).annual : null), [data]);
+  const tiles = useCountryVariables(rec, p.metas, p.period);
+  const areaRate = analysis ? analysis.slopeDecade : null;
+
+  const provList = useMemo(() => {
+    const row = ({ pv, index }: (typeof provRows)[number]): RateRow => {
+      const m = cityMark(pv.slopeDecade, pv.p);
+      return {
+        key: `${pv.name}-${index}`,
+        name: pv.name,
+        slope: pv.slopeDecade,
+        solid: m.kind === 'rising' || m.kind === 'falling',
+        title: `${pv.name}: ${pv.slopeDecade === null ? 'no data' : `${signedRate(pv.slopeDecade)} ${units}/decade, ${m.label}`}`,
+        active: hoverProv === index,
+        onEnter: () => setHoverProv(index),
+      };
+    };
+    const withData = provRows.filter((r) => r.pv.slopeDecade !== null);
+    const short = !allProvs && withData.length > 2 * PROV_ENDS + 2;
+    const shown = short ? [...withData.slice(0, PROV_ENDS), ...withData.slice(-PROV_ENDS)] : provRows;
+    return {
+      rows: shown.map(row),
+      domain: provRows.map((r) => r.pv.slopeDecade),
+      gap: short ? { after: PROV_ENDS - 1, label: `${provRows.length - 2 * PROV_ENDS} more` } : undefined,
+      canToggle: withData.length > 2 * PROV_ENDS + 2,
+    };
+  }, [provRows, allProvs, hoverProv, units]);
 
   return (
     <div
@@ -265,18 +387,57 @@ export default function CountryOverlay(p: Props) {
                 </div>
               </CountryMap>
             )}
+            <PeriodBar
+              inline
+              period={p.period}
+              full={p.fullYears}
+              onChange={p.onPeriodChange}
+              onCommit={p.onPeriodCommit}
+              onReset={p.onPeriodReset}
+              recomputing={p.recomputing}
+              failed={p.mapFailed}
+            />
+            {tiles && (
+              <section className="co-card co-tiles" aria-label={`All variables for ${rec.name}`}>
+                <h3 className="co-card-title">
+                  All variables for {rec.name} <span className="co-card-sub">change per decade, {periodText(p.period)}</span>
+                </h3>
+                <div className="vt-grid">
+                  {tiles.map((t) => {
+                    const m = cityMark(t.slopeDecade, t.p);
+                    const clear = m.kind === 'rising' || m.kind === 'falling';
+                    return (
+                      <button key={t.variable} className={`vt${t.variable === p.variable ? ' active' : ''}`} aria-pressed={t.variable === p.variable} onClick={() => p.onVariable(t.variable)} disabled={t.status === 'nodata'}>
+                        <span className="vt-name">{t.label}</span>
+                        <Sparkline values={t.annual} colour={clear ? '#ffd166' : '#7d8597'} />
+                        <span className={`vt-rate${clear ? ' clear' : ''}`}>
+                          {t.status === 'loading' ? '…' : t.status === 'nodata' || t.slopeDecade === null ? 'no data' : `${m.symbol} ${signedRate(t.slopeDecade)} ${rateUnits(t.units)}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </section>
 
           {ready && (
             <div className="co-col co-left" data-bare>
-              {ready.analysis ? (
+              {ready.analysis && mean ? (
                 <>
                   <section className="co-card" aria-label={sea ? 'Whole sea' : 'Whole country'}>
                     <h3 className="co-card-title">{sea ? 'Whole sea' : 'Whole country'}</h3>
-                    <ResultSummary a={ready.analysis} area={true} country={true} caveat={meta.caveat} reference={reference} />
+                    <SummaryCard a={ready.analysis} units={units} colour={rateColour(ready.analysis.slopeDecade, p.vmax, stops)} caveat={meta.caveat} reference={reference} />
                   </section>
                   <section className="co-card" aria-label="Trend chart">
-                    <ResultChart a={ready.analysis} period={p.period} country={true} />
+                    <h3 className="co-card-title">
+                      {meta.label}, each year <span className="co-card-sub">trend for {periodText(p.period)}</span>
+                    </h3>
+                    <SeriesChart a={ready.analysis} years={ready.data.years} values={mean} units={ready.analysis.units} colour={rateColour(ready.analysis.slopeDecade, p.vmax, stops)} />
+                  </section>
+                  <section className="co-card" aria-label="Decade averages">
+                    <h3 className="co-card-title">Then and now, decade averages</h3>
+                    <DecadeChart years={ready.data.years} values={mean} units={ready.analysis.units} />
                   </section>
                 </>
               ) : (
@@ -297,79 +458,83 @@ export default function CountryOverlay(p: Props) {
           {ready && (
             <div className="co-col co-right" data-bare>
               <section className="co-card" aria-label={sea ? 'Inside the sea' : 'Inside the country'}>
-                <h3 className="co-card-title">{sea ? 'Inside the sea' : 'Inside the country'}</h3>
-                {summary ? (
-                  <>
+                <h3 className="co-card-title">
+                  {sea ? 'Inside the sea' : 'Inside the country'} <span className="co-card-sub">grid cells by trend, {units}/decade</span>
+                </h3>
+                {summary && p.trends ? (
+                  summary.nWithData > 0 ? (
+                    <>
+                      <TrendHistogram cells={p.trends.cells} alpha={ALPHA_CELL} vmax={p.vmax} stops={stops} units={units} />
+                      <p className="co-stat" title={insideText(summary, units)}>
+                        <strong>
+                          {summary.nSignificant.toLocaleString('en-US')} of {summary.nCells.toLocaleString('en-US')}
+                        </strong>{' '}
+                        cells significant on their own
+                        {summary.nSignificant < summary.nWithData ? ' (the rest are faded)' : ''}
+                      </p>
+                    </>
+                  ) : (
                     <p className="detail-summary">{insideText(summary, units)}</p>
-                    <p className="detail-note">Faded cells are not significant on their own.</p>
-                  </>
+                  )
                 ) : (
                   <p className="panel-msg detail-msg">Computing…</p>
                 )}
               </section>
               {provs && (
                 <section className="co-card co-provs" aria-label={provHeading}>
-                  <h3 className="co-card-title">{provHeading}</h3>
-                  <ul className="provs" onMouseLeave={() => setHoverProv(null)}>
-                    {provRows.map(({ pv, index }) => {
-                      const m = cityMark(pv.slopeDecade, pv.p);
-                      return (
-                        <li key={`${pv.name}-${index}`}>
-                          <div
-                            className={`prov-row${hoverProv === index ? ' active' : ''}`}
-                            onMouseEnter={() => setHoverProv(index)}
-                          >
-                            <span className="city-name">{pv.name}</span>
-                            <span className="city-rate">{pv.slopeDecade === null ? 'no data' : `${signedRate(pv.slopeDecade)} ${units}/decade`}</span>
-                            <span className={`city-mark city-mark-${m.kind}`} title={m.label} aria-label={m.label}>
-                              {m.symbol}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="co-card-head">
+                    <h3 className="co-card-title">
+                      {provHeading} <span className="co-card-sub">{units}/decade</span>
+                    </h3>
+                    {provList.canToggle && (
+                      <button className="co-link" aria-expanded={allProvs} onClick={() => setAllProvs(!allProvs)}>
+                        {allProvs ? 'Show fewer' : `Show all ${provRows.length}`}
+                      </button>
+                    )}
+                  </div>
+                  <div className={allProvs ? 'rr-scroll' : undefined}>
+                    <RateRows rows={provList.rows} mode="bar" vmax={p.vmax} stops={stops} reference={areaRate} onLeave={() => setHoverProv(null)} domain={provList.domain} gap={provList.gap} />
+                  </div>
                 </section>
               )}
               {p.trends && p.trends.cities.length > 0 && (
                 <section className="co-card co-cities" aria-label={sea ? 'Cities on its shores' : 'Cities'}>
-                  <h3 className="co-card-title">{sea ? 'Cities on its shores' : 'Cities'}</h3>
-                  <ul className="cities">
-                    {p.trends.cities.map((c) => {
+                  <h3 className="co-card-title">
+                    {sea ? 'Cities on its shores' : 'Cities'} <span className="co-card-sub">{units}/decade, ~50 km cell</span>
+                  </h3>
+                  <RateRows
+                    rows={p.trends.cities.map((c): RateRow => {
                       const m = cityMark(c.slopeDecade, c.p);
-                      return (
-                        <li key={c.id}>
-                          <button className="city-row" onClick={() => p.onSelectCity(c)}>
-                            <span className="city-name">
-                              {c.name}
-                              {c.capital ? ' (capital)' : ''}
-                            </span>
-                            <span className="city-rate">{c.slopeDecade === null ? 'no data' : `${signedRate(c.slopeDecade)} ${units}/decade`}</span>
-                            <span className={`city-mark city-mark-${m.kind}`} title={m.label}>
-                              {m.symbol} {m.label}
-                            </span>
-                          </button>
-                        </li>
-                      );
+                      return {
+                        key: String(c.id),
+                        name: `${c.name}${c.capital ? ' ★' : ''}`,
+                        slope: c.slopeDecade,
+                        solid: m.kind === 'rising' || m.kind === 'falling',
+                        title: `${c.name}${c.capital ? ' (capital)' : ''}: ${c.slopeDecade === null ? 'no data' : `${signedRate(c.slopeDecade)} ${units}/decade, ${m.label}`}`,
+                        onClick: () => p.onSelectCity(c),
+                      };
                     })}
-                  </ul>
-                  <p className="detail-note">A city&apos;s value is the ~50 km grid cell it sits in, not the city alone.</p>
+                    mode="dot"
+                    vmax={p.vmax}
+                    stops={stops}
+                    reference={areaRate}
+                  />
                 </section>
+              )}
+              {areaRate !== null && (provs || (p.trends && p.trends.cities.length > 0)) && (
+                <p className="co-key">
+                  <i className="rr-ref rr-ref-key" /> whole {what} {signedRate(areaRate)} · faded or hollow = not significant on its own
+                </p>
               )}
             </div>
           )}
         </div>
 
-        <PeriodBar
-          inline
-          period={p.period}
-          full={p.fullYears}
-          onChange={p.onPeriodChange}
-          onCommit={p.onPeriodCommit}
-          onReset={p.onPeriodReset}
-          recomputing={p.recomputing}
-          failed={p.mapFailed}
-        />
+        <button className="co-link co-howto-btn" aria-expanded={howto} onClick={() => setHowto(!howto)}>
+          ⓘ How to read this view
+        </button>
+        {howto && (
+          <>
         {sea ? (
           <p className="detail-howto co-howto">
             <strong>How to read this:</strong> the sea is shown on its own, with the land around it. The colours are blended smoothly between
@@ -385,6 +550,8 @@ export default function CountryOverlay(p: Props) {
                 map. The headline numbers are the area-weighted average of the grid cells inside the country, and a province&apos;s or city&apos;s
                 number is the average of the grid cell(s) it covers.
           </p>
+        )}
+          </>
         )}
       </div>
     </div>
