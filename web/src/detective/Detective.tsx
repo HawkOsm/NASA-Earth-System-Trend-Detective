@@ -352,12 +352,12 @@ export default function Detective(p: DetectiveProps) {
     return answerPlace(place, read, others, steps);
   };
 
-  const answerTheme = (t: Theme, steps: Steps | null = null) => {
+  const answerTheme = (t: Theme, steps: Steps | null = null, read: string | null = null) => {
     const run = () =>
       withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(t.lat, t.lng);
         const { lift } = await describeSpot(t.lat, t.lng);
-        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { note: stepsNote(steps, lift), choices: followUps(lift) });
+        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { note: joinNotes(read ?? undefined, stepsNote(steps, lift)), choices: followUps(lift) });
         openView(steps, lift);
       }, run);
     return run();
@@ -389,11 +389,12 @@ export default function Detective(p: DetectiveProps) {
       const steps: Steps = { period: asked.period, adjusted: asked.adjusted };
       const m = matchPlace(text, idx);
       // A region a theme button stands for ("the Sahara", "the Amazon"), unless the text names a listed place exactly.
-      const theme = themeFor(text);
-      if (theme && !(m.kind === 'place' && !m.read) && m.kind !== 'point' && m.kind !== 'bad-coordinates') {
+      const hit = themeFor(text);
+      const exactPlace = (m.kind === 'place' && !m.read) || m.kind === 'choose';
+      if (hit && !exactPlace && m.kind !== 'point' && m.kind !== 'bad-coordinates' && (!hit.weak || m.kind === 'none')) {
         applyPeriod(steps);
-        p.onFly(theme.lat, theme.lng);
-        await answerTheme(theme, steps);
+        p.onFly(hit.theme.lat, hit.theme.lng);
+        await answerTheme(hit.theme, steps, hit.note);
       } else if (m.kind === 'place') {
         await answerNamed(m.place, m.read ?? null, m.others ?? [], steps);
       } else if (m.kind === 'choose') {

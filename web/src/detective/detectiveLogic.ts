@@ -586,16 +586,52 @@ export const THEMES: Theme[] = [
  * Without this, "the Sahara" is read as a typo of the city of Samara. Word -> theme id; "Western Sahara" is a
  * country and is left to the place lookup.
  */
-const THEME_WORDS: [string, Theme['id']][] = [
-  ['sahara', 'desert'],
-  ['amazon', 'rainforest'],
-  ['amazonia', 'rainforest'],
+const THEME_WORDS: [string, Theme['id'], string][] = [
+  ['sahara', 'desert', 'the Sahara'],
+  ['amazon', 'rainforest', 'the Amazon'],
+  ['amazonia', 'rainforest', 'the Amazon'],
+];
+/** A kind of place with no name given ("a desert"): the theme button's own example, used only when nothing else is found. */
+const THEME_KINDS: [string, Theme['id'], string][] = [
+  ['desert', 'desert', 'the Sahara'],
+  ['rainforest', 'rainforest', 'the Amazon'],
+  ['jungle', 'rainforest', 'the Amazon'],
 ];
 
-export function themeFor(text: string): Theme | null {
-  const words = normalise(text).split(' ');
-  if (words.includes('western') && words.includes('sahara')) return null;
-  for (const [word, id] of THEME_WORDS) if (words.includes(word)) return THEMES.find((t) => t.id === id) ?? null;
+export interface ThemeHit {
+  theme: Theme;
+  /** Said before the answer when the text did not name the region exactly: a typo ("shara") or only its kind ("desert"). */
+  note: string | null;
+  /** Only the kind of place was named: use it only when the text names no listed place at all. */
+  weak: boolean;
+}
+
+/**
+ * The region a theme button stands for, named in the text: exactly ("the Sahara"), with one typo ("shara", "amazn"), or,
+ * weakest, only by its kind ("a desert"). A listed place named exactly always wins over this (the caller checks), so
+ * the city of Samara, one letter from "Sahara", is still found.
+ */
+export function themeFor(text: string): ThemeHit | null {
+  const words = normalise(text).split(' ').filter(Boolean);
+  const theme = (id: Theme['id']) => THEMES.find((t) => t.id === id) ?? null;
+  const hit = (id: Theme['id'], note: string | null, weak: boolean): ThemeHit | null => {
+    const t = theme(id);
+    return t ? { theme: t, note, weak } : null;
+  };
+  if (words.includes('western') && words.some((w) => editDistance(w, 'sahara', 1) <= 1)) return null;
+  for (const [word, id] of THEME_WORDS) if (words.includes(word)) return hit(id, null, false);
+  for (const [word, id, display] of THEME_WORDS) {
+    const typo = words.find((w) => w.length >= 5 && editDistance(w, word, 1) === 1);
+    if (typo) return hit(id, `I read “${typo}” as ${display}.`, false);
+  }
+  // Only the kind ("a desert"), and nothing else that could be a name: "the Gobi desert" names one this site does not
+  // know, and answering with the Sahara would be wrong.
+  const filler = new Set(['a', 'an', 'any', 'some', 'biggest', 'largest', 'do', 'does', 'did', 'it', 'its', 'to', 'on', 'by', 'with', 'was', 'were', 'will']);
+  for (const [word, id, display] of THEME_KINDS) {
+    if (!words.includes(word) && !words.includes(word + 's')) continue;
+    const other = words.filter((w) => w !== word && w !== word + 's' && !QUESTION_WORDS.has(w) && !filler.has(w));
+    if (other.length === 0) return hit(id, `You named no particular ${word}, so I took ${display}.`, true);
+  }
   return null;
 }
 
