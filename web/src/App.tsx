@@ -48,6 +48,7 @@ import { analyze } from './point/analysis';
 import type { Grade, QualityResult } from './evaluation/quality';
 import { chooseTexture, confirmedEnabled, confirmedSentence, effectiveMode, loadConfirmed, type ConfirmedData } from './map/confirmedMap';
 import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './evaluation/reference';
+import { hasInstrument, instrumentCheck, instrumentSummaryLine, loadInstrument, type InstrumentCheck, type InstrumentData } from './evaluation/instrument';
 import { rateUnitsLong } from './data/format';
 import { rulesFromMeta, surfaceMessage } from './data/noData';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './point/power';
@@ -123,6 +124,8 @@ declare global {
         /** Country / sea results only: the share of the area the check rests on (null if not checked). */
         coverage?: number | null;
       } | null;
+      /** The satellite check at this place (instrument.ts); null when the place has none. */
+      instrument?: { cls: string; short: string; years: [number, number]; merraSlope: number; instSlope: number } | null;
     };
     __countryOverlay?: { open: boolean };
     __provinces?: {
@@ -750,6 +753,39 @@ export default function App() {
   }, [referenceOfPanel, panel, variable]);
   const referenceMenuLine = isFull && refReady ? summaryLine(variable, refData) : null;
 
+  // ---- satellite check (instrument.ts): MERRA-2 against GPM / MODIS / OMI over the instrument's years ----
+  const [instState, setInstState] = useState<{ variable: string; data: InstrumentData | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!hasInstrument(variable)) {
+      setInstState({ variable, data: null });
+      return;
+    }
+    loadInstrument(variable).then(
+      (data) => alive && setInstState({ variable, data }),
+      (err) => {
+        console.error(err);
+        if (alive) setInstState({ variable, data: null });
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [variable]);
+  const instData = instState !== null && instState.variable === variable ? instState.data : null;
+  const instrumentOfPanel = useMemo<InstrumentCheck | null>(() => {
+    if (!instData || panel?.status !== 'ready') return null;
+    return instrumentCheck(instData, panel.center.lat, panel.center.lng, rateUnitsLong(panel.analysis.units));
+  }, [instData, panel]);
+  useEffect(() => {
+    const lr = window.__lastResult;
+    if (!lr || panel?.status !== 'ready' || lr.variable !== variable) return;
+    lr.instrument = instrumentOfPanel
+      ? { cls: instrumentOfPanel.cls, short: instrumentOfPanel.short, years: instrumentOfPanel.years, merraSlope: instrumentOfPanel.merraSlope, instSlope: instrumentOfPanel.instSlope }
+      : null;
+  }, [instrumentOfPanel, panel, variable]);
+  const instrumentMenuLine = instrumentSummaryLine(instData);
+
   // ---- "Confirmed only" map view (confirmedMap.ts): only for T2M / rainfall at the full period ----
   const [confirmedChoice, setConfirmedChoice] = useState(false);
   const [confirmedData, setConfirmedData] = useState<{ variable: string; data: ConfirmedData } | null>(null);
@@ -1039,6 +1075,7 @@ export default function App() {
             panelOpen={!!panel || waterPanel}
             overlayOpen={overlayOpen}
             referenceLine={referenceMenuLine}
+            instrumentLine={instrumentMenuLine}
             confirmed={{ enabled: confirmedAllowed, on: confirmedOn, onChange: setConfirmedChoice, line: confirmedLine }}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
@@ -1121,6 +1158,7 @@ export default function App() {
             inCountry={inCountry ? { name: inCountry.name, onShow: () => selectCountry(inCountry, panel.center) } : null}
             caveat={meta.caveat}
             reference={referenceOfPanel}
+            instrument={instrumentOfPanel}
             onRetry={() => load(panel.center, variable, sizeDeg)}
             period={period}
             fullPeriod={isFull}

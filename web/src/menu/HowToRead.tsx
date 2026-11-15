@@ -1,4 +1,8 @@
 import { useEffect } from 'react';
+import { INSTRUMENT_VARIABLES } from '../evaluation/instrument';
+
+/** The ozone paragraph is shown only once the OMI record is part of the satellite check. */
+const HAS_OZONE_CHECK = (INSTRUMENT_VARIABLES as readonly string[]).includes('TO3');
 
 export default function HowToRead({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -99,8 +103,16 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
           strong signal that MERRA-2 may be wrong there, while one that some confirm and others do not is less clear-cut. Treat MERRA-2
           rainfall trends with care. The check is shown for single places (Point or a box), and for a whole country, sea or continent when the record covers at least half of it (the record and MERRA-2 are then both averaged over the same area), over 1981–2025.
         </p>
+        <h3>Satellite check</h3>
+        <p>
+          Some variables can also be compared with a NASA instrument that measures them from space: rainfall with GPM, snow cover with
+          MODIS{HAS_OZONE_CHECK ? ', ozone with OMI' : ''}. These records start around 2000, so the comparison covers the instrument&rsquo;s own years, not 1981–2025:
+          both MERRA-2 and the instrument are averaged over a box of about 220 km and their trends over the same years are put side by
+          side. The panel of a place says whether they agree. This does not change the grade, which is about the whole period. The
+          snow check exists only where MODIS saw every month of the year, so it covers mid-latitude and mountain snow, not the Arctic.
+        </p>
         <h3>Data source</h3>
-        <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid.</p>
+        <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid. Satellite check: GPM IMERG (via NASA POWER) and MODIS (via NASA GIBS){HAS_OZONE_CHECK ? ', OMI (NASA Goddard)' : ''}.</p>
       </div>
     </div>
   );

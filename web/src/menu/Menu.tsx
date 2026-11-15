@@ -72,6 +72,8 @@ export interface MenuProps {
   footerExtra?: ReactNode;
   /** "Independent check (SHORT): ..." for temperature and rainfall at the full period (reference.ts summaryLine), else null. */
   referenceLine?: string | null;
+  /** "GPM, 2001–2025: ..." for a variable with a satellite record (instrument.ts instrumentSummaryLine), else null. */
+  instrumentLine?: string | null;
   /** The Show row ("All significant" / "Confirmed only", confirmedMap.ts): `enabled` per confirmedEnabled; `line` is the
    *  share sentence shown in the Scale row while `on`. */
   confirmed?: { enabled: boolean; on: boolean; onChange: (on: boolean) => void; line: string | null };
@@ -222,6 +224,7 @@ export default function Menu(p: MenuProps) {
               {referenceLine && (
                 <div className="menu-dim menu-note menu-quality menu-reference">{referenceLine}</div>
               )}
+              {p.instrumentLine && <div className="menu-dim menu-note menu-quality menu-instrument">{p.instrumentLine}</div>}
               {meta.quality && !shown.recomputed && (
                 <div className="menu-dim menu-note menu-quality">
                   Pattern checks: {Math.round(meta.quality.robust * 100)}% robust · {Math.round(meta.quality.caution * 100)}% caution ·{' '}

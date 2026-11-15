@@ -9,6 +9,7 @@ import type { LatLng } from '../map/Globe';
 import { fmtPValue } from '../stats/trend';
 import { QualityBlock } from '../evaluation/QualityBadge';
 import type { RefCheck } from '../evaluation/reference';
+import type { InstrumentCheck } from '../evaluation/instrument';
 
 interface PanelBase {
   /** Snapped grid cell of the click (marker position). */
@@ -96,6 +97,8 @@ interface PanelProps {
   caveat?: string;
   /** The independent-record check of this place (null: not available / still loading). */
   reference?: RefCheck | null;
+  /** The satellite check of this place (instrument.ts), or null. */
+  instrument?: InstrumentCheck | null;
 }
 
 export default function Panel({
@@ -113,6 +116,7 @@ export default function Panel({
   inCountry,
   caveat,
   reference,
+  instrument,
 }: PanelProps) {
   const { cell } = state;
   return (
@@ -168,7 +172,7 @@ export default function Panel({
         </p>
       )}
 
-      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} caveat={caveat} reference={reference} />}
+      {state.status === 'ready' && <Result a={state.analysis} area={sizeDeg > 0} period={period} caveat={caveat} reference={reference} instrument={instrument} />}
 
       {detail}
     </aside>
@@ -201,6 +205,7 @@ export function ResultSummary({
   country = false,
   caveat,
   reference,
+  instrument,
   countryNote,
 }: {
   a: Analysis;
@@ -208,6 +213,8 @@ export function ResultSummary({
   country?: boolean;
   caveat?: string;
   reference?: RefCheck | null;
+  /** The satellite check of this place (instrument.ts), or null. */
+  instrument?: InstrumentCheck | null;
   /** Country / sea overlay of a variable that has an independent record: say the check is for single places. */
   countryNote?: boolean;
 }) {
@@ -234,7 +241,7 @@ export function ResultSummary({
       </div>
       {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
-      <QualityBlock a={a} caveat={caveat} reference={reference} countryNote={countryNote} />
+      <QualityBlock a={a} caveat={caveat} reference={reference} countryNote={countryNote} instrument={instrument} />
     </>
   );
 }
@@ -246,6 +253,7 @@ export function Result({
   country = false,
   caveat,
   reference,
+  instrument,
 }: {
   a: Analysis;
   area: boolean;
@@ -254,11 +262,13 @@ export function Result({
   country?: boolean;
   caveat?: string;
   reference?: RefCheck | null;
+  /** The satellite check of this place (instrument.ts), or null. */
+  instrument?: InstrumentCheck | null;
 }) {
   return (
     <>
       <ResultChart a={a} period={period} country={country} />
-      <ResultSummary a={a} area={area} country={country} caveat={caveat} reference={reference} />
+      <ResultSummary a={a} area={area} country={country} caveat={caveat} reference={reference} instrument={instrument} />
     </>
   );
 }

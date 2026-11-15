@@ -176,6 +176,9 @@ html, body, #root {
 .refcheck-unconfirmed .refcheck-label, .refcheck-partly .refcheck-label { color: #e6aa28; }
 .refcheck-contradicted .refcheck-label { color: #e8693a; }
 .refcheck-note { margin-top: 8px; }
+.instcheck-agree .refcheck-label { color: #5fc08a; }
+.instcheck-not_confirmed .refcheck-label { color: #e6aa28; }
+.instcheck-contradicted .refcheck-label { color: #e8693a; }
 .dt-confirmed { color: #5fc08a; }
 .quality-reason { margin: 4px 0 0; font-size: 0.9rem; line-height: 1.4; color: #dde2ec; overflow-wrap: anywhere; }
 .quality-caveat { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.35; color: #7d8597; overflow-wrap: anywhere; }

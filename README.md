@@ -265,6 +265,38 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
   of its weight (`coverage`); air temperature over a sea is never checked, and an area the record covers less than half of (small
   islands, Russia for rainfall) says so. Same classes, wording ("averaged over the same area") and grade cap as for a point.
 
+### Satellite check
+
+The challenge names instruments whose data a trend tool should use: MODIS, OMI, AIRS, GPM, and the GLDAS model. Their records
+start around 2000, so they cannot join the 1981-2025 check above. Instead each one is compared with MERRA-2 over the years they
+share (`pipeline/instrument_check.py`, results in `web/public/data/instruments/*.json`, logic in
+`web/src/evaluation/instrument.ts`): both are averaged on 2 degree boxes (about 220 km), the Theil-Sen slope and Mann-Kendall
+p-value of both are computed over the shared years, and the place's panel says in one sentence whether they agree. The menu
+gives the summary. This check is information next to the grade; it never changes a grade, because the grade is about 1981-2025.
+
+Over the boxes where both have a full record, and of the area where MERRA-2's trend over the shared years is significant:
+
+| Variable | Instrument | Years | Boxes | MERRA-2 significant | Confirmed | Not confirmed | Contradicted |
+|---|---|---|---|---|---|---|---|
+| Rainfall | GPM | 2001-2025 | 10,800 | 27% of the area | 22% | 73% | 5% |
+| Snow cover | MODIS | 20 years in 2004-2025 | 1,270 | 12% | 28% | 72% | 0% |
+<!-- SATELLITE-ROW -->
+
+The rainfall result repeats what the long records say: most of MERRA-2's significant rainfall trends are not seen by an
+independent source.
+
+- **GPM** (rainfall): IMERG monthly precipitation as NASA POWER distributes it (its public archive on AWS,
+  `s3://nasa-power/imerg/spatial/power_imerg_monthly_spatial_utc.zarr`), 2001-2025, boxes between 60 S and 60 N. POWER does
+  not state which IMERG version and run it serves.
+- **MODIS** (snow cover): Terra MODIS monthly snow cover from NASA GIBS (layer
+  `MODIS_Terra_L3_Snow_Cover_Monthly_Average_Pct`; the map tiles are decoded exactly through the layer's colour table, one
+  colour per percent). A year counts only when all twelve months were observed, which leaves 20 years between 2004 and 2025 and
+  drops the places with a polar night or persistent winter cloud: the check covers mid-latitude and mountain snow, not the Arctic.
+- **AIRS** (air temperature) and **GLDAS** (soil moisture, evaporation) could not be added: every source found needs a NASA
+  Earthdata sign-in or serves formats the pipeline cannot read, and the public NEO archive was retired in September 2026.
+- Limits: MODIS sees snow under clear sky only and MERRA-2's snow cover is a model's fraction of the land, so their levels differ
+  (the check compares trends, not levels). GPM IMERG is calibrated with rain gauges over land, as GPCC-based records are.
+
 ## Repository layout
 
 ```
@@ -353,6 +385,10 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   Further records, via NOAA PSL (`pipeline/sources.py`, `pipeline/reference_multi.py`): **GHCN-CAMS** land 2 m air temperature and
   **CMAP** and **PREC/L** precipitation (NOAA Climate Prediction Center, https://psl.noaa.gov/data/gridded/), and **GPCC** Full Data
   v2025 gauge precipitation (Deutscher Wetterdienst, Global Precipitation Climatology Centre, https://psl.noaa.gov/data/gridded/data.gpcc.html).
+- Satellite check (`pipeline/instrument_check.py`, `pipeline/instruments/`): **GPM IMERG** precipitation (NASA Global
+  Precipitation Measurement mission), read from NASA POWER's public archive on AWS; **MODIS** snow cover (NASA Terra, product
+  MOD10CM), read from NASA GIBS (Global Imagery Browse Services, https://gibs.earthdata.nasa.gov).
+  <!-- SATELLITE-CREDIT -->
 - Libraries: react-globe.gl / three.js, uPlot, React, Vite, NumPy, SciPy, xarray, zarr, Matplotlib, Pillow.
 - Wind-flow streaks (Wind speed view): the idea of advecting particles through a gridded wind field with fading
   trails comes from **cambecc/earth** (MIT, the source of earth.nullschool.net); **mapbox/webgl-wind** (ISC) was
