@@ -45,10 +45,10 @@ from scipy.special import erfc
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-import config  # noqa: E402
-import products  # noqa: E402
-import reference  # noqa: E402
-import trendstats  # noqa: E402
+from core import config  # noqa: E402
+from core import products  # noqa: E402
+from evaluation import reference  # noqa: E402
+from core import trendstats  # noqa: E402
 
 YEARS = np.array(config.YEARS, dtype=np.float64)
 N = len(YEARS)

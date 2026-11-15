@@ -12,7 +12,7 @@ Outputs in web/public/data:
   {VAR}_cities.bin            Int16 LE [nCities][45], the series of the grid cell each city sits in
 and tests/fixtures/country_cases.json (reference country means for the browser tests).
 
-Run from the pipeline directory:  .venv/bin/python countries.py
+Run from the pipeline directory:  .venv/bin/python -m areas.countries
 """
 import json
 import os
@@ -20,10 +20,10 @@ import os
 import numpy as np
 from matplotlib.path import Path as MPath
 
-import basemap
-import config
-import products
-from trendstats import trend_1d
+from maps import basemap
+from core import config
+from core import products
+from core.trendstats import trend_1d
 
 COUNTRIES_JSON = os.path.join(os.path.dirname(config.PIPELINE_DIR), "web", "node_modules", "world-atlas",
                               "countries-50m.json")

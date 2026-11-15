@@ -20,10 +20,10 @@ import os
 
 import numpy as np
 
-import config
-from export_wind import DLAT, DLON, NLAT, NLON
-from products import coarse_stack, from_int16, load_grid, rules, to_int16
-from trendstats import bh_adjust, trend_grid
+from core import config
+from maps.export_wind import DLAT, DLON, NLAT, NLON
+from core.products import coarse_stack, from_int16, load_grid, rules, to_int16
+from core.trendstats import bh_adjust, trend_grid
 
 PLACES = {"Istanbul": (41.01, 28.97), "Cebu": (10.32, 123.89), "Porto Velho": (-8.76, -63.90)}
 FIXTURE = os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "summary_cases.json")

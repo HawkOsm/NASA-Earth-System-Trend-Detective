@@ -1,7 +1,7 @@
 /**
  * Country view: pure helpers (mask lookup, cell lists, Int16 parsing, area mean, outline normalisation, projection
  * fit, hit test, label placement, per-cell trends) and small lazy loaders for the static files written by
- * pipeline/countries.py. No network is involved except same-origin static files.
+ * pipeline/areas/countries.py. No network is involved except same-origin static files.
  */
 import { feature } from 'topojson-client';
 import type { GeometryCollection, Topology } from 'topojson-specification';
@@ -614,7 +614,7 @@ export function findCountry(recs: CountryRec[], nameOrIdx: string | number): Cou
 
 // ---- provinces / states -----------------------------------------------------------------------------------------
 
-/** One province / state as written by pipeline/provinces.py. `cells` index the country's cell list (mask order). */
+/** One province / state as written by pipeline/areas/provinces.py. `cells` index the country's cell list (mask order). */
 export interface ProvinceRec {
   name: string;
   type: string;

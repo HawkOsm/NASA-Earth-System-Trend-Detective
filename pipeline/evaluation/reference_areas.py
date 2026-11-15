@@ -17,7 +17,7 @@ Definitions (fixed by the task). For a variable V and an area A (a set of full-r
                  area's own check), the others only when they cover at least half of the area.
 Output: web/public/data/reference/areas_{VAR}.json  (4 significant digits; checked areas only in countries/seas/regions).
 
-Run from the pipeline directory:  .venv/bin/python reference_areas.py
+Run from the pipeline directory:  .venv/bin/python -m evaluation.reference_areas
 """
 import json
 import os
@@ -25,9 +25,9 @@ import sys
 
 import numpy as np
 
-import config
-import reference as X
-import regions as RG
+from core import config
+from evaluation import reference as X
+from areas import regions as RG
 
 OUT_DIR = X.OUT_DIR
 MIN_COVERAGE = 0.5
@@ -142,7 +142,7 @@ def compute_var(var, sets=None):
     nbox = nlat * nlon
     boxidx, lat = cell_boxes(var)
     contrib = contributing(var, R, z["used"], z["land"])
-    import reference_multi as MM
+    from evaluation import reference_multi as MM
     mrecs, el = MM.records_for(var)
     # [(short, contributing boxes, series)] per record: eligible boxes where that record has all 45 years
     others = [(mrecs[0]["short"], contrib, R)]

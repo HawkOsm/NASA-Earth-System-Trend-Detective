@@ -124,7 +124,7 @@ Dates from the guide: nominees 3 December 2026, finalists 17 December, winners 2
 ### What could be read from this machine
 
 Only public records that need no sign-in, in a format the installed tools can open. Twelve were fetched,
-cached and compared (`pipeline/sources.py`, `pipeline/reference_more.py`).
+cached and compared (`pipeline/download/sources.py`, `pipeline/evaluation/reference_more.py`).
 
 | Variable | Record | Kind | Notes |
 |---|---|---|---|
@@ -264,7 +264,7 @@ adopted. The rainfall disagreement is not a matter of which test is used.
 
 On `main` (the live site is unaffected by these):
 
-- `pipeline/sources.py`, `pipeline/reference_more.py`, tests: the twelve further records and their comparison.
+- `pipeline/download/sources.py`, `pipeline/evaluation/reference_more.py`, tests: the twelve further records and their comparison.
 - `pipeline/experiments/`: the two experiment scripts and their raw output.
 - This report.
 

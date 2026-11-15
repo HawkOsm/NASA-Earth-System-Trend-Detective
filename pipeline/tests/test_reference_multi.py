@@ -11,9 +11,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import reference as X  # noqa: E402
-import reference_multi as MM  # noqa: E402
+from core import config  # noqa: E402
+from evaluation import reference as X  # noqa: E402
+from evaluation import reference_multi as MM  # noqa: E402
 
 CACHES = ("src_gpcc.npz", "src_cmap.npz", "src_precl.npz", "src_ghcncams.npz", "reference_T2M.npz", "reference_PRECTOTCORR.npz")
 HAVE = all(os.path.exists(os.path.join(config.CACHE_DIR, f)) for f in CACHES)

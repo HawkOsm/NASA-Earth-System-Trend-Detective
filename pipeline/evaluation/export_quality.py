@@ -18,18 +18,18 @@
   d) web/public/data/regions.json     every region variable gains quality: {step, oneYear, reversal, endSensitive, grade,
                                       stepYear, outlierYear} computed on the same weighted-mean series regions.py uses.
 
-Run from the pipeline directory:  .venv/bin/python export_quality.py
+Run from the pipeline directory:  .venv/bin/python -m evaluation.export_quality
 """
 import json
 import os
 
 import numpy as np
 
-import config
-import export_summary as ES
-import products
-import regions as RG
-from quality import CODE_GRADE, GRADE_CODE, NODATA, quality_1d, quality_grid
+from core import config
+from maps import export_summary as ES
+from core import products
+from areas import regions as RG
+from evaluation.quality import CODE_GRADE, GRADE_CODE, NODATA, quality_1d, quality_grid
 
 T = np.array(config.YEARS, dtype=np.float64)
 DATA = config.WEB_DATA_DIR
@@ -157,7 +157,7 @@ def region_entries():
                 continue
             ent.pop("quality", None)
             series = region_series(var, cells[reg["name"]], grid)
-            from trendstats import trend_1d
+            from core.trendstats import trend_1d
             t1 = trend_1d(series, T)
             assert abs(10 * t1["slope"] - ent["slopePerDecade"]) <= 1e-5 * max(1.0, abs(ent["slopePerDecade"])), (var, reg["name"])
             assert abs(t1["p"] - ent["p"]) <= 1e-5 * max(abs(ent["p"]), 1e-12) + 1e-12, (var, reg["name"])

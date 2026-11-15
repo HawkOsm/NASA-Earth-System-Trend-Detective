@@ -30,8 +30,8 @@ import math
 
 import numpy as np
 
-import trendstats as ts
-from trendstats import trend_1d
+from core import trendstats as ts
+from core.trendstats import trend_1d
 
 MIN_YEARS = 20
 MIN_PART = 5            # values needed in each part of a step

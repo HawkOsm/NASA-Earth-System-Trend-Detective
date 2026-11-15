@@ -14,7 +14,7 @@ The independent records of reference.py cover 1981-2025. The satellite instrumen
 The result is information next to the grade; it never changes a grade (the grade is about 1981-2025).
 
 Inputs: pipeline/cache/inst_KEY.npz (pipeline/instruments/KEY.py). Output: web/public/data/instruments/VAR.json and
-web/public/data/instruments/index.json.     python instrument_check.py [VAR ...]
+web/public/data/instruments/index.json.     python -m evaluation.instrument_check [VAR ...]
 """
 import json
 import os
@@ -22,9 +22,9 @@ import sys
 
 import numpy as np
 
-import config
-import products
-from trendstats import trend_grid
+from core import config
+from core import products
+from core.trendstats import trend_grid
 
 ALPHA = 0.05
 MIN_SHARE = 0.5

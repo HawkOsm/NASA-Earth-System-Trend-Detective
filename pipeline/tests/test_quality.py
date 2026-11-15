@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import products  # noqa: E402
-import quality as Q  # noqa: E402
+from core import config  # noqa: E402
+from core import products  # noqa: E402
+from evaluation import quality as Q  # noqa: E402
 
 T45 = np.array(config.YEARS, dtype=np.float64)
 FIX = os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "quality_cases.json")
@@ -117,7 +117,7 @@ def test_meta_quality_and_caveat():
 
 
 def test_quality_bin_matches_summary_bitmaps_and_coarse_recomputation():
-    import export_summary as ES
+    from maps import export_summary as ES
     with open(os.path.join(D, "summary.json")) as f:
         sm = json.load(f)
     with open(os.path.join(D, "quality.json")) as f:

@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import reference as R  # noqa: E402
-import reference_more as RM  # noqa: E402
-import sources as S  # noqa: E402
+from evaluation import reference as R  # noqa: E402
+from evaluation import reference_more as RM  # noqa: E402
+from download import sources as S  # noqa: E402
 
 
 def dods(decl, payload, count):
@@ -224,7 +224,7 @@ def test_rel_trend_is_percent_of_mean_per_decade():
 
 
 def test_merra_area_series_on_uniform_cover(monkeypatch):
-    import products
+    from core import products
     g = np.full((45, 361, 576), 100.0)  # 100 % everywhere
     monkeypatch.setattr(products, "load_grid", lambda var: g)
     monkeypatch.setattr(RM.products, "load_grid", lambda var: g)

@@ -1,6 +1,6 @@
 /**
  * The independent-record check (evaluation layer): pure functions on public/data/reference/<VAR>.json, written by
- * pipeline/reference.py. MERRA-2 averaged over the boxes of independent observation records is compared with each record
+ * pipeline/evaluation/reference.py. MERRA-2 averaged over the boxes of independent observation records is compared with each record
  * (T2M: NASA GISTEMP and GHCN-CAMS, 2 degree boxes; PRECTOTCORR: GPCP, CMAP, GPCC and PREC/L, 2.5 degree boxes). This module
  * says, for the box around a place, how many of the records confirm the site's trend ("confirmed by k of n"), and caps the
  * pattern-check grade accordingly.
@@ -57,7 +57,7 @@ export interface RefData {
   source: { name: string; short: string; what: string; boxKm: number };
   /** Every record of the variable, first = the one the site has always used. Older files have none (then only the top-level arrays). */
   records?: RefRecord[];
-  /** Over the area where MERRA-2's box trend is significant (pipeline/reference_multi.py). */
+  /** Over the area where MERRA-2's box trend is significant (pipeline/evaluation/reference_multi.py). */
   consensus?: RefConsensus;
   lat0: number;
   dlat: number;

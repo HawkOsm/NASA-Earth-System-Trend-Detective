@@ -1,15 +1,15 @@
 """Write tests/fixtures/quality_cases.json: inputs and the full expected quality_1d result for about 40 series
 (synthetic ones for every flag, edge cases, and real grid cells of all ten variables), plus Holm cases.
 The browser test (web/src/evaluation/quality.test.ts) must reproduce flags and grade exactly and the numbers to 1e-9.
-Deterministic (fixed seeds). Run from pipeline/:  .venv/bin/python make_quality_fixtures.py"""
+Deterministic (fixed seeds). Run from pipeline/:  .venv/bin/python -m evaluation.make_quality_fixtures"""
 import json
 import os
 
 import numpy as np
 
-import config
-import products
-from quality import holm_adjust, quality_1d, quality_grid
+from core import config
+from core import products
+from evaluation.quality import holm_adjust, quality_1d, quality_grid
 
 FIXTURE = os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "quality_cases.json")
 T45 = np.array(config.YEARS, dtype=np.float64)

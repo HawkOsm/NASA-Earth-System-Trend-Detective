@@ -14,10 +14,10 @@ from scipy.stats import mannwhitneyu
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-import config  # noqa: E402
-import quality  # noqa: E402
-import reference as ref  # noqa: E402
-from trendstats import trend_1d  # noqa: E402
+from core import config  # noqa: E402
+from evaluation import quality  # noqa: E402
+from evaluation import reference as ref  # noqa: E402
+from core.trendstats import trend_1d  # noqa: E402
 
 T0 = time.time()
 VARS = ("T2M", "PRECTOTCORR")

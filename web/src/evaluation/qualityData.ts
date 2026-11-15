@@ -1,5 +1,5 @@
 /**
- * quality.bin + quality.json (pipeline/export_quality.py): the quality flags of every coarse cell and variable of
+ * quality.bin + quality.json (pipeline/evaluation/export_quality.py): the quality flags of every coarse cell and variable of
  * summary.bin, for the Detective's point answers. Rows follow summary.bin's bitmaps, so the lookup reuses its `rowOf`.
  * Per variable: flags Uint8 (bit0 STEP, bit1 ONE_YEAR, bit2 REVERSAL, bit3 END_SENSITIVE, bits 4-5 grade), stepYear
  * Uint16 (0 = none), outlierYear Uint16 (0 = none).

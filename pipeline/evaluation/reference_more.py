@@ -12,8 +12,8 @@ are compared on 2 degree boxes (the GISTEMP grid), 2.5 degree records on the GPC
 cut to the years the record has, and a box needs 90 % of those years valid.
 
 Run from the pipeline directory:
-  .venv/bin/python reference_more.py fetch     fetch and cache every record (once)
-  .venv/bin/python reference_more.py report    the full comparison report (cache only)
+  .venv/bin/python -m evaluation.reference_more fetch     fetch and cache every record (once)
+  .venv/bin/python -m evaluation.reference_more report    the full comparison report (cache only)
 """
 import contextlib
 import math
@@ -22,10 +22,10 @@ import sys
 
 import numpy as np
 
-import config
-import products
-import reference as R
-import sources as S
+from core import config
+from core import products
+from evaluation import reference as R
+from download import sources as S
 
 YEARS = R.YEARS
 NY = R.NY

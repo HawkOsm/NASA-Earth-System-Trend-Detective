@@ -2,7 +2,7 @@
  * The "Confirmed only" map view: for air temperature and rainfall the map can show only the trends that the independent
  * records confirm (the class "confirmed" of reference.ts: more than half of the available records, and more than contradict it;
  * "partly" confirmed trends are not drawn). The texture `<VAR>_confirmed.png` and `reference/confirmed_<VAR>.json` come from
- * pipeline/export_confirmed.py. Pure rules here; the menu row and the globe texture choice use them.
+ * pipeline/evaluation/export_confirmed.py. Pure rules here; the menu row and the globe texture choice use them.
  */
 import { confirmedTextureUrl, dataUrl } from '../data/data';
 import { FULL_PERIOD_TEXT, hasReference, joinNames } from '../evaluation/reference';

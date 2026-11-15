@@ -12,8 +12,8 @@ from scipy.stats import false_discovery_control, theilslopes
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from export import bilinear_to_pixels, map_to_pixels, overlay_rgb, legend_stops, WIDTH, HEIGHT  # noqa: E402
-from trendstats import KEYS, bh_adjust, trend_1d, trend_grid, verdict  # noqa: E402
+from maps.export import bilinear_to_pixels, map_to_pixels, overlay_rgb, legend_stops, WIDTH, HEIGHT  # noqa: E402
+from core.trendstats import KEYS, bh_adjust, trend_1d, trend_grid, verdict  # noqa: E402
 
 T45 = np.arange(1981, 2026, dtype=np.float64)
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "stats_cases.json")

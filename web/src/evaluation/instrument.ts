@@ -1,6 +1,6 @@
 /**
  * Satellite check: MERRA-2 against an instrument the challenge names (GPM, MODIS, OMI), over the instrument's own
- * years. Mirror of pipeline/instrument_check.py, which computes both trends per 2 degree box; the browser only looks
+ * years. Mirror of pipeline/evaluation/instrument_check.py, which computes both trends per 2 degree box; the browser only looks
  * the box up and words the result. It is information next to the grade and never changes a grade.
  */
 import { dataUrl } from '../data/data';
@@ -47,7 +47,7 @@ export interface InstrumentCheck {
   sentence: string;
 }
 
-/** The class of one box from the two trends (pipeline/instrument_check.py classify). */
+/** The class of one box from the two trends (pipeline/evaluation/instrument_check.py classify). */
 export function instrumentClass(merraSlope: number, merraP: number, instSlope: number, instP: number): InstrumentClass {
   const mSig = merraP < INSTRUMENT_ALPHA;
   const iSig = instP < INSTRUMENT_ALPHA;
@@ -119,7 +119,7 @@ export function instrumentSummaryLine(d: InstrumentData | null): string | null {
 
 // ---- loader ------------------------------------------------------------------------------------------------------------
 
-/** Variables with a satellite record (pipeline/instrument_check.py INSTRUMENTS that were built). */
+/** Variables with a satellite record (pipeline/evaluation/instrument_check.py INSTRUMENTS that were built). */
 export const INSTRUMENT_VARIABLES = ['PRECTOTCORR', 'FRSNO'] as const;
 export const hasInstrument = (variable: string): boolean => (INSTRUMENT_VARIABLES as readonly string[]).includes(variable);
 

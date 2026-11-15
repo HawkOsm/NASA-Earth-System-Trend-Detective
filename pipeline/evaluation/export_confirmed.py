@@ -13,7 +13,7 @@ n, k, c counted for the CELL's own slope sign over the records available at the 
 k > c); "partly" cells (1 <= k, not confirmed, not contradicted) are counted separately and are NOT drawn; NOT CONFIRMED =
 unconfirmed + contradicted. classify() above is the one-record rule (first record only), kept for its tests.
 
-Run from the pipeline directory:  .venv/bin/python export_confirmed.py
+Run from the pipeline directory:  .venv/bin/python -m evaluation.export_confirmed
 """
 import json
 import os
@@ -23,9 +23,9 @@ from matplotlib import colormaps
 from matplotlib.colors import to_hex
 from PIL import Image
 
-import config
-import export
-import reference
+from core import config
+from maps import export
+from evaluation import reference
 
 P_REF = 0.05
 OUT_DIR = reference.OUT_DIR
@@ -62,7 +62,7 @@ def classify(slope, q, lat, lon, grid, eligible, ref_slope, ref_p, alpha=config.
 def classify_multi(slope, q, lat, lon, grid, eligible, records, alpha=config.ALPHA):
     """Like classify, with the consensus of several records (list of dicts slope, p, available: arrays [nbox]):
     masks significant, confirmed, partly, notConfirmed, uncheckable (disjoint; the last four sum to significant)."""
-    import reference_multi as MM
+    from evaluation import reference_multi as MM
     slope = np.asarray(slope, dtype=np.float64)
     q = np.asarray(q, dtype=np.float64)
     with np.errstate(invalid="ignore"):
@@ -110,7 +110,7 @@ def main():
         r = np.load(os.path.join(config.CACHE_DIR, f"reference_{var}.npz"))
         grid = reference.reference_grid(var)
         el = reference.eligible_mask(var, r["used"], r["land"])
-        import reference_multi as MM
+        from evaluation import reference_multi as MM
         recs, _ = MM.records_for(var)
         masks = classify_multi(slope, q, lat, lon, grid, el, recs)
         sh = shares(masks, lat)

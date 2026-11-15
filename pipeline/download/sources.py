@@ -21,7 +21,7 @@ import urllib.request
 
 import numpy as np
 
-import config
+from core import config
 
 YEARS = np.array(config.YEARS)
 NY = len(YEARS)

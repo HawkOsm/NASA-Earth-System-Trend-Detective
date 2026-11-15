@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import reference as X  # noqa: E402
-import reference_areas as A  # noqa: E402
+from core import config  # noqa: E402
+from evaluation import reference as X  # noqa: E402
+from evaluation import reference_areas as A  # noqa: E402
 
 HAVE_BUILD = os.path.exists(os.path.join(config.CACHE_DIR, "reference_T2M.npz"))
 needs_build = pytest.mark.skipif(not HAVE_BUILD, reason="run reference.py once to build the cache")

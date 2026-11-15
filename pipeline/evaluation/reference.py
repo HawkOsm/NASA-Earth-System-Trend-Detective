@@ -20,9 +20,9 @@ Definitions (fixed by the task):
   agree    the two 95% confidence intervals overlap (1) or not (2); 0 = box not used
 
 Run from the pipeline directory:
-  .venv/bin/python reference.py            fetch GPCP (once), build both variables, write cache + JSON, print report
-  .venv/bin/python reference.py report     print the report from the cache only
-  .venv/bin/python reference.py rewrite    rewrite the JSON files from the cached npz (no rebuild), print the summaries
+  .venv/bin/python -m evaluation.reference            fetch GPCP (once), build both variables, write cache + JSON, print report
+  .venv/bin/python -m evaluation.reference report     print the report from the cache only
+  .venv/bin/python -m evaluation.reference rewrite    rewrite the JSON files from the cached npz (no rebuild), print the summaries
 """
 import json
 import math
@@ -34,9 +34,9 @@ import urllib.request
 
 import numpy as np
 
-import config
-import products
-from trendstats import trend_1d
+from core import config
+from core import products
+from core.trendstats import trend_1d
 
 YEARS = np.array(config.YEARS, dtype=np.float64)
 NY = len(YEARS)
@@ -393,7 +393,7 @@ def write_json(var, o):
     doc["land"] = [int(x) for x in o["land"]]
     doc["eligible"] = [int(x) for x in eligible_mask(var, o["used"], o["land"])]
     doc["summary"] = summarize(var, o)
-    import reference_multi   # the other independent records (lazy: reference_multi imports this module)
+    from evaluation import reference_multi   # the other independent records (lazy: reference_multi imports this module)
     doc["records"], doc["consensus"] = reference_multi.records_block(var, o)
     doc["badYears"] = badyears
     os.makedirs(OUT_DIR, exist_ok=True)

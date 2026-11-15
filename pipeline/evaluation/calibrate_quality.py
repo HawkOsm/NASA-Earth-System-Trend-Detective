@@ -9,14 +9,14 @@ signal is a total change of 2, 3 or 5 (in units of the innovation sd). Scenarios
 2000 series per row. For the series whose verdict kind is significant (p < 0.05) the table gives the share with each
 flag and with each grade (flags are defined in quality.py; nothing is tuned here). `signif` is the share of ALL series
 that are significant.
-Run from pipeline/:  .venv/bin/python calibrate_quality.py
+Run from pipeline/:  .venv/bin/python -m evaluation.calibrate_quality
 """
 import time
 
 import numpy as np
 
-import config
-from quality import quality_cols
+from core import config
+from evaluation.quality import quality_cols
 
 N = 45
 REPS = 2000
@@ -61,7 +61,7 @@ def main():
             for sig in signals:
                 Y = scenario(name, rng, phi, sig)
                 q = quality_cols(Y, T)
-                from trendstats import trend_grid
+                from core.trendstats import trend_grid
                 p = trend_grid(Y.reshape(N, 1, REPS), T)["p"].ravel()
                 s = p < 0.05
                 m = int(s.sum())

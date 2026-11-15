@@ -44,7 +44,7 @@ selected location's data live from NASA POWER and computes the same statistics i
 | Wind speed (`WS2M`) | Average wind speed 2 metres above the ground | m/s |
 | Ozone layer (`TO3`) | Total ozone in the air column above the place | Dobson units |
 
-The menu groups them as Temperature, Water, Ice & snow and Air (`web/src/data/demos.ts`, `pipeline/config.py`).
+The menu groups them as Temperature, Water, Ice & snow and Air (`web/src/data/demos.ts`, `pipeline/core/config.py`).
 
 ## Method
 
@@ -62,7 +62,7 @@ The same method is used for the map and for the click panel, so they agree.
 - **Verdict:** p < 0.05 "significant"; 0.05–0.10 "possible trend, needs more years"; otherwise "no clear
   trend". Direction and rate are always stated.
 
-**What is changing here? (ranking).** `pipeline/export_summary.py` writes `web/public/data/summary.bin` (+ `summary.json`
+**What is changing here? (ranking).** `pipeline/maps/export_summary.py` writes `web/public/data/summary.bin` (+ `summary.json`
 with the layout): for every cell of the coarse 100 km annual grid and every variable, the Theil–Sen slope per decade, the
 Mann–Kendall p-value and the Benjamini–Hochberg adjusted p-value for 1981–2025 (BH across the cells that have data for
 that variable; only those cells are stored). `web/src/detective/whatsChanging.ts` ranks all variables at a place: significant
@@ -75,27 +75,27 @@ value there (land-only over the sea, sea ice in the tropics) are listed separate
 **Choosing a period.** Two sliders (From / To, at least 10 years apart) set the years the trend is computed
 over. The side panel recomputes at once from the series it already fetched. The map is recomputed in the
 browser, in Web Workers, from a coarse annual grid (`web/public/data/<VAR>_annual.bin`, about 100 km, written by
-`pipeline/export_annual_grid.py`): every cell gets the same Theil–Sen / Mann–Kendall (lag-1 Hamed–Rao) /
+`pipeline/maps/export_annual_grid.py`): every cell gets the same Theil–Sen / Mann–Kendall (lag-1 Hamed–Rao) /
 Sen-interval statistics on the years in the period, followed by Benjamini–Hochberg over all cells. For the full
 1981–2025 period the precomputed full-resolution texture is used instead.
 
-The statistics are implemented twice — Python (`pipeline/trendstats.py`) for the map and TypeScript
+The statistics are implemented twice — Python (`pipeline/core/trendstats.py`) for the map and TypeScript
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series
 (`pipeline/tests/fixtures/`) so the two agree to 1e-12.
 
 **Country view.** With Area = Country a click picks the country under it, which is then shown alone, in its own
 shape, with each ~50 km grid cell inside it coloured by its own trend and its main cities marked. The pipeline
-(`pipeline/countries.py`) assigns every grid cell to the country whose Natural Earth outline contains the cell centre
+(`pipeline/areas/countries.py`) assigns every grid cell to the country whose Natural Earth outline contains the cell centre
 and writes each country's cell series (`web/public/data/countries/<VAR>/<index>.bin`, Int16, hundredths), so nothing
 is requested at run time. The country-wide headline is the cos(latitude)-weighted mean of its cells (a cell with a
 missing year is left out) put through the same Theil–Sen / Mann–Kendall path as a box; a city's value is the grid cell
 it sits in. Countries smaller than one grid cell get that single cell. Cells are 50 km, so borders and coasts in the
 coloured piece are only as sharp as the grid. Province / state outlines (Natural Earth admin-1, simplified to 0.02°,
-`pipeline/provinces.py`, `web/public/data/provinces/<index>.json`) are drawn over it, and a province's value is the
+`pipeline/areas/provinces.py`, `web/public/data/provinces/<index>.json`) are drawn over it, and a province's value is the
 cos(latitude)-weighted mean of the grid cells whose centre lies inside it, put through the same trend code.
 
 **Seas and oceans.** A click on open water lifts the sea or ocean there, with the land around it as a rim. The pipeline
-(`pipeline/seas.py`) puts every water grid cell (country mask 255) into the Natural Earth marine area whose polygon
+(`pipeline/areas/seas.py`) puts every water grid cell (country mask 255) into the Natural Earth marine area whose polygon
 contains the cell centre, the smallest polygon winning where several overlap (so the Bay of Biscay is not also counted in
 the North Atlantic); a named sea therefore leaves out the smaller named seas, gulfs and bays inside it. Seas of up to 4000
 cells keep the ~50 km cells, the oceans use the coarse ~100 km grid (the same block mean as the trend map), and the
@@ -104,7 +104,7 @@ headline is the same cos(latitude)-weighted mean through the same trend code. Fo
 
 ### No data
 
-One rule decides "no data", in the pipeline (`pipeline/products.py`) and in the browser (`web/src/data/noData.ts`):
+One rule decides "no data", in the pipeline (`pipeline/core/products.py`) and in the browser (`web/src/data/noData.ts`):
 
 - a value that is missing, equal to NASA POWER's fill value (-999) or at or below -900 is no data. Soil moisture and
   evaporation are land-only, so over water they are no data, never zero;
@@ -141,7 +141,7 @@ A trend can be statistically significant and still be a flaw in the data (a jump
 bad year). Next to every significant or possible trend the site therefore shows a grade, **Robust**, **Use with caution**
 or **Doubtful**, with the reason in plain words (click panel, country / sea view, Detective), a one-line caveat for each
 variable (what is measured and what is modelled) and, in the Menu, the share of each grade over the area where the map
-shows a trend. The checks have fixed definitions (`pipeline/quality.py`, mirrored in `web/src/evaluation/quality.ts` and tied by
+shows a trend. The checks have fixed definitions (`pipeline/evaluation/quality.py`, mirrored in `web/src/evaluation/quality.ts` and tied by
 `pipeline/tests/fixtures/quality_cases.json`); with fewer than 20 valid years in the selected period nothing is checked.
 
 - **Jump** (Pettitt change-point test, p < 0.05, plus: the slope inside the two parts is under half the overall slope, and a
@@ -157,7 +157,7 @@ Doubtful = one unusual year, or two or more flags; use with caution = exactly on
 robust = none. The checks only catch patterns that are known signs of trouble; they cannot prove the data is right, and a
 robust trend can still be wrong.
 
-**Calibration** (`pipeline/calibrate_quality.py`, seed fixed, about 5 s; n = 45, 2000 series per row; shares are of the
+**Calibration** (`pipeline/evaluation/calibrate_quality.py`, seed fixed, about 5 s; n = 45, 2000 series per row; shares are of the
 series whose verdict is significant; signal and the +8 / -8 outliers are in units of the innovation standard deviation):
 
 ```
@@ -185,7 +185,7 @@ A clean linear trend is graded robust 93-100% of the time (jump false-alarm 0.1-
 step is flagged as a jump 34-38% of the time at a size of 2 noise units, 69-81% at 3 and 93-98% at 5, and a single +8 outlier
 on a series with no trend produces a "significant" trend in 6-14% of the series, 33-48% of which are marked doubtful.
 
-**On the real data** (`pipeline/export_quality.py`; area-weighted shares of the area where the map shows a significant trend,
+**On the real data** (`pipeline/evaluation/export_quality.py`; area-weighted shares of the area where the map shows a significant trend,
 1981-2025). Because a trend the map calls significant has already passed a strict false-discovery test, "one unusual year" and
 "end sensitivity" almost never apply there; the jump check is what flags real data.
 
@@ -207,7 +207,7 @@ TO3              20763     98.8      1.2       0.0 |    1.0     0.0     0.2   0.
 
 Everything above looks at the pattern of one series. The independent-record check is the only check on the site that tests
 MERRA-2 against something else: MERRA-2, averaged over the boxes of an independent observation record, is compared with that
-record (`pipeline/reference.py`, results in `web/public/data/reference/*.json`, logic in `web/src/evaluation/reference.ts`). Air temperature
+record (`pipeline/evaluation/reference.py`, results in `web/public/data/reference/*.json`, logic in `web/src/evaluation/reference.ts`). Air temperature
 (T2M) is compared with **NASA GISTEMP** v4 (thermometer and ship records, 2 degree boxes, about 220 km) and **GHCN-CAMS** (weather
 stations, land only, 0.5 degree values averaged to the same 2 degree boxes). Rainfall (PRECTOTCORR) is compared with four records on
 2.5 degree boxes (about 280 km): **GPCP** v2.3 and **CMAP** (rain gauges and satellites, land and ocean), **GPCC** v2025 and
@@ -237,13 +237,13 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
   GPCP +0.09 (not significant), CMAP +0.56, GPCC +0.44, PREC/L +0.48 (all significant): GPCP alone said "not confirmed", three of
   four confirm. A rainfall trend that none of the four records confirms is therefore the strong signal that MERRA-2 may be wrong;
   one that some confirm and others do not is less clear-cut. Read MERRA-2 rainfall trends with that in mind. A plain-language guide to the whole evaluation layer is in `docs/EVALUATION.md`.
-- **"Confirmed only" map** (Menu, row Show; `pipeline/export_confirmed.py`, `web/src/map/confirmedMap.ts`): redraws the temperature or
+- **"Confirmed only" map** (Menu, row Show; `pipeline/evaluation/export_confirmed.py`, `web/src/map/confirmedMap.ts`): redraws the temperature or
   rainfall map with only the trends the independent records confirm, full period only. A MERRA-2 cell counts as confirmed if its
   trend is map-significant, the reference box around it is eligible and the class at that box, for the cell's own sign, is
   "confirmed" (see above); "partly" cells are counted but not drawn. Significant cells in ineligible boxes (sea for temperature,
   poleward of 60° for rainfall) are "cannot check" and are hidden too. Globe shares (cos-latitude weighted): temperature 18.4%
   confirmed / 0.1% partly / 0.4% not confirmed / 50.0% cannot check; rainfall 10.2% / 2.0% / 5.9% / 3.1% (GPCP alone: 5% / - / 13% / 3%).
-  Run `.venv/bin/python export_confirmed.py` after `export.py` and `reference.py`; it writes `<VAR>_confirmed.png` and
+  Run `.venv/bin/python -m evaluation.export_confirmed` after `export.py` and `reference.py`; it writes `<VAR>_confirmed.png` and
   `reference/confirmed_<VAR>.json`.
 - **Bad years**: in each box the difference D between the two annual series (temperature: both as anomalies; rainfall: MERRA-2 minus
   c times GPCP, c = median ratio) loses its own Sen line (the slow drift between the records is the trend disagreement itself and
@@ -259,7 +259,7 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
 - Limits: GISTEMP is a smoothed anomaly product; GPCP and CMAP are satellite-gauge estimates, not the truth; the records are not
   fully independent of each other (GPCC gauges feed GPCP, for instance). "Not confirmed" means the independent records do not show
   the trend, not that MERRA-2 is wrong. "Bad years" and the "size differs" note use the first record only (GISTEMP / GPCP).
-- **Areas** (`pipeline/reference_areas.py`, `web/public/data/reference/areas_{T2M,PRECTOTCORR}.json`): the same check for a whole
+- **Areas** (`pipeline/evaluation/reference_areas.py`, `web/public/data/reference/areas_{T2M,PRECTOTCORR}.json`): the same check for a whole
   country, sea, continent or the World. The record and MERRA-2 are both averaged over the boxes inside the area (weight = cos(latitude)
   of the area's cells in each box, eligible boxes with all 45 years only), and the area is checked when those boxes carry at least half
   of its weight (`coverage`); air temperature over a sea is never checked, and an area the record covers less than half of (small
@@ -269,7 +269,7 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
 
 The challenge names instruments whose data a trend tool should use: MODIS, OMI, AIRS, GPM, and the GLDAS model. Their records
 start around 2000, so they cannot join the 1981-2025 check above. Instead each one is compared with MERRA-2 over the years they
-share (`pipeline/instrument_check.py`, results in `web/public/data/instruments/*.json`, logic in
+share (`pipeline/evaluation/instrument_check.py`, results in `web/public/data/instruments/*.json`, logic in
 `web/src/evaluation/instrument.ts`): both are averaged on 2 degree boxes (about 220 km), the Theil-Sen slope and Mann-Kendall
 p-value of both are computed over the shared years, and the place's panel says in one sentence whether they agree. The menu
 gives the summary. This check is information next to the grade; it never changes a grade, because the grade is about 1981-2025.
@@ -305,6 +305,20 @@ web/        Vite + React + TypeScript site (react-globe.gl, uPlot)
 web/public/data/   Exported textures and metadata (committed, so the site builds without Python)
 ```
 
+The pipeline's code is sorted into folders by task and run from `pipeline/` as `python -m <folder>.<script>`:
+
+```
+core/         the list of variables and all paths (config), the statistics (trendstats), the "no data" rule (products)
+download/     fetch NASA POWER's annual archive; readers for the independent records (sources)
+maps/         trend per grid cell, map textures, the grid for the period map, wind, the base map, the summary file
+areas/        countries, provinces, seas and oceans, continents
+evaluation/   pattern checks and grades, the comparison with independent records, the "Confirmed only" map,
+              the satellite check
+instruments/  fetch the satellite records (GPM, MODIS)
+experiments/  the measured comparisons of significance tests and trend methods (not used by the site)
+tests/        pytest, and the fixture files that tie Python and TypeScript together
+```
+
 The site's code (`web/src/`) is sorted into folders by task; each test file sits next to the code it tests:
 
 ```
@@ -316,7 +330,7 @@ point/       one place: the panel, its chart, the live NASA POWER request, the c
 areas/       a lifted country, sea or ocean: its map, provinces, cities; continents for the Detective
 detective/   the Detective panel: understanding the question, ranking the variables at a place
 evaluation/  pattern checks and grades, the comparison with independent records
-stats/       Theil-Sen and Mann-Kendall (the same statistics as pipeline/trendstats.py)
+stats/       Theil-Sen and Mann-Kendall (the same statistics as pipeline/core/trendstats.py)
 data/        the list of variables, loading of data files, the "no data" rule, number formats
 ```
 
@@ -332,18 +346,21 @@ uv pip install --python .venv/bin/python -r requirements.txt
 .venv/bin/python -m pytest -q
 
 for v in T2M PRECTOTCORR WS2M T2M_MAX GWETROOT EVLAND RH2M FRSNO FRSEAICE TO3; do
-  .venv/bin/python fetch.py $v      # download annual means, 1981-2025, to pipeline/cache/
-  .venv/bin/python compute.py $v    # trend, confidence range, p-value and FDR-adjusted p per cell
-  .venv/bin/python export.py $v     # texture PNG + metadata JSON into web/public/data/
+  .venv/bin/python -m download.fetch $v      # download annual means, 1981-2025, to pipeline/cache/
+  .venv/bin/python -m maps.compute $v    # trend, confidence range, p-value and FDR-adjusted p per cell
+  .venv/bin/python -m maps.export $v     # texture PNG + metadata JSON into web/public/data/
 done
-.venv/bin/python export_annual_grid.py   # coarse annual grids for the period map (all variables)
-.venv/bin/python countries.py            # country masks, cities, per-country series (all variables)
-.venv/bin/python seas.py                 # seas and oceans (all variables)
-.venv/bin/python export_summary.py       # summary.bin: slope / p / BH-adjusted p of every variable in every coarse cell
-.venv/bin/python regions.py              # continents and the world, for the Detective
-.venv/bin/python export_quality.py       # pattern checks and grades (after export.py: it adds to the meta files)
-.venv/bin/python reference.py            # comparison with GISTEMP and GPCP (needs the GISTEMP file, see docs/EVALUATION.md)
-.venv/bin/python reference.py rewrite    # rewrite reference/*.json from the cache, adding the other records (GHCN-CAMS, CMAP, GPCC, PREC/L)
+.venv/bin/python -m maps.export_annual_grid   # coarse annual grids for the period map (all variables)
+.venv/bin/python -m areas.countries            # country masks, cities, per-country series (all variables)
+.venv/bin/python -m areas.seas                 # seas and oceans (all variables)
+.venv/bin/python -m maps.export_summary       # summary.bin: slope / p / BH-adjusted p of every variable in every coarse cell
+.venv/bin/python -m areas.regions              # continents and the world, for the Detective
+.venv/bin/python -m evaluation.export_quality       # pattern checks and grades (after export.py: it adds to the meta files)
+.venv/bin/python -m evaluation.reference            # comparison with GISTEMP and GPCP (needs the GISTEMP file, see docs/EVALUATION.md)
+.venv/bin/python -m evaluation.reference rewrite    # rewrite reference/*.json from the cache, adding the other records (GHCN-CAMS, CMAP, GPCC, PREC/L)
+.venv/bin/python instruments/gpm.py            # GPM IMERG rainfall from NASA POWER's archive (about 1.5 GB, cached)
+.venv/bin/python instruments/modis_snow.py     # MODIS snow cover from NASA GIBS (about 60 MB, cached)
+.venv/bin/python -m evaluation.instrument_check     # satellite check: MERRA-2 against GPM and MODIS over their own years
 ```
 
 ## Running the site
@@ -369,23 +386,23 @@ landmarks drawn by the globe from their real coordinates, to check that the map 
   point API, and for the 2°/5°/10° area choice the POWER monthly regional API, called live from the browser.
 - The underlying data is **MERRA-2** (Modern-Era Retrospective analysis for Research and Applications,
   Version 2), NASA Global Modeling and Assimilation Office.
-- Coastlines and the green-land / blue-water base map (`pipeline/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
+- Coastlines and the green-land / blue-water base map (`pipeline/maps/basemap.py`): Natural Earth (public domain), via the `world-atlas` package.
 - Country outlines (`countries-50m`, via `world-atlas`) and the populated places used for the city markers
   (`pipeline/data/ne_50m_populated_places_simple.geojson`): Natural Earth (public domain).
-- Seas and oceans (`pipeline/seas.py`): Natural Earth marine areas, `ne_50m_geography_marine_polys.geojson`
+- Seas and oceans (`pipeline/areas/seas.py`): Natural Earth marine areas, `ne_50m_geography_marine_polys.geojson`
   (public domain, copied to `pipeline/data/`).
-- Province / state outlines in the country view (`pipeline/provinces.py`): Natural Earth admin-1 states and provinces,
+- Province / state outlines in the country view (`pipeline/areas/provinces.py`): Natural Earth admin-1 states and provinces,
   `ne_10m_admin_1_states_provinces.geojson` (public domain), from
   https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_10m_admin_1_states_provinces.geojson .
   The 40 MB source file is not in this repository; the script takes its path as an argument.
-- Independent-record check (`pipeline/reference.py`): **NASA GISTEMP v4** (GISS Surface Temperature Analysis, NASA Goddard Institute for Space
+- Independent-record check (`pipeline/evaluation/reference.py`): **NASA GISTEMP v4** (GISS Surface Temperature Analysis, NASA Goddard Institute for Space
   Studies, https://data.giss.nasa.gov/gistemp/) and **GPCP v2.3** monthly precipitation (Global Precipitation Climatology Project,
   served by NOAA Physical Sciences Laboratory, https://psl.noaa.gov/data/gridded/data.gpcp.html). Only per-box trend numbers
   derived from them are in `web/public/data/reference/`.
-  Further records, via NOAA PSL (`pipeline/sources.py`, `pipeline/reference_multi.py`): **GHCN-CAMS** land 2 m air temperature and
+  Further records, via NOAA PSL (`pipeline/download/sources.py`, `pipeline/evaluation/reference_multi.py`): **GHCN-CAMS** land 2 m air temperature and
   **CMAP** and **PREC/L** precipitation (NOAA Climate Prediction Center, https://psl.noaa.gov/data/gridded/), and **GPCC** Full Data
   v2025 gauge precipitation (Deutscher Wetterdienst, Global Precipitation Climatology Centre, https://psl.noaa.gov/data/gridded/data.gpcc.html).
-- Satellite check (`pipeline/instrument_check.py`, `pipeline/instruments/`): **GPM IMERG** precipitation (NASA Global
+- Satellite check (`pipeline/evaluation/instrument_check.py`, `pipeline/instruments/`): **GPM IMERG** precipitation (NASA Global
   Precipitation Measurement mission), read from NASA POWER's public archive on AWS; **MODIS** snow cover (NASA Terra, product
   MOD10CM), read from NASA GIBS (Global Imagery Browse Services, https://gibs.earthdata.nasa.gov).
   <!-- SATELLITE-CREDIT -->

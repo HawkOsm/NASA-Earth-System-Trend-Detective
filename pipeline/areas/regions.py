@@ -2,7 +2,7 @@
 
 Inputs (offline once the mapping exists):
   data/country_continents.json   {country name in countries.json -> continent}, derived ONCE from Natural Earth
-                                 admin-0 countries 50m (public domain) with `python regions.py --build-mapping FILE`
+                                 admin-0 countries 50m (public domain) with `python -m areas.regions --build-mapping FILE`
   data/country_population.json  {country name -> estimated population} from the same file (only used to name the
                                  most populous countries of a region; never shown as a number)
   web/public/data/country_mask.bin, countries.json     (countries.py)
@@ -18,7 +18,7 @@ have no missing year (that is what "nWithData" counts). `fracRising` / `fracFall
 region's cells WITH DATA that the map (cache/{VAR}_trend.npz, BH-adjusted q < 0.05) shows as a significant rise / fall.
 Sea-only variables (FRSEAICE) have no value for a region (null).
 
-Run from the pipeline directory:  .venv/bin/python regions.py
+Run from the pipeline directory:  .venv/bin/python -m areas.regions
 """
 import json
 import os
@@ -26,10 +26,10 @@ import sys
 
 import numpy as np
 
-import config
-import countries as C
-import products
-from trendstats import trend_1d
+from core import config
+from areas import countries as C
+from core import products
+from core.trendstats import trend_1d
 
 DATA_DIR = os.path.join(config.PIPELINE_DIR, "data")
 MAPPING_JSON = os.path.join(DATA_DIR, "country_continents.json")

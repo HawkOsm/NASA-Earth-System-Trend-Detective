@@ -2,7 +2,7 @@
 equirectangular RGB base map: web/public/data/basemap.png, 2304 x 1152, left edge -180, top +90.
 
 The TopoJSON is decoded here directly (quantised, delta-encoded arcs; negative arc indices are reversed arcs).
-Run from the pipeline directory:  .venv/bin/python basemap.py
+Run from the pipeline directory:  .venv/bin/python -m maps.basemap
 """
 import json
 import os
@@ -10,7 +10,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 
-import config
+from core import config
 
 WIDTH, HEIGHT = 2304, 1152
 SS = 2  # supersampling factor

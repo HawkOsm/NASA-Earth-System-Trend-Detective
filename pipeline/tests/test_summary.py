@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import export_summary as E  # noqa: E402
-from trendstats import trend_1d  # noqa: E402
+from core import config  # noqa: E402
+from maps import export_summary as E  # noqa: E402
+from core.trendstats import trend_1d  # noqa: E402
 
 D = config.WEB_DATA_DIR
 NCELL = 181 * 288
@@ -81,7 +81,7 @@ def test_float32_is_accurate_enough_for_every_variable(meta):
 
 def test_fixture_matches_independent_trend_1d_for_one_cell(meta):
     """One cell recomputed straight from the cache with trend_1d (not trend_grid)."""
-    import products
+    from core import products
     var = "T2M_MAX"
     lat, lng = E.PLACES["Istanbul"]
     i, j = E.nearest_cell(lat, lng)

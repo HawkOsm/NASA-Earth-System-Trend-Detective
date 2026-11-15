@@ -8,8 +8,8 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import instrument_check as IC  # noqa: E402
+from core import config  # noqa: E402
+from evaluation import instrument_check as IC  # noqa: E402
 
 
 def one_degree(value=1.0, years=3):

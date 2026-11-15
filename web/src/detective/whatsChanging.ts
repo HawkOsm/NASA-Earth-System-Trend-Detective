@@ -1,7 +1,7 @@
 /**
  * "What is changing here?": every variable at one place, ranked. Pure functions plus one loader (no React).
  *
- * Data: summary.bin + summary.json (pipeline/export_summary.py): for each cell of the coarse annual grid (288 x 181,
+ * Data: summary.bin + summary.json (pipeline/maps/export_summary.py): for each cell of the coarse annual grid (288 x 181,
  * 1.25 x 1.0 deg, about 100 km) and each variable, the Theil-Sen slope per decade, the Mann-Kendall p-value and the
  * Benjamini-Hochberg adjusted p-value for the whole 1981-2025 period. Only cells with data are stored.
  *

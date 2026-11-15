@@ -1,5 +1,5 @@
 /**
- * Quality checks on a trend (evaluation layer): TypeScript mirror of pipeline/quality.py (quality_1d), tied to it by
+ * Quality checks on a trend (evaluation layer): TypeScript mirror of pipeline/evaluation/quality.py (quality_1d), tied to it by
  * pipeline/tests/fixtures/quality_cases.json. The definitions and thresholds are FIXED; see quality.py for the full text.
  *
  * Input: the valid years and values of the selected period. Fewer than MIN_YEARS (20) -> every flag is false and the

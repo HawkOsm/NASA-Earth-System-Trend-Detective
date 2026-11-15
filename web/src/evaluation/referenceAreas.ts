@@ -1,6 +1,6 @@
 /**
  * The independent check for AREAS (a country, a sea, a continent, the World): public/data/reference/areas_<VAR>.json,
- * written by pipeline/reference_areas.py. The point check of reference.ts averaged over the area: the independent record
+ * written by pipeline/evaluation/reference_areas.py. The point check of reference.ts averaged over the area: the independent record
  * (NASA GISTEMP / GPCP) and MERRA-2 are both averaged over the same boxes, weighted by the area each box has inside the
  * area; the check applies when those boxes cover at least half of the area. The result has the shape of the point check
  * (RefCheck), so the same badge and sentences render it.

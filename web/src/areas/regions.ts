@@ -1,5 +1,5 @@
 /**
- * Continents and "the world" as places: the pre-computed regions.json (pipeline/regions.py) turned into the same
+ * Continents and "the world" as places: the pre-computed regions.json (pipeline/areas/regions.py) turned into the same
  * ranked list the Detective shows for a point. Pure functions plus one loader (no React).
  *
  * Every number comes from regions.json (the trend of the cos(latitude)-weighted mean annual series over the region's
@@ -26,7 +26,7 @@ export interface RegionVar {
   /** Area-weighted share (0..1) of the cells with data where the map shows a significant rise / fall (BH q < 0.05). */
   fracRising: number;
   fracFalling: number;
-  /** Quality checks of the region's series (pipeline/export_quality.py); absent in an older regions.json. */
+  /** Quality checks of the region's series (pipeline/evaluation/export_quality.py); absent in an older regions.json. */
   quality?: { step: boolean; oneYear: boolean; reversal: boolean; endSensitive: boolean; grade: VarQuality['grade']; stepYear: number | null; outlierYear: number | null };
 }
 

@@ -17,10 +17,10 @@ import os
 
 import numpy as np
 
-import config
-import reference as X
-import reference_more as RM
-import sources as S
+from core import config
+from evaluation import reference as X
+from evaluation import reference_more as RM
+from download import sources as S
 
 P_SIG = 0.05
 

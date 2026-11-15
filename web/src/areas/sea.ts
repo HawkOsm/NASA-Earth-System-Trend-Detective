@@ -1,6 +1,6 @@
 /**
  * Sea and ocean pieces: pure helpers (mask lookup, cells.bin parsing, frame, city selection, land rim) and lazy
- * loaders for the static files written by pipeline/seas.py. A sea reuses the country overlay: `seaAsRec` turns a
+ * loaders for the static files written by pipeline/areas/seas.py. A sea reuses the country overlay: `seaAsRec` turns a
  * sea record into a CountryRec carrying a `sea` field. No network except same-origin static files.
  */
 import { dataUrl } from '../data/data';

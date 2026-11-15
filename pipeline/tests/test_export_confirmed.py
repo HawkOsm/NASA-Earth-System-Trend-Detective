@@ -8,10 +8,10 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import export  # noqa: E402
-import export_confirmed as C  # noqa: E402
-import reference  # noqa: E402
+from core import config  # noqa: E402
+from maps import export  # noqa: E402
+from evaluation import export_confirmed as C  # noqa: E402
+from evaluation import reference  # noqa: E402
 
 # Tiny world: 4 x 4 degree boxes, 2 x 2 of them; cells every 2 degrees at lat -3, -1, 1, 3 and lon -3, -1, 1, 3.
 GRID = (-2.0, 4.0, 2, -2.0, 4.0, 2)   # lat0, dlat, nlat, lon0, dlon, nlon: box centres -2 / 2
@@ -96,7 +96,7 @@ def test_texture_matches_trend_and_basemap(var):
     slope, q, lat, lon = z["slope_decade"], z["q"], z["lat"], z["lon"]
     r = np.load(os.path.join(config.CACHE_DIR, f"reference_{var}.npz"))
     el = reference.eligible_mask(var, r["used"], r["land"])
-    import reference_multi as MM
+    from evaluation import reference_multi as MM
     m = C.classify_multi(slope, q, lat, lon, reference.reference_grid(var), el, MM.records_for(var)[0])   # multi-record design
     # the nearest-cell neighbourhood of a pixel: the 3x3 block around its nearest cell (covers the 4 bilinear corners)
     li, lj = export.pixel_indices(lat, lon)

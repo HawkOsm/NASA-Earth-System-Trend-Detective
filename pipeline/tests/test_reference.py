@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import products  # noqa: E402
-import reference as X  # noqa: E402
+from core import config  # noqa: E402
+from core import products  # noqa: E402
+from evaluation import reference as X  # noqa: E402
 
 FIX = os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "reference_cases.json")
 with open(FIX) as _f:

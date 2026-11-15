@@ -9,11 +9,11 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import countries as C  # noqa: E402
-import products as P  # noqa: E402
-import seas as S  # noqa: E402
-from export_wind import block_average  # noqa: E402
+from core import config  # noqa: E402
+from areas import countries as C  # noqa: E402
+from core import products as P  # noqa: E402
+from areas import seas as S  # noqa: E402
+from maps.export_wind import block_average  # noqa: E402
 
 D = config.WEB_DATA_DIR
 NEW = ["T2M_MAX", "GWETROOT", "EVLAND", "RH2M", "FRSNO", "FRSEAICE", "TO3"]
@@ -240,6 +240,6 @@ def test_bh_and_significance_use_only_cells_with_data():
     assert np.array_equal(fin, np.isfinite(q)) and 0.1 < fin.mean() < 0.5
     with open(os.path.join(D, "FRSEAICE_meta.json")) as f:
         m = json.load(f)
-    from trendstats import bh_adjust
+    from core.trendstats import bh_adjust
     assert np.allclose(bh_adjust(p)[fin], q[fin], atol=0)  # adjusted over the cells with data only
     assert 0 < m["frac_significant"] < 1

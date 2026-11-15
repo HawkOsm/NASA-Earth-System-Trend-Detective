@@ -50,7 +50,7 @@ FAILED tests/test_trendstats.py::test_fixtures - AssertionError: assert False
 ## 2. fetch
 
 ```
-$ .venv/bin/python fetch.py T2M
+$ .venv/bin/python -m download.fetch T2M
 variable: T2M
 shape: (45, 361, 576)
 min: -56.8300  max: 34.2500
@@ -63,7 +63,7 @@ wrote /home/osm/Projects/Heckathon/NASA-Earth-System-Trend-Detective/pipeline/ca
 ## 3. compute
 
 ```
-$ .venv/bin/python compute.py T2M
+$ .venv/bin/python -m maps.compute T2M
 variable: T2M
 seconds: 10.1
 cells: 207936 finite of 207936
@@ -78,7 +78,7 @@ wrote /home/osm/Projects/Heckathon/NASA-Earth-System-Trend-Detective/pipeline/ca
 ## 4. export
 
 ```
-$ .venv/bin/python export.py T2M
+$ .venv/bin/python -m maps.export T2M
 variable: T2M
 vmax: 0.74 C per decade
 frac_significant (q<0.05, cos-lat weighted): 0.6898
@@ -95,7 +95,7 @@ wrote /home/osm/Projects/Heckathon/NASA-Earth-System-Trend-Detective/web/public/
 ## 5. make_fixtures
 
 ```
-$ .venv/bin/python make_fixtures.py
+$ .venv/bin/python -m core.make_fixtures
 wrote 23 cases to /home/osm/Projects/Heckathon/NASA-Earth-System-Trend-Detective/pipeline/tests/fixtures/stats_cases.json
 cases with factor > 1: 4
   clean_linear_up                  n=45 slope/yr=+0.03000 s= +990 r1=+0.256 factor=1.000 p=3.862e-22

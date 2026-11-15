@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import countries as C  # noqa: E402
-import seas as S  # noqa: E402
+from core import config  # noqa: E402
+from areas import countries as C  # noqa: E402
+from areas import seas as S  # noqa: E402
 
 D = config.WEB_DATA_DIR
 
@@ -107,7 +107,7 @@ def test_coarse_values_are_block_means(recs):
     grid = C.load_grid("T2M")
     k = 1234
     ci, cj = int(round(cells[k, 0] + 90)), int(round((cells[k, 1] + 180) / 1.25))
-    from export_wind import block_average
+    from maps.export_wind import block_average
     want = np.round(np.array([block_average(grid[y], None, None)[ci, cj] for y in range(45)]), 2)
     got = S.read_values("T2M", npac)[k]
     assert np.allclose(got, want, atol=1e-9)

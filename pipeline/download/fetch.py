@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-import config
+from core import config
 
 
 def download(var):

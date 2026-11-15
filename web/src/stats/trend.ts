@@ -1,5 +1,5 @@
 /**
- * TypeScript port of pipeline/trendstats.py (trend_1d + verdict).
+ * TypeScript port of pipeline/core/trendstats.py (trend_1d + verdict).
  * Sen slope, Mann-Kendall test with lag-1 Hamed-Rao variance correction, Sen confidence interval.
  * Slopes and CI are per unit of t (per YEAR when t is in years).
  */

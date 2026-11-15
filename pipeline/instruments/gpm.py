@@ -12,8 +12,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 import numpy as np  # noqa: E402
-import config  # noqa: E402,F401
-import sources  # noqa: E402,F401
+from core import config  # noqa: E402,F401
+from download import sources  # noqa: E402,F401
 
 BUCKET = "nasa-power/imerg/spatial/power_imerg_monthly_spatial_utc.zarr"
 VAR = "IMERG_PRECTOT"

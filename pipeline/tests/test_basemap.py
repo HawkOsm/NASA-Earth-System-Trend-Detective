@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import basemap  # noqa: E402
-import config  # noqa: E402
-from export import legend_stops, overlay_rgb  # noqa: E402
+from maps import basemap  # noqa: E402
+from core import config  # noqa: E402
+from maps.export import legend_stops, overlay_rgb  # noqa: E402
 
 FIX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "overlay_cases.json")
 

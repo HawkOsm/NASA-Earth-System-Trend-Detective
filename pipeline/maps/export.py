@@ -9,8 +9,8 @@ from matplotlib import colormaps
 from matplotlib.colors import to_hex
 from PIL import Image, ImageDraw, ImageFont
 
-import config
-from compute import coslat_mean
+from core import config
+from maps.compute import coslat_mean
 
 WIDTH, HEIGHT = 2304, 1152
 

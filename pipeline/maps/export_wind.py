@@ -12,7 +12,7 @@ import os
 import numpy as np
 import xarray as xr
 
-import config
+from core import config
 
 NLAT, NLON = 181, 288
 DLAT, DLON = 1.0, 1.25

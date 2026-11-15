@@ -11,7 +11,7 @@ Output: web/public/data/provinces/{country idx}.json for every country with at l
 Rings are simplified (Douglas-Peucker, 0.02 degrees) and rounded to 3 decimals; each ring is continuous in longitude
 (it may reach past +-180); the browser shifts a ring into the longitude frame of its country.
 
-Run from the pipeline directory:  .venv/bin/python provinces.py /path/to/ne_10m_admin_1_states_provinces.geojson
+Run from the pipeline directory:  .venv/bin/python -m areas.provinces /path/to/ne_10m_admin_1_states_provinces.geojson
 """
 import json
 import os
@@ -19,9 +19,9 @@ import sys
 
 import numpy as np
 
-import basemap
-import config
-import countries as C
+from maps import basemap
+from core import config
+from areas import countries as C
 
 OUT_DIR = os.path.join(config.WEB_DATA_DIR, "provinces")
 TOLERANCE = 0.02

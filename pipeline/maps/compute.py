@@ -5,9 +5,9 @@ import time
 
 import numpy as np
 
-import config
-from products import load_grid
-from trendstats import bh_adjust, trend_grid
+from core import config
+from core.products import load_grid
+from core.trendstats import bh_adjust, trend_grid
 
 
 def coslat_mean(field, lat):

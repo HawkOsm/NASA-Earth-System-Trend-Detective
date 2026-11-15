@@ -7,11 +7,11 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import config  # noqa: E402
-import countries as C  # noqa: E402
-import products  # noqa: E402
-import regions as R  # noqa: E402
-from trendstats import trend_1d  # noqa: E402
+from core import config  # noqa: E402
+from areas import countries as C  # noqa: E402
+from core import products  # noqa: E402
+from areas import regions as R  # noqa: E402
+from core.trendstats import trend_1d  # noqa: E402
 
 D = config.WEB_DATA_DIR
 

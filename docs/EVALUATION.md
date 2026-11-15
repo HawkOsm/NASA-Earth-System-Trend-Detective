@@ -31,7 +31,7 @@ These look only at the shape of the 45 yearly values at one place. They need no 
 Result: a grade. **Robust** (no flag), **Use with caution** (one flag), **Doubtful** (it depends on one year,
 or two or more flags).
 
-Code: `pipeline/quality.py` (Python) and `web/src/evaluation/quality.ts` (browser). They must give identical answers;
+Code: `pipeline/evaluation/quality.py` (Python) and `web/src/evaluation/quality.ts` (browser). They must give identical answers;
 `pipeline/tests/fixtures/quality_cases.json` holds 64 cases both are tested against.
 
 ### B. The independent check (air temperature and rainfall only)
@@ -67,7 +67,7 @@ confirms is the strong signal; one that some records confirm and others do not i
 Where it is not used, and why: for temperature over the sea (GISTEMP measures the water there, not the air)
 and for rainfall poleward of 60° (GPCP is weak near the poles).
 
-Code: `pipeline/reference.py` and `pipeline/reference_multi.py` write `web/public/data/reference/T2M.json` and
+Code: `pipeline/evaluation/reference.py` and `pipeline/evaluation/reference_multi.py` write `web/public/data/reference/T2M.json` and
 `PRECTOTCORR.json` (the `records` list with each record's trend per box, and the `consensus` and `byCount` summaries);
 `web/src/evaluation/reference.ts` reads them in the browser.
 
@@ -85,7 +85,7 @@ is compared with MERRA-2 over the years they share, on 2 degree boxes (about 220
 Of MERRA-2's significant trends in those years, GPM confirms 22% of the rainfall area (73% not confirmed, 5%
 contradicted) and MODIS 28% of the snow area it can see (72% not confirmed). The satellite check is information
 only: it never changes a grade, because the grade is about the whole period. AIRS and GLDAS are missing because
-every source found needs a NASA Earthdata sign-in. Code: `pipeline/instrument_check.py`, `pipeline/instruments/`,
+every source found needs a NASA Earthdata sign-in. Code: `pipeline/evaluation/instrument_check.py`, `pipeline/instruments/`,
 `web/src/evaluation/instrument.ts`.
 
 ## 3. What we measured
@@ -187,11 +187,11 @@ weighted; `reference/confirmed_<VAR>.json`):
 | *Before: GPCP alone* | 21.2% | 5.1% | | 13.0% | 3.1% |
 
 Temperature looks small here only because half of the significant area is sea, where the record is not air temperature; on land
-almost all of it is confirmed (90% by both records and 97% by GISTEMP alone, in the box table above). Code: `pipeline/export_confirmed.py`.
+almost all of it is confirmed (90% by both records and 97% by GISTEMP alone, in the box table above). Code: `pipeline/evaluation/export_confirmed.py`.
 
 ## 4. How good are the checks themselves? (calibration)
 
-We test the pattern checks on made-up series where we know the truth. From `pipeline/calibrate_quality.py`:
+We test the pattern checks on made-up series where we know the truth. From `pipeline/evaluation/calibrate_quality.py`:
 
 - A genuine gradual trend is wrongly flagged as a jump in under 1% of cases when the noise is independent
   from year to year, and in 2–7% when each year resembles the one before.
@@ -206,10 +206,10 @@ The thresholds were chosen to keep false alarms low. That is a choice, and it ca
 ```bash
 cd pipeline
 .venv/bin/python -m pytest -q            # all tests
-.venv/bin/python calibrate_quality.py    # the calibration table of section 4
-.venv/bin/python export_quality.py       # pattern checks for every cell; rewrites quality.bin and the meta files
-.venv/bin/python reference.py            # downloads GPCP once, builds both comparisons, prints the full report
-.venv/bin/python reference.py report     # prints the report again from the cache
+.venv/bin/python -m evaluation.calibrate_quality    # the calibration table of section 4
+.venv/bin/python -m evaluation.export_quality       # pattern checks for every cell; rewrites quality.bin and the meta files
+.venv/bin/python -m evaluation.reference            # downloads GPCP once, builds both comparisons, prints the full report
+.venv/bin/python -m evaluation.reference report     # prints the report again from the cache
 ```
 
 The other records (GHCN-CAMS, CMAP, GPCC, PREC/L) are read from the cache that `sources.py` fills (`reference_more.py fetch`);
@@ -226,7 +226,7 @@ These are judgement calls, not statistics. Each can be changed in one place.
 1. **What to do with "Not confirmed" rainfall trends.** Now: they stay on the map and get "Use with caution".
    Alternatives: fade them on the map, or hide them from the Detective's list.
 2. **How strict the jump check is.** Now: few false alarms, small jumps often missed.
-   (`RATIO_MAX` and `FIT_MAX` in `pipeline/quality.py` and `web/src/evaluation/quality.ts`; change both, then rerun
+   (`RATIO_MAX` and `FIT_MAX` in `pipeline/evaluation/quality.py` and `web/src/evaluation/quality.ts`; change both, then rerun
    the calibration.)
 3. **Whether a "Robust" grade should be reworded for the eight variables with no independent record**, for
    example "No warning signs" instead of "Robust", so nobody reads it as "confirmed".

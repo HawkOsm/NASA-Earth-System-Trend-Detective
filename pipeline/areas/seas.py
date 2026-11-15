@@ -15,19 +15,19 @@ and tests/fixtures/sea_cases.json (reference sea means for the browser tests).
 A sea with at most FULL_MAX full-resolution cells keeps those cells (0.5 x 0.625 deg). A larger one (the oceans) is
 stored on the coarse 1.0 x 1.25 deg grid of export_annual_grid.py (same block averaging).
 
-Run from the pipeline directory:  .venv/bin/python seas.py
+Run from the pipeline directory:  .venv/bin/python -m areas.seas
 """
 import json
 import os
 
 import numpy as np
 
-import basemap
-import config
-import countries as C
-import products
-from export_wind import DLAT as CDLAT, DLON as CDLON, NLAT as CNLAT, NLON as CNLON
-from trendstats import trend_1d
+from maps import basemap
+from core import config
+from areas import countries as C
+from core import products
+from maps.export_wind import DLAT as CDLAT, DLON as CDLON, NLAT as CNLAT, NLON as CNLON
+from core.trendstats import trend_1d
 
 MARINE_JSON = os.path.join(config.PIPELINE_DIR, "data", "ne_50m_geography_marine_polys.geojson")
 FIXTURE = os.path.join(config.PIPELINE_DIR, "tests", "fixtures", "sea_cases.json")

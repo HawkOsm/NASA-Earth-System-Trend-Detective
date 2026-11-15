@@ -4,12 +4,12 @@ import os
 
 import numpy as np
 
-from trendstats import KEYS, trend_1d, verdict
+from core.trendstats import KEYS, trend_1d, verdict
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures", "stats_cases.json")
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tests", "fixtures", "stats_cases.json")
 
 
-VERDICT_OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures",
+VERDICT_OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tests", "fixtures",
                            "verdict_cases.json")
 
 

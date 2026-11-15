@@ -1,7 +1,7 @@
 /**
  * Pure functions for recomputing the trend map in the browser for an arbitrary period, from the coarse annual
- * grid exported by pipeline/export_annual_grid.py. Mirrors pipeline/export.py (bilinear_to_pixels,
- * overlay_rgb, round_up_2sig) and pipeline/trendstats.py (bh_adjust).
+ * grid exported by pipeline/maps/export_annual_grid.py. Mirrors pipeline/maps/export.py (bilinear_to_pixels,
+ * overlay_rgb, round_up_2sig) and pipeline/core/trendstats.py (bh_adjust).
  */
 import { trend } from '../stats/trend';
 import { MISSING_INT16 } from '../data/noData';
@@ -102,7 +102,7 @@ export function computeCells(data: Int16Array, meta: AnnualMeta, start: number, 
   return computeChunk(extractChunk(data, ncells, yi0, yi1, 0, ncells), years, ncells, meta.scale, undefined, meta.offset ?? 0);
 }
 
-/** Benjamini-Hochberg adjusted p-values over all finite entries; NaN stays NaN (pipeline/trendstats.py bh_adjust). */
+/** Benjamini-Hochberg adjusted p-values over all finite entries; NaN stays NaN (pipeline/core/trendstats.py bh_adjust). */
 export function bhAdjust(p: ArrayLike<number>): Float64Array {
   const n = p.length;
   const q = new Float64Array(n).fill(NaN);
@@ -120,7 +120,7 @@ export function bhAdjust(p: ArrayLike<number>): Float64Array {
   return q;
 }
 
-/** Round up to 2 significant figures (pipeline/export.py round_up_2sig). Non-positive/NaN -> 1. */
+/** Round up to 2 significant figures (pipeline/maps/export.py round_up_2sig). Non-positive/NaN -> 1. */
 export function roundUp2Sig(v: number): number {
   if (!(v > 0)) return 1;
   const e = Math.floor(Math.log10(v)) - 1;
@@ -203,7 +203,7 @@ export function bilinearAt(
 
 /**
  * Bilinear resample of a [lat][lon] grid to a width x height image (row 0 = north, column 0 starts at -180).
- * NaN (no data), mirror of pipeline/export.py: a pixel whose four surrounding points are all valid is the plain
+ * NaN (no data), mirror of pipeline/maps/export.py: a pixel whose four surrounding points are all valid is the plain
  * bilinear value; a pixel next to missing points is the mean of the valid ones among the four (weighted as bilinear),
  * and NaN when its nearest grid point is missing.
  */
@@ -257,7 +257,7 @@ export function bilinearToPixels(
   return out;
 }
 
-/** The `render` block of {VAR}_meta.json: constants of the overlay rule (pipeline/config.py). */
+/** The `render` block of {VAR}_meta.json: constants of the overlay rule (pipeline/core/config.py). */
 export interface RenderConfig {
   basemap: string;
   color_floor: number;
@@ -268,7 +268,7 @@ export interface RenderConfig {
 }
 
 /**
- * THE overlay rule, mirror of pipeline/export.py overlay_rgb (tied by pipeline/tests/fixtures/overlay_cases.json).
+ * THE overlay rule, mirror of pipeline/maps/export.py overlay_rgb (tied by pipeline/tests/fixtures/overlay_cases.json).
  * x = min(|s|/vmax, 1); colour position (sign(s) * (floor + (1 - floor) x) + 1) / 2 on the colormap (linear
  * interpolation between the stops); alpha = alpha_max * w * min(x / alpha_full_at, 1); out = (1 - alpha) base +
  * alpha colour. `base` is RGBA (alpha ignored); non-finite slope -> base. Returns opaque RGBA pixels.

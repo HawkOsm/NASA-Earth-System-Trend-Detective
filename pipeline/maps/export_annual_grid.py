@@ -12,9 +12,9 @@ import os
 
 import numpy as np
 
-import config
-from export_wind import DLAT, DLON, NLAT, NLON
-from products import MISSING, coarse_stack, load_grid, rules, to_int16
+from core import config
+from maps.export_wind import DLAT, DLON, NLAT, NLON
+from core.products import MISSING, coarse_stack, load_grid, rules, to_int16
 
 
 def main():
