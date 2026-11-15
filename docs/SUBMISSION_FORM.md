@@ -56,6 +56,8 @@ significant; elsewhere a plain map shows through. From there:
 - switching to "Point" opens a panel for one grid cell, with the yearly series fetched live from NASA POWER,
   the trend line, the rate per decade, a 95% range, a p-value and a one-sentence verdict;
 - two sliders choose any period of ten years or more, and the map and every number are recomputed in the browser;
+- a first visit starts a one-minute guided tour that has the visitor click the real controls one at a time, so
+  nobody has to guess what "Lift" or "Point" mean; it can be skipped and started again;
 - the Detective panel answers "what is changing in Europe?" or "Istanbul" by ranking all ten variables for that
   place, significant changes first. It contains no AI; it looks up precomputed statistics.
 
@@ -106,7 +108,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 488 browser-side and 240
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 493 browser-side and 240
 pipeline-side tests; GitHub Pages for hosting.
 
 ## Use of Super Intelligence (SI)

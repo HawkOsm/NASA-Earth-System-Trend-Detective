@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import GlobeArea, { hasWebGL } from './map/GlobeArea';
 import { prefersReducedMotion } from './map/wind/WindLayer';
 import type { LatLng, PointOfView } from './map/Globe';
@@ -48,6 +48,8 @@ import { analyze } from './point/analysis';
 import type { Grade, QualityResult } from './evaluation/quality';
 import { chooseTexture, confirmedEnabled, confirmedSentence, effectiveMode, loadConfirmed, type ConfirmedData } from './map/confirmedMap';
 import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './evaluation/reference';
+import Tour from './tour/Tour';
+import { TOUR_SEEN_KEY, shouldAutoStart } from './tour/tourSteps';
 import { hasInstrument, instrumentCheck, instrumentSummaryLine, loadInstrument, type InstrumentCheck, type InstrumentData } from './evaluation/instrument';
 import { rateUnitsLong } from './data/format';
 import { rulesFromMeta, surfaceMessage } from './data/noData';
@@ -210,6 +212,24 @@ export default function App() {
   const [sizeDeg, setSizeDegState] = useState<number>(0);
   const [panel, setPanel] = useState<PanelState | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  // The guided tour (tour/): by itself on a first visit, again from the button in the top bar.
+  const [tourActive, setTourActive] = useState(() => {
+    let seen = false;
+    try {
+      seen = window.localStorage.getItem(TOUR_SEEN_KEY) === '1';
+    } catch {
+      /* storage blocked: treat as a first visit */
+    }
+    return shouldAutoStart(window.location.search, seen);
+  });
+  const endTour = useCallback(() => {
+    setTourActive(false);
+    try {
+      window.localStorage.setItem(TOUR_SEEN_KEY, '1');
+    } catch {
+      /* nothing to remember it in */
+    }
+  }, []);
   const [mapLines, setMapLines] = useState(true);
   const [period, setPeriodState] = useState<Period>(FULL_PERIOD);
   const [mapPeriod, setMapPeriod] = useState<Period>(FULL_PERIOD);
@@ -1030,9 +1050,14 @@ export default function App() {
       <header className="header">
         <h1>Trend Detective</h1>
         <p className="subtitle">{subtitle}</p>
-        <button className="howto-btn" onClick={() => setShowHelp(true)}>
-          How to read this
-        </button>
+        <div className="header-actions">
+          <button className="howto-btn tour-start-btn" onClick={() => setTourActive(true)}>
+            Take the tour
+          </button>
+          <button className="howto-btn" onClick={() => setShowHelp(true)}>
+            How to read this
+          </button>
+        </div>
       </header>
       <main className={`globe-wrap${panel || waterPanel ? ' has-panel' : ''}${overlayOpen ? ' country-open' : ''}${detectiveOpen ? ' detective-open' : ''}`}>
         <div className="globe-area">
@@ -1082,7 +1107,7 @@ export default function App() {
               </button>
             }
           />
-          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} onDetective={() => setDetectiveOpen(true)} />
+          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen || tourActive} onOpen={openStartFinding} onDetective={() => setDetectiveOpen(true)} />
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}
@@ -1189,6 +1214,21 @@ export default function App() {
       <footer className="footer">
         Data: NASA POWER / MERRA-2 (NASA Langley Research Center). Not affiliated with or endorsed by NASA.
       </footer>
+      <Tour
+        active={tourActive && !showHelp}
+        state={{ overlayOpen, variable, lift, panelOpen: !!panel || waterPanel, detectiveOpen }}
+        onBegin={() => {
+          // The state the tour's steps expect: nothing open, air temperature, the whole record, a click lifts a country.
+          closePanel();
+          setDetectiveOpen(false);
+          selectVariable('T2M', true);
+          resetPeriod();
+          liftRef.current = true;
+          setLiftState(true);
+          setCountryMode(true);
+        }}
+        onEnd={endTour}
+      />
       {showHelp && <HowToRead onClose={() => setShowHelp(false)} />}
     </div>
   );

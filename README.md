@@ -13,6 +13,10 @@ selected location's data live from NASA POWER and computes the same statistics i
 
 ## What you can do on the site
 
+**Take the tour first.** A first visit starts a one-minute guided tour: a card says what to click and rings the control,
+and each click on the real page moves it on (lift a country, go back, switch to Water, pick one place, open the Detective).
+It can be skipped, and "Take the tour" in the top bar starts it again (`web/src/tour/`).
+
 1. **Start with a confirmed finding.** A strip at the top offers three places to open with one click: Istanbul is
    getting warmer (+0.54 °C per decade), Shanghai is getting wetter (+0.36 mm/day per decade) and the Amazon at
    Porto Velho is getting drier (-0.67 mm/day per decade). They were picked because an independent observation
@@ -358,6 +362,7 @@ detective/   the Detective panel: understanding the question, ranking the variab
 evaluation/  pattern checks and grades, the comparison with independent records
 stats/       Theil-Sen and Mann-Kendall (the same statistics as pipeline/core/trendstats.py)
 data/        the list of variables, loading of data files, the "no data" rule, number formats
+tour/        the guided tour of a first visit
 ```
 
 ## Running the pipeline

@@ -1,0 +1,30 @@
+/* Guided tour (Tour.tsx): a card and a ring, above everything; only the card takes clicks. */
+.tour { position: fixed; inset: 0; z-index: 3000; pointer-events: none; }
+.tour-ring {
+  position: fixed; box-sizing: border-box; border: 2px solid #f5d66b; border-radius: 10px;
+  box-shadow: 0 0 0 4px rgba(245, 214, 107, 0.25); animation: tour-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(245, 214, 107, 0.2); }
+  50% { box-shadow: 0 0 0 9px rgba(245, 214, 107, 0.38); }
+}
+.tour-card {
+  position: fixed; box-sizing: border-box; width: min(360px, calc(100vw - 16px)); padding: 12px 14px 12px;
+  pointer-events: auto; color: #e6e9ef; font-size: 0.9rem; line-height: 1.4;
+  background: rgba(14, 18, 28, 0.97); border: 1px solid rgba(245, 214, 107, 0.6); border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.tour-count { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #f5d66b; }
+.tour-title { margin: 4px 0 4px; font-size: 1.02rem; font-weight: 600; color: #fff; }
+.tour-text { margin: 0; color: #dfe4ee; }
+.tour-actions { display: flex; gap: 8px; margin-top: 10px; }
+.tour-btn {
+  padding: 5px 12px; font: inherit; font-size: 0.84rem; color: #cdd3df; cursor: pointer;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 999px;
+}
+.tour-btn:hover, .tour-btn:focus-visible { color: #fff; border-color: rgba(255, 255, 255, 0.55); outline: none; }
+.tour-primary { color: #141a2a; background: #f5d66b; border-color: #f5d66b; font-weight: 600; }
+.tour-primary:hover, .tour-primary:focus-visible { color: #141a2a; background: #ffe58a; }
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring { animation: none; }
+}

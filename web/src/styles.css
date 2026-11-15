@@ -42,8 +42,10 @@ html, body, #root {
 .globe-area { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .legend-bar { height: 12px; border-radius: 2px; }
 .legend-ticks { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.header-actions { margin-left: auto; display: flex; gap: 8px; }
+.tour-start-btn { background: transparent; }
 .howto-btn {
-  margin-left: auto; padding: 5px 12px; font-size: 0.85rem; color: #e6e9ef; cursor: pointer;
+  padding: 5px 12px; font-size: 0.85rem; color: #e6e9ef; cursor: pointer;
   background: #1c2a44; border: 1px solid #3a4a6a; border-radius: 4px;
 }
 .howto-btn:hover { background: #26375a; }
