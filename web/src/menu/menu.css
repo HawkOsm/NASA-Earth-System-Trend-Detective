@@ -68,9 +68,6 @@
 .menu .period-name { color: #dfe4ee; }
 .menu .period-reset { background: rgba(5, 7, 12, 0.55); }
 
-/* "Whole globe" lives in the menu (Layers); the globe's own floating button is hidden. */
-.whole-globe { display: none; }
-
 .globe-wrap.country-open .menu-wrap { visibility: hidden; }
 
 /* Phones are too narrow for a side column: the names are a row across the top (under the Detective pill), and a

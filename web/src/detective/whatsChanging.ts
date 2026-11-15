@@ -6,7 +6,7 @@
  * Benjamini-Hochberg adjusted p-value for the whole 1981-2025 period. Only cells with data are stored.
  *
  * The numbers describe the ~100 km grid box around the place, so they can differ slightly from the 50 km cell a click
- * on the globe shows (see `Summary.cellKm`).
+ * on the globe shows (see `cellKm` on the rank result).
  *
  * Ranking (documented in README, Method): significant (p < 0.05) first, then possible (0.05 to 0.10), then no clear
  * trend, using the same `verdictKind` thresholds as the click panel; inside a tier by `strength` = |slope per decade|
@@ -201,8 +201,4 @@ export function loadSummary(): Promise<Summary> {
       });
   }
   return cached;
-}
-
-export async function rankAtAsync(lat: number, lng: number): Promise<RankResult> {
-  return rankAt(await loadSummary(), lat, lng);
 }

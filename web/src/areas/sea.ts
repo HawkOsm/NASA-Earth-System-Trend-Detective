@@ -18,8 +18,6 @@ import {
 } from './country';
 
 export const NO_SEA = NO_COUNTRY;
-/** Coarse (ocean) cells are 1.0 x 1.25 degrees, about 100 km; the others are 0.5 x 0.625, about 50 km. */
-export const COARSE_DLAT = 1.0;
 export const MAX_SEA_CITIES = 12;
 
 export interface SeaRec {

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { signedRate, type Analysis } from '../point/analysis';
 import { cellRgb } from '../point/detail';
 import { decadeMeans, fmtTick, fmtValue, niceTicks, padDomain, trendHistogram } from './countryStats';
@@ -355,14 +355,13 @@ interface RateRowsProps {
   /** The whole area's rate, drawn as a line through the rows. */
   reference: number | null;
   onLeave?: () => void;
-  footer?: ReactNode;
   /** Values the axis is fitted to when the rows shown are only part of the list. */
   domain?: (number | null)[];
   /** A divider (with this text) after the row of this index: rows were left out there. */
   gap?: { after: number; label: string };
 }
 
-export function RateRows({ rows, mode, vmax, stops, reference, onLeave, footer, domain, gap }: RateRowsProps) {
+export function RateRows({ rows, mode, vmax, stops, reference, onLeave, domain, gap }: RateRowsProps) {
   const vals = (domain ?? rows.map((r) => r.slope)).filter((v): v is number => v !== null);
   const [lo, hi] = padDomain(reference === null ? vals : [...vals, reference], mode === 'bar', mode === 'bar' ? 0.04 : 0.12);
   const pos = (v: number) => `${(((v - lo) / (hi - lo)) * 100).toFixed(2)}%`;
@@ -409,7 +408,6 @@ export function RateRows({ rows, mode, vmax, stops, reference, onLeave, footer, 
         </span>
         <span />
       </div>
-      {footer}
     </>
   );
 }

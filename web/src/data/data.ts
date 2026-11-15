@@ -39,7 +39,7 @@ export interface VariableMeta {
   grid: GridMeta;
   frac_significant: number;
   global_mean_slope_decade: number;
-  /** Area-weighted shares (0..1) of the map-significant area by grade, full period (pipeline/export_quality.py). */
+  /** Area-weighted shares (0..1) of the map-significant area by grade, full period (pipeline/evaluation/export_quality.py). */
   quality?: { robust: number; caution: number; doubtful: number; stepYearMode: number | null };
 }
 

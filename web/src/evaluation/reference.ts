@@ -198,7 +198,6 @@ export function noReferenceReason(variable: string, lat: number): string {
 
 export const NOT_COMPARED_TEXT = 'No independent record has been compared for this variable yet.';
 export const CUSTOM_PERIOD_TEXT = `The independent check covers the full period ${FULL_PERIOD_TEXT} only.`;
-export const COUNTRY_NOTE = 'The independent check is shown for single places (Point).';
 
 /** "A", "A and B", "A, B and C". */
 export function joinNames(names: string[]): string {

@@ -150,15 +150,40 @@ do not say so: `window.__view` (the camera; read in seven places in `App.tsx` an
 
 ### 2.12 Leftovers (confirmed where marked)
 
-- `areas/sea.ts:22` `COARSE_DLAT` is used nowhere (confirmed).
-- `point/Panel.tsx`: the inputs `country` and `countryNote` are never passed by anyone (confirmed).
-- `areas/country.ts` `loadProvinces` stores an empty list when the download fails, so a network error reads as
-  "this country has no provinces" for the rest of the visit (confirmed by reading).
-- The globe still has a hidden "Whole globe" button with its own timer; the menu has its own copy.
-- `map/confirmedMap.ts`: the field `texture` is read by nothing.
+All but three were removed later the same day (see 2.13).
+
+- `areas/sea.ts` `COARSE_DLAT` was used nowhere. **Removed.**
+- `point/Panel.tsx`: the inputs `country` and `countryNote` were never passed by anyone. **Removed**, with the note
+  component and the sentence that only they reached.
+- `areas/country.ts` `loadProvinces` stored an empty list when the download failed, so a network error read as
+  "this country has no provinces" for the rest of the visit. **Fixed:** a failed download is no longer remembered.
+- The globe had a hidden "Whole globe" button with its own timer; the menu has its own copy. **Removed.**
+- `map/confirmedMap.ts`: the field `texture` is read by nothing. Left: it describes the data file.
 - `pipeline/evaluation/instrument_check.py` writes `instcheck_{VAR}.npz`, which nothing reads; the options `array`
-  and `scale` are the same for every record.
-- `pipeline/evaluation/reference_more.py` is mostly a research report; the site needs one function from it.
+  and `scale` are the same for every record. Left: changing it changes what the script writes.
+- `pipeline/evaluation/reference_more.py` is mostly a research report; the site needs one function from it. Left.
+
+### 2.13 Unused code removed (15 November, afternoon)
+
+Two subagents searched for unused code; every removal was then re-checked by a search of the whole repository and
+read line by line before it was kept. The tests pass before and after (511 for the site, 240 for the pipeline, 4
+for the proxy), and the tour and the main views were walked again in a browser.
+
+- **Site (`web/src`), 12 files, 86 lines out:** the items of 2.12; the type `VariableName`; the functions
+  `fromInt16` and `rankAtAsync`; the input `footer` of the province and city rows; the style rules of an older city
+  list (`.city-row`, `.city-rate`, `.city-mark...`) and of the hidden button; four comments that pointed at files
+  or fields that no longer exist.
+- **Pipeline, 6 files, 15 lines out:** five unused imports, the functions `_lat_lon` and `cell_area_weights`, the
+  constants `BITS` and `TEMP_RECORDS`. No script was rerun and no output file changed.
+- **Proxy:** nothing unused was found.
+
+Left on purpose:
+
+- About a hundred names carry `export` although only their own file uses them. The code is live; only the keyword
+  is unneeded.
+- Helpers that only tests use (`computeCells`, `significantText`, and others that are tested on purpose).
+- Unused names inside tuple unpacking in the pipeline (removing one means rewriting the line).
+- The test hooks `window.__...`: browser test scripts outside the repository use them.
 
 ## 3. Interface, laptop size
 
@@ -168,22 +193,22 @@ From the walk-through at 1366 x 768 (96 screenshots). "Seen" means I looked at t
 |---|---|---|
 | 1 | The start strip covered the menu's lower rows | Seen; fixed |
 | 2 | A Detective question kept the previous question's years | Seen; fixed |
-| 3 | The tour's cards cover part of what they describe: step 3 hides the top of "Whole country", step 4 the variable list and sliders, step 7 the panel's Area buttons | Step 3 seen; not changed |
-| 4 | Three grid sizes are quoted and never related: "about 50 km" (cells), "about 100 km" (Detective, period map), "roughly 220 km box" (checks) | Not changed |
-| 5 | In the country view for a chosen period, the "Then and now, decade averages" card still shows all decades | Not re-checked |
-| 6 | "2°, 5°, 10°" in the Click menu are not explained there; "Lift" is not explained on the first screen | Not changed |
-| 7 | "Whole globe" is disabled with no reason given | Not changed |
-| 8 | A large country (Russia) shows an empty map for 12 to 16 s with no "computing" message. Measured with software rendering; a real graphics card is faster | Not re-checked |
+| 3 | The tour's cards cover part of what they describe: step 3 hides the top of "Whole country", step 4 the variable list and sliders, step 7 the panel's Area buttons | Partly fixed later: for the menu steps the card now sits clear of the whole part it describes; the other steps are unchanged |
+| 4 | Three grid sizes are quoted and never related: "about 50 km" (cells), "about 100 km" (Detective, period map), "roughly 220 km box" (checks) | Fixed later: "About" relates the three sizes |
+| 5 | In the country view for a chosen period, the "Then and now, decade averages" card still shows all decades | Fixed later: the card now says it covers the whole record, whatever period is chosen |
+| 6 | "2°, 5°, 10°" in the Click menu are not explained there; "Lift" is not explained on the first screen | Fixed later: a tooltip on each option, and the chosen one is said in words under the row |
+| 7 | "Whole globe" is disabled with no reason given | Fixed later with a tooltip (a mouse only; a phone has no tooltips) |
+| 8 | A large country (Russia) shows an empty map for 12 to 16 s with no "computing" message. Measured with software rendering; a real graphics card is faster | Not changed and not re-measured; the view does show "Computing…" while the trends are worked out |
 | 9 | The country view needs scrolling at 1366 x 768 (about 360 px hidden); at 1920 x 1080 almost nothing | Not changed |
-| 10 | In single-place mode the menu text sits directly on the bright globe and is hard to read on red | Not changed |
-| 11 | Unexplained marks: ▲ ▼ – on the variable tiles (the dash means "no clear trend"), a stray "⁞" | Not changed |
-| 12 | "Significant on its own, but not after allowing for the 8 variables tested at this place" has no help text | Not changed |
-| 13 | "Confirmed only" is not explained beside the button | Not changed |
+| 10 | In single-place mode the menu text sits directly on the bright globe and is hard to read on red | Fixed later: a soft dark veil behind the menu on wide windows |
+| 11 | Unexplained marks: ▲ ▼ – on the variable tiles (the dash means "no clear trend"), a stray "⁞" | Fixed later: a key under the tiles; the dashed line is named in words |
+| 12 | "Significant on its own, but not after allowing for the 8 variables tested at this place" has no help text | Fixed later: the sentence now says why |
+| 13 | "Confirmed only" is not explained beside the button | Fixed later with a tooltip; "About" and the tour explain it too |
 | 14 | "about" in the menu and "How to read this" in the top bar open the same text; the country view has a third, different "How to read this view" | Fixed later the same day: one "About" in the top bar, rewritten, with pictures; the menu's "about" is gone |
 | 15 | "How to read this" is 1,118 words in a box that shows about a quarter; the close button scrolls away (Escape works) | The close button now stays in sight; the length is not changed |
-| 16 | Each variable has its own colours and nothing says which colour is the worrying one | Not changed |
-| 17 | Small controls: the ⓘ icons are 20 x 19 px; "2°" and "5°" are 15 px wide | Not changed |
-| 18 | One low-contrast number: the large rate on the Black Sea view, ratio 2.9 where 3 is the minimum | Not changed |
+| 16 | Each variable has its own colours and nothing says which colour is the worrying one | Partly fixed later: "falling" and "rising" stand beside the scale's end numbers; nothing says which is the worrying one, because that depends on the variable |
+| 17 | Small controls: the ⓘ icons are 20 x 19 px; "2°" and "5°" are 15 px wide | Fixed later: measured, no control under 24 x 24 px in the menu, country view, place panel or Detective |
+| 18 | One low-contrast number: the large rate on the Black Sea view, ratio 2.9 where 3 is the minimum | Fixed later: the number is lightened until its contrast is at least 4.5 |
 
 No text under 11 px was found, and every control has a name a screen reader can read.
 
@@ -205,16 +230,16 @@ From the walk-through at 390 x 844 and, turned on its side, 844 x 390 (117 scree
 | 2 | With the phone on its side the start strip slid under the top bar and "Got it" could not be tapped | Tested; fixed |
 | 3 | The phone menu has no background: its text lies directly on the globe and is hard to read on red and white. With every part open it also scrolls inside itself (about 177 px hidden; "All significant / Confirmed only" is cut in half) | Seen; fixed |
 | 4 | In a long country view "Back to the globe" scrolls out of sight, and so does the × of the place panel. The only way back is to scroll to the top | Seen; fixed |
-| 5 | A Detective question jumps straight to a full-screen country view, which hides the "Gemini read this as" note and the answer | Not changed |
-| 6 | The Detective's answer area is about four lines tall on a phone | Not changed |
+| 5 | A Detective question jumps straight to a full-screen country view, which hides the "Gemini read this as" note and the answer | Kept on purpose: the Detective now opens the view for its place buttons too |
+| 6 | The Detective's answer area is about four lines tall on a phone | Changed later for a phone on its side: the panel takes the full height and the standing note gives way to the answer. Upright it is unchanged |
 | 7 | The tour's step 3 says "Left" and "Middle", which describes the laptop layout; on a phone the parts are stacked. Its cards also cover what they describe | Wording fixed later the same day; the tour now has twelve steps, one for each part of the menu |
 | 8 | "How to read this" speaks of the "left edge" and the "side panel"; a phone has neither | Fixed later the same day (the text is now "About") |
-| 9 | The "All variables" tiles scroll sideways with nothing to show there are more | Not changed |
-| 10 | The large rate is clipped in seven country views (a 105 x 48 px number in a 105 x 42 px box) | Not re-checked |
-| 11 | Eight identical "Show on map" buttons in a row | Not changed |
+| 9 | The "All variables" tiles scroll sideways with nothing to show there are more | Fixed later: the tiles wrap, nothing scrolls sideways |
+| 10 | The large rate is clipped in seven country views (a 105 x 48 px number in a 105 x 42 px box) | The line was made taller later. The number was never cut off on screen: the box lets it overflow |
+| 11 | Eight identical "Show on map" buttons in a row | Not changed; each already has its own name for screen readers ("Show ozone layer on the map") |
 | 12 | The place panel is 449 words on one screen | Not changed |
-| 13 | Nearly every control is under 40 x 40 px, the usual minimum for a finger: the menu headings are 29 px tall, "Got it" 60 x 26, the ⓘ icons 20 x 19 | Not changed |
-| 14 | "Plain map" in the Scale row and the Click options are not explained where they stand (as on the laptop) | Not changed |
+| 13 | Nearly every control is under 40 x 40 px, the usual minimum for a finger: the menu headings are 29 px tall, "Got it" 60 x 26, the ⓘ icons 20 x 19 | Fixed later: measured, no control under 40 x 40 px in the menu, country view, place panel or Detective |
+| 14 | "Plain map" in the Scale row and the Click options are not explained where they stand (as on the laptop) | Fixed later: "Plain map (no colour)", and the chosen Click option is said in words |
 
 The reviewer walked the tour before the last site update and did not walk it again afterwards. I ran the tour at
 phone width with a mouse after the fixes and it passes; nobody has run it with a finger.
@@ -251,3 +276,6 @@ phone width with a mouse after the fixes and it passes; nobody has run it with a
 - The interface was driven by an automated browser with software rendering, not by a person, and not on a real
   phone. Loading times in particular are slower than on real hardware.
 - Nothing here judges the statistics or the data.
+- The larger findings of section 2 (the 1,042-line `App.tsx`, the values kept twice as state and ref, the 180 degree
+  line handled in twelve places, the rules written in several places) were not acted on. They are rewrites of working
+  code, checked only by an automated browser, on the day of the deadline.

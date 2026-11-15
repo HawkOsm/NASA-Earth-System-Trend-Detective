@@ -632,17 +632,31 @@ export interface ProvinceTrend extends ProvinceRec {
 }
 
 const provinceCache = new Map<number, Promise<ProvinceRec[]>>();
-/** Provinces of one country; a missing file (or one that is not valid) or fewer than 2 provinces gives []. */
+/**
+ * Provinces of one country; a missing file (or one that is not valid) or fewer than 2 provinces gives [].
+ * A download that fails (no network, a server error) also gives [], but that answer is not remembered: "the download
+ * failed" must not read as "this country has no provinces" for the rest of the visit, so the next call tries again.
+ */
 export function loadProvinces(idx: number): Promise<ProvinceRec[]> {
   let p = provinceCache.get(idx);
   if (!p) {
+    const forget = () => {
+      provinceCache.delete(idx);
+    };
     p = fetch(dataUrl(`provinces/${idx}.json`))
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (r.ok) return r.json();
+        if (r.status !== 404) forget(); // 404 is the honest "no file for this country"
+        return null;
+      })
       .then((j) => {
         const list = (j && Array.isArray(j.provinces) ? j.provinces : []) as ProvinceRec[];
         return list.length >= 2 ? list : [];
       })
-      .catch(() => []);
+      .catch(() => {
+        forget();
+        return [];
+      });
     provinceCache.set(idx, p);
   }
   return p;

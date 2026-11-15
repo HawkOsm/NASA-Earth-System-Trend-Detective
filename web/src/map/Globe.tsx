@@ -5,7 +5,7 @@ import { buildBorders, buildCoastlines } from './coastlines';
 import { buildGraticule, buildGraticuleLabels, type MapLabel } from './graticule';
 import { boxOutline, type RegionBox } from '../point/region';
 import { PLACES } from './places';
-import { WHOLE_GLOBE_BUTTON_BELOW, wholeGlobeAltitude } from '../point/detail';
+import { wholeGlobeAltitude } from '../point/detail';
 import { dataUrl } from '../data/data';
 import { createWindLayer } from './wind/WindLayer';
 import { loadWindField, type WindField } from './wind/windField';
@@ -138,7 +138,6 @@ export default function Globe({ textureUrl, initialView, fitStart, onPick, landm
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [ready, setReady] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [zoomedIn, setZoomedIn] = useState(false);
   const renderCtl = useRef<RenderControl | null>(null);
 
   // Track the container size (follows window resizes via flex layout).
@@ -264,23 +263,6 @@ export default function Globe({ textureUrl, initialView, fitStart, onPick, landm
     [],
   );
 
-  // Show the "Whole globe" button while the camera is closer than WHOLE_GLOBE_BUTTON_BELOW.
-  useEffect(() => {
-    if (!ready) return;
-    const id = window.setInterval(() => {
-      const alt = globeRef.current?.pointOfView().altitude;
-      if (alt !== undefined) setZoomedIn(alt < WHOLE_GLOBE_BUTTON_BELOW);
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [ready]);
-
-  const wholeGlobe = () => {
-    const g = globeRef.current;
-    if (!g) return;
-    const v = g.pointOfView();
-    g.pointOfView({ lat: v.lat, lng: v.lng, altitude: wholeAltitude() }, 1200);
-  };
-
   // Lines and labels float slightly above the surface, so the coordinates react-globe.gl reports for a
   // click on them are a little off. Ask the globe for the surface point under the cursor instead.
   const surfaceAt = (ev: MouseEvent, fallback: { lat: number; lng: number }): LatLng => {
@@ -362,11 +344,6 @@ export default function Globe({ textureUrl, initialView, fitStart, onPick, landm
           labelsTransitionDuration={0}
           onLabelClick={(_label, ev, c) => pickFromLibrary(surfaceAt(ev, c))}
         />
-      )}
-      {zoomedIn && (
-        <button className="whole-globe" onClick={wholeGlobe}>
-          Whole globe
-        </button>
       )}
     </div>
   );

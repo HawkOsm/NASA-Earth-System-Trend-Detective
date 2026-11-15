@@ -1,6 +1,6 @@
 /**
  * One definition of "no data" for values that come from the NASA POWER API in the browser (the pipeline applies the
- * same rules to the cached grids, see pipeline/products.py):
+ * same rules to the cached grids, see pipeline/core/products.py):
  *  - a value that is not a finite number, equals the API fill value, or is <= -900 is missing;
  *  - percent variables (display_scale 100) are shown as a whole percent: round(value * 100);
  *  - zero_means_absent (snow cover, sea ice): a cell whose annual value is 0 in every year has no data.
@@ -41,11 +41,6 @@ export function neverPresent(annual: number[]): boolean {
     any = true;
   }
   return any;
-}
-
-/** Int16 stored value -> value: round(v * 100) with an offset added back; -32768 is NaN. */
-export function fromInt16(v: number, offset = 0): number {
-  return v === MISSING_INT16 ? NaN : v / 100 + offset;
 }
 
 /**

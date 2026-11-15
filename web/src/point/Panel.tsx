@@ -180,17 +180,13 @@ export default function Panel({
 }
 
 /** Period line, chart and its legend text. */
-export function ResultChart({ a, period, country = false }: { a: Analysis; period: Period; country?: boolean }) {
+export function ResultChart({ a, period }: { a: Analysis; period: Period }) {
   return (
     <>
       <p className="period-line">Trend for {periodText(period)}</p>
       <Chart data={a.chart} units={a.units} />
       <p className="chart-legend">
-        {!country && (
-          <>
-            <span className="swatch swatch-monthly" /> Thin line: monthly values with the seasonal cycle removed.{' '}
-          </>
-        )}
+        <span className="swatch swatch-monthly" /> Thin line: monthly values with the seasonal cycle removed.{' '}
         <span className="swatch swatch-annual" /> Bold line with dots: each year&apos;s average.{' '}
         <span className="swatch swatch-trend" /> Dashed line: the trend{a.chart.shade ? ' over the selected period (shaded)' : ''}.
       </p>
@@ -202,21 +198,16 @@ export function ResultChart({ a, period, country = false }: { a: Analysis; perio
 export function ResultSummary({
   a,
   area,
-  country = false,
   caveat,
   reference,
   instrument,
-  countryNote,
 }: {
   a: Analysis;
   area: boolean;
-  country?: boolean;
   caveat?: string;
   reference?: RefCheck | null;
   /** The satellite check of this place (instrument.ts), or null. */
   instrument?: InstrumentCheck | null;
-  /** Country / sea overlay of a variable that has an independent record: say the check is for single places. */
-  countryNote?: boolean;
 }) {
   return (
     <>
@@ -239,9 +230,9 @@ export function ResultSummary({
           <div className="tile-sub">{rateUnits(a.units)} per decade</div>
         </div>
       </div>
-      {area && !country && <p className="area-note">Area average, weighted by grid-cell area.</p>}
+      {area && <p className="area-note">Area average, weighted by grid-cell area.</p>}
       <div className={`verdict verdict-${a.kind}`}>{a.verdict}</div>
-      <QualityBlock a={a} caveat={caveat} reference={reference} countryNote={countryNote} instrument={instrument} />
+      <QualityBlock a={a} caveat={caveat} reference={reference} instrument={instrument} />
     </>
   );
 }
@@ -250,7 +241,6 @@ export function Result({
   a,
   area,
   period,
-  country = false,
   caveat,
   reference,
   instrument,
@@ -258,8 +248,6 @@ export function Result({
   a: Analysis;
   area: boolean;
   period: Period;
-  /** Country mean: there is no monthly line, and the area note is the country's own sub-line. */
-  country?: boolean;
   caveat?: string;
   reference?: RefCheck | null;
   /** The satellite check of this place (instrument.ts), or null. */
@@ -267,8 +255,8 @@ export function Result({
 }) {
   return (
     <>
-      <ResultChart a={a} period={period} country={country} />
-      <ResultSummary a={a} area={area} country={country} caveat={caveat} reference={reference} instrument={instrument} />
+      <ResultChart a={a} period={period} />
+      <ResultSummary a={a} area={area} caveat={caveat} reference={reference} instrument={instrument} />
     </>
   );
 }

@@ -267,15 +267,6 @@ html, body, #root {
 .country-canvas { cursor: pointer; border: none; background: transparent; }
 .country-size { margin: 6px 0 0; font-size: 0.8rem; color: #a8b0c0; }
 .cities { list-style: none; margin: 0 0 6px; padding: 0; }
-.city-row {
-  display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline; width: 100%;
-  padding: 5px 4px; background: none; border: none; border-bottom: 1px solid #1c2230; color: #e6e9ef;
-  font: inherit; font-size: 0.85rem; text-align: left; cursor: pointer;
-}
-.city-row:hover { background: #151b2b; }
-.city-rate { font-variant-numeric: tabular-nums; color: #c9cfdb; }
-.city-mark { min-width: 9.5em; font-size: 0.8rem; color: #a8b0c0; }
-.city-mark-rising, .city-mark-falling { color: #ffd166; }
 
 /* ---- country overlay ---- */
 .co {
@@ -295,7 +286,7 @@ html, body, #root {
   background: rgba(14, 20, 34, 0.9); border: 1px solid #3a4a6a; border-radius: 6px;
 }
 .co-back:hover, .co-var-select:hover { background: #26375a; }
-.co-back:focus-visible, .co-var-select:focus-visible, .city-row:focus-visible { outline: 2px solid #6aa3ff; outline-offset: 2px; }
+.co-back:focus-visible, .co-var-select:focus-visible { outline: 2px solid #6aa3ff; outline-offset: 2px; }
 .co-vars { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; }
 .co-var-select { max-width: min(60vw, 320px); }
 @media (max-width: 760px) {
@@ -344,7 +335,7 @@ html, body, #root {
 }
 
 /* Country overlay: keep tile numbers on one line in the narrower side columns. */
-.country-overlay .tile-value, [role='dialog'] .tile-value { white-space: nowrap; font-size: 17px; }
+[role='dialog'] .tile-value { white-space: nowrap; font-size: 17px; }
 [role='dialog'] .tiles { grid-template-columns: 1fr 1fr; }
 [role='dialog'] .tiles .tile:last-child { grid-column: 1 / -1; }
 
@@ -358,7 +349,7 @@ html, body, #root {
 .co-stat strong { color: #e6e9ef; font-variant-numeric: tabular-nums; }
 .co-key { margin: -4px 2px 0; font-size: 0.76rem; color: #a8b0c0; }
 .co-link {
-  padding: 2px 6px; font: inherit; font-size: 0.8rem; color: #9ec1ff; background: none; border: none; border-radius: 4px; cursor: pointer;
+  min-height: 24px; padding: 2px 6px; font: inherit; font-size: 0.8rem; color: #9ec1ff; background: none; border: none; border-radius: 4px; cursor: pointer;
   white-space: nowrap;
 }
 .co-link:hover { background: #1c2740; }
@@ -366,7 +357,7 @@ html, body, #root {
 .co-howto-btn { align-self: center; }
 
 .hero { display: flex; align-items: center; gap: 12px; }
-.hero-rate { font-size: 2.6rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.hero-rate { font-size: 2.6rem; font-weight: 600; line-height: 1.32; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .hero-word { font-size: 1rem; font-weight: 600; }
 .hero-units { font-size: 0.82rem; color: #a8b0c0; }
 
