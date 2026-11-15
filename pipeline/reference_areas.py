@@ -11,6 +11,10 @@ Definitions (fixed by the task). For a variable V and an area A (a set of full-r
                  (both over the same footprint; a box whose M is missing in one year drops out of that year's mean)
   refSlope, refP trend_1d(R_A); merraSlope = trend_1d(M_A); sizeDiffers = the two 95% ranges do not overlap;
   badYears       reference.bad_years(V, M_A, R_A)
+  records        the same for every further independent record (reference_multi): R_A of the record over ITS contributing
+                 boxes (eligible, all 45 years there), coverage rule per record as above; a record that meets the rule is
+                 listed in the area's `records` ({short, refSlope, refP, coverage}), the first record always (it is the
+                 area's own check), the others only when they cover at least half of the area.
 Output: web/public/data/reference/areas_{VAR}.json  (4 significant digits; checked areas only in countries/seas/regions).
 
 Run from the pipeline directory:  .venv/bin/python reference_areas.py
@@ -59,7 +63,21 @@ def contributing(var, R, used, land):
     return el & (np.isfinite(R).sum(0) == R.shape[0])
 
 
-def area_entry(var, wb, contrib, R, M):
+def record_entry(wb, contrib, R):
+    """(refSlope, refP, coverage) of one record's area mean over its own contributing boxes, or None (coverage < 1/2)."""
+    tot = float(wb.sum())
+    use = contrib & (wb > 0)
+    if tot <= 0 or float(wb[use].sum() / tot) < MIN_COVERAGE:
+        return None
+    w = wb[use]
+    r = (R[:, use] * w).sum(1) / w.sum()
+    rs, _, _, rp = X.trend_of(r)
+    if not np.isfinite(rs):
+        return None
+    return rs, rp, float(wb[use].sum() / tot)
+
+
+def area_entry(var, wb, contrib, R, M, others=None):
     """(entry dict, None) for a checked area, (None, reason) for an unchecked one. wb [nbox], R, M [years][nbox]."""
     tot = float(wb.sum())
     if tot <= 0:
@@ -79,8 +97,16 @@ def area_entry(var, wb, contrib, R, M):
     if not np.isfinite(rs) or not np.isfinite(ms):
         return None, "coverage"
     bad, _, _ = X.bad_years(var, m, r)
-    return {"refSlope": rs, "refP": rp, "merraSlope": ms, "sizeDiffers": not X.ci_overlap(mlo, mhi, rlo, rhi),
-            "coverage": cov, "badYears": [int(y) for y in X.YEARS[bad]]}, None
+    entry = {"refSlope": rs, "refP": rp, "merraSlope": ms, "sizeDiffers": not X.ci_overlap(mlo, mhi, rlo, rhi),
+             "coverage": cov, "badYears": [int(y) for y in X.YEARS[bad]]}
+    if others is not None:   # [(short, contrib, R)] of the further records; the first record comes first in `records`
+        recs = [{"short": others[0][0], "refSlope": rs, "refP": rp, "coverage": cov}]
+        for short, c_i, R_i in others[1:]:
+            e = record_entry(wb, c_i, R_i)
+            if e is not None:
+                recs.append({"short": short, "refSlope": e[0], "refP": e[1], "coverage": e[2]})
+        entry["records"] = recs
+    return entry, None
 
 
 def _sig(x):
@@ -88,8 +114,12 @@ def _sig(x):
 
 
 def _clean(e):
-    return {"refSlope": _sig(e["refSlope"]), "refP": _sig(e["refP"]), "merraSlope": _sig(e["merraSlope"]),
-            "sizeDiffers": bool(e["sizeDiffers"]), "coverage": _sig(e["coverage"]), "badYears": e["badYears"]}
+    out = {"refSlope": _sig(e["refSlope"]), "refP": _sig(e["refP"]), "merraSlope": _sig(e["merraSlope"]),
+           "sizeDiffers": bool(e["sizeDiffers"]), "coverage": _sig(e["coverage"]), "badYears": e["badYears"]}
+    if "records" in e:
+        out["records"] = [{"short": r["short"], "refSlope": _sig(r["refSlope"]), "refP": _sig(r["refP"]),
+                           "coverage": _sig(r["coverage"])} for r in e["records"]]
+    return out
 
 
 def area_sets():
@@ -112,15 +142,23 @@ def compute_var(var, sets=None):
     nbox = nlat * nlon
     boxidx, lat = cell_boxes(var)
     contrib = contributing(var, R, z["used"], z["land"])
+    import reference_multi as MM
+    mrecs, el = MM.records_for(var)
+    # [(short, contributing boxes, series)] per record: eligible boxes where that record has all 45 years
+    others = [(mrecs[0]["short"], contrib, R)]
+    for r in mrecs[1:]:
+        Rr = MM._series_of(var, r["key"])
+        others.append((r["short"], el & (np.isfinite(Rr).sum(0) == Rr.shape[0]), Rr))
     sets = area_sets() if sets is None else sets
-    doc = {"source": X.SOURCES[var], "countries": {}, "seas": {}, "regions": {}, "unchecked": {"countries": {}, "seas": {}, "regions": {}}}
+    doc = {"source": X.SOURCES[var], "records": [{"short": r["short"], "name": r["name"], "what": r["what"]} for r in mrecs],
+           "countries": {}, "seas": {}, "regions": {}, "unchecked": {"countries": {}, "seas": {}, "regions": {}}}
     raw = {}
     for kind, d in sets.items():
         for key, cells in d.items():
             if var == "T2M" and kind == "seas":
                 entry, why = None, "sea"
             else:
-                entry, why = area_entry(var, box_weights(cells, boxidx, lat, nbox), contrib, R, M)
+                entry, why = area_entry(var, box_weights(cells, boxidx, lat, nbox), contrib, R, M, others)
             if entry is None:
                 doc["unchecked"][kind][str(key)] = why
             else:

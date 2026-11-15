@@ -119,3 +119,32 @@ def test_real_turkey_t2m_coverage_above_90_percent():
     assert e["refSlope"] > 0 and e["refP"] < 0.05
     assert doc["unchecked"]["seas"] and all(v == "sea" for v in doc["unchecked"]["seas"].values())
     assert "World" in doc["regions"]
+
+
+def test_further_records_per_area_with_the_coverage_rule_per_record():
+    boxidx, cells, lat = _layout()
+    wb = A.box_weights(cells, boxidx, lat, 4)
+    R1 = np.stack([_series(1.0, 0.02)] * 4, axis=1)
+    R2 = np.stack([_series(1.0, 0.05)] * 4, axis=1)
+    R3 = np.stack([_series(1.0, 0.01)] * 4, axis=1)
+    c1 = np.array([True, True, True, False])
+    c2 = np.array([True, True, False, False])       # 3.0 of 4.0 -> covers
+    c3 = np.array([False, False, True, False])      # 1.0 of 4.0 -> below half: not listed
+    entry, why = A.area_entry("T2M", wb, c1, R1, R1.copy(), [("A", c1, R1), ("B", c2, R2), ("C", c3, R3)])
+    assert why is None
+    assert [r["short"] for r in entry["records"]] == ["A", "B"]
+    assert entry["records"][0]["refSlope"] == pytest.approx(entry["refSlope"])      # the first record is the area's own check
+    assert entry["records"][1]["refSlope"] == pytest.approx(0.5) and entry["records"][1]["coverage"] == pytest.approx(0.75)
+    assert "records" not in A.area_entry("T2M", wb, c1, R1, R1.copy())[0]
+
+
+@needs_build
+def test_built_area_files_list_records():
+    for var, n in (("T2M", 2), ("PRECTOTCORR", 4)):
+        with open(os.path.join(X.OUT_DIR, f"areas_{var}.json")) as f:
+            d = json.load(f)
+        assert len(d["records"]) == n
+        for kind in ("countries", "seas", "regions"):
+            for e in d[kind].values():
+                assert e["records"][0]["refSlope"] == e["refSlope"] and e["records"][0]["short"] == d["records"][0]["short"]
+                assert 1 <= len(e["records"]) <= n

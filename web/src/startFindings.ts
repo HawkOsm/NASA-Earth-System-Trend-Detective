@@ -14,8 +14,9 @@ import type { VariableName } from './demos';
  *   Shanghai      cell 31.00°N 121.25°E   precipitation    +0.3608 mm/day/decade  p = 2.7e-5    GPCP    +0.2593
  *   Porto Velho   cell  9.00°S  63.75°W   precipitation    -0.6711 mm/day/decade  p = 3.8e-8    GPCP    -0.3596
  *
- * A finding must never be listed here on significance alone: an earlier candidate, rainfall at Cebu (+0.87 mm/day per
- * decade in MERRA-2), is not confirmed by GPCP (+0.09, p = 0.51) and was rejected for that reason.
+ * A finding must never be listed here on significance alone. With four rainfall records (GPCP, CMAP, GPCC, PREC/L),
+ * Shanghai is confirmed by all four and Porto Velho by three. An earlier candidate, rainfall at Cebu (+0.87 mm/day per
+ * decade in MERRA-2), is confirmed by three of four at about half that size; Shanghai was preferred.
  */
 export interface StartFinding {
   key: string;

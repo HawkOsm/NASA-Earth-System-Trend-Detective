@@ -70,8 +70,8 @@ Rules from the guide that affect us:
       `web/src/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
       record: Istanbul air temperature +0.54 °C per decade (NASA GISTEMP +0.55); Shanghai rainfall +0.36 mm/day
       per decade (GPCP +0.26); the Amazon at Porto Velho rainfall −0.67 mm/day per decade (GPCP −0.36).
-      Rainfall at Cebu was considered and rejected: significant in MERRA-2 (+0.87) but not confirmed by GPCP
-      (+0.09, p = 0.51).
+      Rainfall at Cebu was considered too: three of four rainfall records confirm it (GPCP does not), at about
+      half the size MERRA-2 shows. Shanghai, confirmed by all four, was preferred.
 - [x] Evaluation layer live: a grade on every trend, and an independent check for temperature and rainfall.
       Guide: [EVALUATION.md](EVALUATION.md).
 - [x] README describes the site as it is now.

@@ -29,6 +29,13 @@ describe('confirmed-only view', () => {
       'Showing only trends confirmed by GPCP: 5% of the globe. Hidden: 13% not confirmed, 3% where the record cannot check.',
     );
   });
+  it('with several records: names them and the partly share', () => {
+    expect(
+      confirmedSentence('GPCP', { significant: 0.2121, confirmed: 0.1019, partly: 0.0203, notConfirmed: 0.0591, uncheckable: 0.0308 }, ['GPCP', 'CMAP', 'GPCC', 'PREC/L']),
+    ).toBe(
+      'Showing only trends confirmed by most of the 4 independent records (GPCP, CMAP, GPCC and PREC/L): 10% of the globe. Hidden: 2% partly confirmed, 6% not confirmed, 3% where the records cannot check.',
+    );
+  });
   it('chooses the confirmed texture only in confirmed mode for a variable that has one', () => {
     expect(chooseTexture('confirmed', 'PRECTOTCORR', 'trend.png')).toContain('PRECTOTCORR_confirmed.png');
     expect(chooseTexture('confirmed', 'T2M', 'trend.png')).toContain('T2M_confirmed.png');

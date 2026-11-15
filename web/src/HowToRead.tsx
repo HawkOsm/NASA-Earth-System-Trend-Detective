@@ -86,14 +86,18 @@ export default function HowToRead({ onClose }: { onClose: () => void }) {
         </p>
         <h3>Independent check</h3>
         <p>
-          For temperature and rainfall we also compare MERRA-2 with a record that is measured independently: NASA GISTEMP (thermometer and
-          ship records) for temperature over land, and GPCP (rain gauges and satellites) for rainfall. MERRA-2 is averaged over the boxes
-          of that record (about 220 and 280 km) and the trend in the box is compared with the trend of the record. &ldquo;Confirmed&rdquo;
-          means the record shows a significant trend in the same direction; &ldquo;not confirmed&rdquo; means it shows no significant
-          change; &ldquo;contradicted&rdquo; means it shows the opposite. It is the only check here that tests the data against something
-          other than itself, so a trend that is not confirmed is at best &ldquo;use with caution&rdquo; and a contradicted one is
-          &ldquo;doubtful&rdquo;. For rainfall most significant trends are not confirmed: the independent record does not show them, so
-          treat MERRA-2 rainfall trends with care. The check is shown for single places (Point or a box), and for a whole country, sea or continent when the record covers at least half of it (the record and MERRA-2 are then both averaged over the same area), over 1981–2025.
+          For temperature and rainfall we also compare MERRA-2 with records that are measured independently: NASA GISTEMP (thermometers
+          and ships) and GHCN-CAMS (weather stations) for temperature over land, and GPCP, CMAP (both rain gauges and satellites), GPCC and
+          PREC/L (both rain gauges, land only) for rainfall. MERRA-2 is averaged over the boxes of the records (about 220 and 280 km) and
+          the trend in the box is compared with the trend of each record. The site says &ldquo;confirmed by k of n records&rdquo;, where n
+          is the number of records that have data in the box and k the number that show a significant trend in the same direction.
+          &ldquo;Confirmed&rdquo; means more than half of them do (and more than show the opposite); &ldquo;confirmed by only k of n&rdquo;
+          means some do but fewer than half; &ldquo;not confirmed&rdquo; means none shows a significant change; &ldquo;contradicted&rdquo;
+          means more records show the opposite than confirm. It is the only check here that tests the data against something other than
+          itself, so a trend that is only partly or not confirmed is at best &ldquo;use with caution&rdquo; and a contradicted one is
+          &ldquo;doubtful&rdquo;. The rainfall records disagree with each other, so a rainfall trend that none of the four confirms is the
+          strong signal that MERRA-2 may be wrong there, while one that some confirm and others do not is less clear-cut. Treat MERRA-2
+          rainfall trends with care. The check is shown for single places (Point or a box), and for a whole country, sea or continent when the record covers at least half of it (the record and MERRA-2 are then both averaged over the same area), over 1981–2025.
         </p>
         <h3>Data source</h3>
         <p>NASA POWER (MERRA-2), monthly/annual values, 0.5° × 0.625° grid.</p>

@@ -1,8 +1,14 @@
 /**
  * The independent-record check (evaluation layer): pure functions on public/data/reference/<VAR>.json, written by
- * pipeline/reference.py. MERRA-2 averaged over the boxes of an independent observation record is compared with that record
- * (T2M: NASA GISTEMP, 2 degree boxes; PRECTOTCORR: GPCP, 2.5 degree boxes). This module says, for the box around a place,
- * whether the record confirms the site's trend, and caps the pattern-check grade accordingly.
+ * pipeline/reference.py. MERRA-2 averaged over the boxes of independent observation records is compared with each record
+ * (T2M: NASA GISTEMP and GHCN-CAMS, 2 degree boxes; PRECTOTCORR: GPCP, CMAP, GPCC and PREC/L, 2.5 degree boxes). This module
+ * says, for the box around a place, how many of the records confirm the site's trend ("confirmed by k of n"), and caps the
+ * pattern-check grade accordingly.
+ *
+ * Class of a site trend with sign s (kind significant or possible): n = records available at the box, k = records whose own
+ * trend is significant (p < 0.05) with sign s, c = significant with the opposite sign.
+ *   contradicted if c > k; confirmed if MORE THAN HALF of the records confirm (2k > n) and k > c; partly if 1 <= k (neither of those);
+ *   unconfirmed if k = 0 and c = 0. Without any available record: none; if the site's kind is none: info.
  *
  * ELIGIBLE box (one definition, also used by the pipeline's `eligible` array): the box is used (>= 40 valid years in both
  * records) and, for T2M, is land (over the sea GISTEMP is water temperature, not air temperature); for PRECTOTCORR its centre
@@ -26,8 +32,33 @@ export interface RefSummary {
   nBoxes: number;
 }
 
+export interface RefRecord {
+  short: string;
+  name: string;
+  what: string;
+  refSlope: (number | null)[];
+  refP: (number | null)[];
+  /** 1 where the box is eligible and the record has >= 40 valid years there. */
+  available: number[];
+}
+
+export interface RefConsensus {
+  confirmed: number;
+  partly: number;
+  unconfirmed: number;
+  contradicted: number;
+  records: string[];
+  nBoxes: number;
+  byCount: Record<string, Record<string, number>>;
+  byCountArea: Record<string, number>;
+}
+
 export interface RefData {
   source: { name: string; short: string; what: string; boxKm: number };
+  /** Every record of the variable, first = the one the site has always used. Older files have none (then only the top-level arrays). */
+  records?: RefRecord[];
+  /** Over the area where MERRA-2's box trend is significant (pipeline/reference_multi.py). */
+  consensus?: RefConsensus;
   lat0: number;
   dlat: number;
   nlat: number;
@@ -47,15 +78,27 @@ export interface RefData {
   summary: RefSummary;
 }
 
-export type RefClass = 'none' | 'info' | 'confirmed' | 'unconfirmed' | 'contradicted';
+export type RefClass = 'none' | 'info' | 'confirmed' | 'partly' | 'unconfirmed' | 'contradicted';
+
+/** One record at one box. `slope`/`p` are null when the record is not available there. */
+export interface BoxRecord {
+  short: string;
+  what: string;
+  slope: number | null;
+  p: number | null;
+  available: boolean;
+}
 
 export interface RefBox {
   index: number;
   /** Centre of the box. */
   lat: number;
   lng: number;
+  /** The first record's trend (GISTEMP / GPCP) and its p. */
   refSlope: number;
   refP: number;
+  /** All records of the variable at this box, first record first. */
+  records: BoxRecord[];
   /** MERRA-2's own trend averaged over the same box, and whether its 95% range overlaps the record's. */
   merraSlope: number | null;
   sizeDiffers: boolean;
@@ -75,23 +118,66 @@ export function boxAt(ref: RefData, lat: number, lng: number): RefBox | null {
   const s = ref.refSlope[k];
   const p = ref.refP[k];
   if (s === null || s === undefined || p === null || p === undefined) return null;
-  return { index: k, lat: ref.lat0 + i * ref.dlat, lng: ref.lon0 + j * ref.dlon, refSlope: s, refP: p, merraSlope: ref.merraSlope[k] ?? null, sizeDiffers: ref.agree?.[k] === 2, badYears: ref.badYears[String(k)] ?? [] };
+  const records: BoxRecord[] = ref.records
+    ? ref.records.map((r) => {
+        const rs = r.refSlope[k];
+        const rp = r.refP[k];
+        const ok = !!r.available[k] && rs !== null && rs !== undefined && rp !== null && rp !== undefined;
+        return { short: r.short, what: r.what, slope: ok ? (rs as number) : null, p: ok ? (rp as number) : null, available: ok };
+      })
+    : [{ short: ref.source.short, what: ref.source.what, slope: s, p, available: true }];
+  return { index: k, lat: ref.lat0 + i * ref.dlat, lng: ref.lon0 + j * ref.dlon, refSlope: s, refP: p, records, merraSlope: ref.merraSlope[k] ?? null, sizeDiffers: ref.agree?.[k] === 2, badYears: ref.badYears[String(k)] ?? [] };
+}
+
+export interface Tally {
+  /** Records available, records significant in the site's direction, records significant the opposite way. */
+  n: number;
+  k: number;
+  c: number;
+}
+
+/** n, k, c for a site slope over the available records of a box. */
+export function tally(records: BoxRecord[], slope: number): Tally {
+  const sign = Math.sign(slope);
+  let n = 0;
+  let k = 0;
+  let c = 0;
+  for (const r of records) {
+    if (!r.available || r.slope === null || r.p === null) continue;
+    n++;
+    if (r.p < P_SIG && sign !== 0) {
+      const rs = Math.sign(r.slope);
+      if (rs === sign) k++;
+      else if (rs === -sign) c++;
+    }
+  }
+  return { n, k, c };
+}
+
+/** The class from the counts (the rule above), for a site trend whose kind is significant or possible. */
+export function classFromCounts(n: number, k: number, c: number): RefClass {
+  if (n <= 0) return 'none';
+  if (c > k) return 'contradicted';
+  if (2 * k > n && k > c) return 'confirmed';
+  if (k >= 1) return 'partly';
+  return 'unconfirmed';
 }
 
 /** The class of the site's trend at a place, from its own verdict kind and slope (full period only). */
 export function classify(kind: VerdictKind, slope: number, box: RefBox | null): RefClass {
   if (!box) return 'none';
+  const { n, k, c } = tally(box.records, slope);
+  if (n === 0) return 'none';
   if (kind === 'none') return 'info';
-  if (box.refP >= P_SIG) return 'unconfirmed';
-  return Math.sign(box.refSlope) === Math.sign(slope) ? 'confirmed' : 'contradicted';
+  return classFromCounts(n, k, c);
 }
 
 const ORDER: Record<string, number> = { robust: 0, caution: 1, doubtful: 2 };
 
-/** The worse of the pattern grade and the cap: unconfirmed -> at best caution, contradicted -> doubtful. */
+/** The worse of the pattern grade and the cap: unconfirmed or partly -> at best caution, contradicted -> doubtful. */
 export function combineGrade(pattern: Grade, cls: RefClass | null): Grade {
   if (pattern !== 'robust' && pattern !== 'caution' && pattern !== 'doubtful') return pattern;
-  const cap: Grade = cls === 'contradicted' ? 'doubtful' : cls === 'unconfirmed' ? 'caution' : pattern;
+  const cap: Grade = cls === 'contradicted' ? 'doubtful' : cls === 'unconfirmed' || cls === 'partly' ? 'caution' : pattern;
   return ORDER[cap] > ORDER[pattern] ? cap : pattern;
 }
 
@@ -114,8 +200,68 @@ export const NOT_COMPARED_TEXT = 'No independent record has been compared for th
 export const CUSTOM_PERIOD_TEXT = `The independent check covers the full period ${FULL_PERIOD_TEXT} only.`;
 export const COUNTRY_NOTE = 'The independent check is shown for single places (Point).';
 
-/** The sentence for a class; `unitsLong` is the display units in words ("°C", "mm/day"). */
-export function classSentence(cls: RefClass, ref: RefData, box: RefBox, unitsLong: string): string {
+/** "A", "A and B", "A, B and C". */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** "+0.44 to +0.56 mm/day per decade" (smaller change first), or the single value when they print the same. */
+function rangeText(slopes: number[], unitsLong: string): string {
+  const same = slopes.every((x) => Math.sign(x) === Math.sign(slopes[0]));
+  const sorted = [...slopes].sort(same ? (a, b) => Math.abs(a) - Math.abs(b) : (a, b) => a - b);
+  const lo = signedRate(sorted[0]);
+  const hi = signedRate(sorted[sorted.length - 1]);
+  return `${lo === hi ? lo : `${lo} to ${hi}`} ${unitsLong} per decade`;
+}
+
+const shows = (count: number) => (count === 1 ? 'shows' : 'show');
+
+/**
+ * The sentence for a class; `unitsLong` is the display units in words ("°C", "mm/day"). With one available record it is the
+ * one-record sentence; with several it names the records ("Confirmed by 3 of 4 independent records (...)"). `slope` is the
+ * site's slope per decade (its sign decides which records confirm); it defaults to the first record's.
+ */
+export function classSentence(cls: RefClass, ref: RefData, box: RefBox, unitsLong: string, slope: number = box.refSlope): string {
+  const avail = box.records.filter((r) => r.available && r.slope !== null && r.p !== null);
+  if (avail.length <= 1) return oneRecordSentence(cls, ref, box, unitsLong);
+  const N = avail.length;
+  const km = ref.source.boxKm;
+  const tail = `for the roughly ${km} km box around this place`;
+  const sign = Math.sign(slope);
+  const conf = avail.filter((r) => (r.p as number) < P_SIG && sign !== 0 && Math.sign(r.slope as number) === sign);
+  const opp = avail.filter((r) => (r.p as number) < P_SIG && sign !== 0 && Math.sign(r.slope as number) === -sign);
+  const quiet = avail.filter((r) => !conf.includes(r) && !opp.includes(r));
+  const names = (rs: BoxRecord[]) => joinNames(rs.map((r) => r.short));
+  const rates = (rs: BoxRecord[]) => rangeText(rs.map((r) => r.slope as number), unitsLong);
+  /** What the records that do not confirm say. */
+  const others = () => {
+    const parts: string[] = [];
+    if (quiet.length) parts.push(`${names(quiet)} ${shows(quiet.length)} no significant change`);
+    if (opp.length) parts.push(`${names(opp)} ${shows(opp.length)} the opposite, ${rates(opp)}`);
+    return parts;
+  };
+  if (cls === 'confirmed') {
+    const size =
+      box.sizeDiffers && box.merraSlope !== null
+        ? ` The size differs, though: averaged over the same box MERRA-2 shows ${signedRate(box.merraSlope)} ${unitsLong} per decade.`
+        : '';
+    const rest = conf.length < N ? ` ${others().join('; ')}.` : '';
+    return `Confirmed by ${conf.length} of ${N} independent records (${names(conf)}): ${conf.length > 1 ? 'they show' : 'it shows'} ${rates(conf)} ${tail}.${rest}${size}`;
+  }
+  if (cls === 'partly')
+    return `Confirmed by ${conf.length} of ${N} independent records only: ${names(conf)} ${shows(conf.length)} ${rates(conf)}; ${others().join('; ')} ${tail}.`;
+  if (cls === 'unconfirmed') return `Not confirmed by any of ${N} independent records (${names(avail)}): none shows a significant change ${tail}.`;
+  if (cls === 'contradicted')
+    return `Contradicted: ${opp.length} of ${N} independent records (${names(opp)}) ${shows(opp.length)} the opposite, ${rates(opp)} ${tail}.${conf.length ? ` ${conf.length} confirm${conf.length === 1 ? 's' : ''} it.` : ''}`;
+  // info: the site sees no clear trend here
+  const sig = avail.filter((r) => (r.p as number) < P_SIG);
+  if (sig.length)
+    return `MERRA-2 shows no clear trend here, but ${sig.length} of ${N} independent records ${sig.length === 1 ? 'does' : 'do'} (${names(sig)}): ${rates(sig)} ${tail}.`;
+  return `Independent records (${names(avail)}): none shows a significant change ${tail}.`;
+}
+
+function oneRecordSentence(cls: RefClass, ref: RefData, box: RefBox, unitsLong: string): string {
   const src = sourceText(ref);
   const rate = `${signedRate(box.refSlope)} ${unitsLong} per decade`;
   const km = ref.source.boxKm;
@@ -137,9 +283,22 @@ export function classSentence(cls: RefClass, ref: RefData, box: RefBox, unitsLon
   return `Independent record: ${src} shows ${rate} for the roughly ${km} km box around this place (${fmtP(box.refP)}).`;
 }
 
+/** One record in a check result (the `__lastResult.reference.records` hook). */
+export interface CheckRecord {
+  short: string;
+  slope: number | null;
+  p: number | null;
+  available: boolean;
+}
+
 export interface RefCheck {
   /** null: a custom period is selected (no class, no cap). */
   cls: RefClass | null;
+  /** Records available / significant in the site's direction / significant the opposite way (0 when there is no check). */
+  n: number;
+  k: number;
+  c: number;
+  records: CheckRecord[];
   short: string | null;
   /** The main sentence (always set). */
   sentence: string;
@@ -171,7 +330,7 @@ export interface CheckInput {
 }
 
 const EMPTY: Omit<RefCheck, 'cls' | 'short' | 'sentence'> = {
-  refSlope: null, refP: null, boxLat: null, boxLng: null, badYears: [], badSentence: null, slopeWithout: null, pWithout: null, withoutSentence: null,
+  n: 0, k: 0, c: 0, records: [], refSlope: null, refP: null, boxLat: null, boxLng: null, badYears: [], badSentence: null, slopeWithout: null, pWithout: null, withoutSentence: null,
 };
 
 export const MIN_YEARS_WITHOUT = 10;
@@ -187,11 +346,14 @@ export function referenceCheck(inp: CheckInput): RefCheck {
     return { ...EMPTY, cls: 'none', short, sentence: `No independent record can check this here (${noReferenceReason(inp.variable, inp.lat)}).` };
   }
   const cls = classify(inp.kind, inp.slope, box);
+  const { n, k, c } = tally(box.records, inp.slope);
   const out: RefCheck = {
     ...EMPTY,
     cls,
     short,
-    sentence: classSentence(cls, ref, box, inp.unitsLong),
+    n, k, c,
+    records: box.records.map((r) => ({ short: r.short, slope: r.slope, p: r.p, available: r.available })),
+    sentence: classSentence(cls, ref, box, inp.unitsLong, inp.slope),
     refSlope: box.refSlope,
     refP: box.refP,
     boxLat: box.lat,
@@ -221,24 +383,46 @@ export function referenceCheck(inp: CheckInput): RefCheck {
   return out;
 }
 
-/** Short Detective reason for an unconfirmed / contradicted line, or the "· Confirmed by X" tail, or null. */
-export function shortCheckText(cls: RefClass | null, short: string | null): { reason: string | null; tail: string | null } {
+/**
+ * Short Detective reason for a partly / unconfirmed / contradicted line, or the "· Confirmed by ..." tail, or null. With several
+ * records (counts.n > 1): "Confirmed by only K of N records." / "Not confirmed by any of N records." / "Contradicted by C of N
+ * records." / " · Confirmed by K of N records"; with one record the name of the record is used.
+ */
+export function shortCheckText(cls: RefClass | null, short: string | null, counts?: Tally | null): { reason: string | null; tail: string | null } {
   if (!short) return { reason: null, tail: null };
+  if (counts && counts.n > 1) {
+    const { n, k, c } = counts;
+    if (cls === 'partly') return { reason: `Confirmed by only ${k} of ${n} records.`, tail: null };
+    if (cls === 'unconfirmed') return { reason: `Not confirmed by any of ${n} records.`, tail: null };
+    if (cls === 'contradicted') return { reason: `Contradicted by ${c} of ${n} records.`, tail: null };
+    if (cls === 'confirmed') return { reason: null, tail: ` · Confirmed by ${k} of ${n} records` };
+    return { reason: null, tail: null };
+  }
   if (cls === 'unconfirmed') return { reason: `Not confirmed by ${short}.`, tail: null };
   if (cls === 'contradicted') return { reason: `Contradicted by ${short}.`, tail: null };
   if (cls === 'confirmed') return { reason: null, tail: ` · Confirmed by ${short}` };
   return { reason: null, tail: null };
 }
 
-/** The Menu line: "Independent check (SHORT): NN% of the significant area confirmed, ...". null when there is no summary. */
+/**
+ * The Menu line: "Checked against N records (SHORTS): NN% confirmed · NN% partly · NN% not confirmed · NN% contradicted" (the
+ * consensus over the area where MERRA-2 is significant; T2M adds "(land)"). Files without a consensus use the first record's
+ * summary. null when there is no summary.
+ */
 export function summaryLine(variable: string, ref: RefData | null): string | null {
-  const s = ref?.summary;
-  if (!ref || !s || s.confirmed === null || s.unconfirmed === null || s.contradicted === null) return null;
+  if (!ref) return null;
   const pc = (x: number) => `${Math.round(x * 100)}%`;
-  return (
-    `Checked against ${ref.source.short}${variable === 'T2M' ? ' (land)' : ''}: ${pc(s.confirmed)} confirmed · ` +
-    `${pc(s.unconfirmed)} not confirmed · ${pc(s.contradicted)} contradicted`
-  );
+  const land = variable === 'T2M' ? ' (land)' : '';
+  const cs = ref.consensus;
+  if (cs && ref.records && ref.records.length > 1) {
+    return (
+      `Checked against ${ref.records.length} records (${joinNames(ref.records.map((r) => r.short))})${land}: ${pc(cs.confirmed)} confirmed · ` +
+      `${pc(cs.partly)} partly · ${pc(cs.unconfirmed)} not confirmed · ${pc(cs.contradicted)} contradicted`
+    );
+  }
+  const s = ref.summary;
+  if (!s || s.confirmed === null || s.unconfirmed === null || s.contradicted === null) return null;
+  return `Checked against ${ref.source.short}${land}: ${pc(s.confirmed)} confirmed · ${pc(s.unconfirmed)} not confirmed · ${pc(s.contradicted)} contradicted`;
 }
 
 // ---- loader ------------------------------------------------------------------------------------------------------------

@@ -174,7 +174,7 @@ export default function CountryOverlay(p: Props) {
     if (!lr || !analysis || !reference || lr.variable !== meta.variable || typeof lr.area.sizeDeg === 'number') return;
     lr.quality.combined = combineGrade(lr.quality.grade, reference.cls);
     lr.reference = {
-      cls: reference.cls, short: reference.short, refSlope: reference.refSlope, refP: reference.refP, boxLat: null, boxLng: null,
+      cls: reference.cls, short: reference.short, refSlope: reference.refSlope, refP: reference.refP, boxLat: null, boxLng: null, n: reference.n, k: reference.k, c: reference.c, records: reference.records,
       badYears: reference.badYears, slopeWithout: reference.slopeWithout, pWithout: reference.pWithout, coverage: reference.coverage,
     };
   }, [reference, analysis, meta.variable]);

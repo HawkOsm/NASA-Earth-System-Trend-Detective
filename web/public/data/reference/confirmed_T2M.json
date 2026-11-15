@@ -4,10 +4,15 @@
   "short": "NASA GISTEMP",
   "name": "GISTEMP v4 (NASA GISS), surface temperature anomaly"
  },
+ "records": [
+  "NASA GISTEMP",
+  "GHCN-CAMS"
+ ],
  "shares": {
   "significant": 0.6897809099367372,
-  "confirmed": 0.1839781930586521,
-  "notConfirmed": 0.005356960944482924,
+  "confirmed": 0.17081546857571717,
+  "partly": 0.014044885531614053,
+  "notConfirmed": 0.004474799895803769,
   "uncheckable": 0.5004457559336021
  }
 }

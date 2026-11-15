@@ -80,6 +80,32 @@ describe('areaCheck', () => {
   });
 });
 
+describe('areaCheck with several records', () => {
+  const recs = [{ short: 'GPCP', name: 'g', what: 'rain gauges and satellites' }, { short: 'CMAP', name: 'c', what: 'rain gauges and satellites' }, { short: 'GPCC', name: 'g', what: 'rain gauges' }, { short: 'PREC/L', name: 'p', what: 'rain gauges' }];
+  const mk = (rows: [number, number][]) => data({
+    source: { name: 'x', short: 'GPCP', what: 'rain gauges and satellites', boxKm: 280 },
+    records: recs,
+    countries: { '5': entry({ refSlope: rows[0][0], refP: rows[0][1], records: rows.map((r, i) => ({ short: recs[i].short, refSlope: r[0], refP: r[1], coverage: 1 })) }) },
+  });
+  it('confirmed by 3 of 4 in area wording; n, k, c and records for the hook', () => {
+    const c = areaCheck({ ...base, variable: 'PRECTOTCORR', unitsLong: 'mm/day', slope: 0.5, data: mk([[0.09, 0.5], [0.56, 0.001], [0.44, 0.006], [0.48, 0.001]]), kind: 'countries', key: '5' });
+    expect(c).toMatchObject({ cls: 'confirmed', n: 4, k: 3, c: 0 });
+    expect(c.sentence).toBe('Confirmed by 3 of 4 independent records (CMAP, GPCC and PREC/L): they show +0.44 to +0.56 mm/day per decade averaged over the same area. GPCP shows no significant change.');
+    expect(c.records.map((r) => r.short)).toEqual(['GPCP', 'CMAP', 'GPCC', 'PREC/L']);
+  });
+  it('a record that does not cover the area is not counted', () => {
+    const d = mk([[0.3, 0.001], [0.2, 0.01], [0.2, 0.01], [0.2, 0.01]]);
+    d.countries['5'].records = d.countries['5'].records!.slice(0, 2);
+    const c = areaCheck({ ...base, variable: 'PRECTOTCORR', unitsLong: 'mm/day', slope: 0.3, data: d, kind: 'countries', key: '5' });
+    expect(c).toMatchObject({ n: 2, k: 2 });
+    expect(c.records.map((r) => r.available)).toEqual([true, true, false, false]);
+  });
+  it('unconfirmed by all', () => {
+    const c = areaCheck({ ...base, variable: 'PRECTOTCORR', unitsLong: 'mm/day', slope: 0.3, data: mk([[0.01, 0.6], [0.0, 0.9], [0.02, 0.5], [0.01, 0.7]]), kind: 'countries', key: '5' });
+    expect(c.sentence).toBe('Not confirmed by any of 4 independent records (GPCP, CMAP, GPCC and PREC/L): none shows a significant change averaged over the same area.');
+  });
+});
+
 describe('areaLineChecks (Detective, continents)', () => {
   const rank = {
     cell: { lat: 0, lng: 0 }, cellKm: 50, noData: [],
@@ -90,7 +116,7 @@ describe('areaLineChecks (Detective, continents)', () => {
   } as unknown as RankResult;
   it('gives cls and short for reference variables only', () => {
     const m = areaLineChecks(rank, new Map([['T2M', data()]]), 'regions', 'Europe');
-    expect(m.get('T2M')).toEqual({ cls: 'confirmed', short: 'NASA GISTEMP' });
+    expect(m.get('T2M')).toEqual({ cls: 'confirmed', short: 'NASA GISTEMP', n: 1, k: 1, c: 0 });   // updated: also carries n, k, c
     expect(m.has('RH2M')).toBe(false);
   });
 });

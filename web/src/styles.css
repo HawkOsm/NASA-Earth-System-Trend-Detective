@@ -173,7 +173,7 @@ html, body, #root {
 .refcheck-label { display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9aa4bb; }
 .refcheck-text { margin: 3px 0 0; font-size: 0.88rem; line-height: 1.4; color: #dde2ec; overflow-wrap: anywhere; }
 .refcheck-confirmed .refcheck-label { color: #5fc08a; }
-.refcheck-unconfirmed .refcheck-label { color: #e6aa28; }
+.refcheck-unconfirmed .refcheck-label, .refcheck-partly .refcheck-label { color: #e6aa28; }
 .refcheck-contradicted .refcheck-label { color: #e8693a; }
 .refcheck-note { margin-top: 8px; }
 .dt-confirmed { color: #5fc08a; }
