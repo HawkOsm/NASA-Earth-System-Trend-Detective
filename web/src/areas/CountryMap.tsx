@@ -27,7 +27,7 @@ import {
   type ProvinceTrend,
 } from './country';
 import type { VariableMeta } from '../data/data';
-import { hexToRgb, overlayPixels } from '../map/rangeMap';
+import { FADED_WEIGHT, hexToRgb, overlayPixels } from '../map/rangeMap';
 
 const DLAT = 0.5;
 const DLNG = 0.625;
@@ -42,8 +42,6 @@ function loadSeaLand(): Promise<LandPolygon[]> {
   }
   return seaLand;
 }
-/** Overlay weight of a cell that is not significant on its own (a significant cell is 1). */
-const FADED_WEIGHT = 0.3;
 import { signedRate } from '../point/analysis';
 import { formatLatLng, rateUnits } from '../data/format';
 import { fmtPValue } from '../stats/trend';

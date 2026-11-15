@@ -3,11 +3,11 @@
  * every place on the map is tested at once (Benjamini-Hochberg, rangeMap.ts). Typical for periods of about ten years.
  */
 import { periodText, type Period } from '../menu/period';
+import { SPARSE_SHARE } from './rangeMap';
 
-/** Below this share of the map the menu line reads "0%", and the map looks empty. */
+/** Below this share of the map the menu line reads "0%". */
 export const EMPTY_SHARE = 0.005;
-/** Below this share the map is not empty but looks it: a few specks of colour. */
-export const SPARSE_SHARE = 0.03;
+export { SPARSE_SHARE };
 
 export interface ShownMap {
   start: number;
@@ -16,7 +16,10 @@ export interface ShownMap {
   recomputed: boolean;
 }
 
-/** True when the map on screen was recomputed for a chosen period and (almost) nothing on it is significant. */
+/**
+ * True when the map on screen was recomputed for a chosen period and (almost) nothing on it passes the map-wide test.
+ * The map then shows every change (rangeMap.ts finishResult) and the notice explains how to read it.
+ */
 export function isEmptyMap(shown: ShownMap): boolean {
   return shown.recomputed && Number.isFinite(shown.fracSignificant) && shown.fracSignificant < SPARSE_SHARE;
 }
@@ -26,10 +29,16 @@ export function emptyMapText(shown: ShownMap): string {
   const n = shown.end - shown.start + 1;
   const head =
     shown.fracSignificant < EMPTY_SHARE
-      ? `Nothing on the map is significant for ${periodText(period)}.`
-      : `Only ${Math.max(1, Math.round(shown.fracSignificant * 100))}% of the map is significant for ${periodText(period)}.`;
+      ? `No trend passes the map-wide test for ${periodText(period)}`
+      : `Only ${Math.max(1, Math.round(shown.fracSignificant * 100))}% of the map passes the map-wide test for ${periodText(period)}`;
   return (
-    `${head} With only ${n} years, few trends stand out clearly enough once every place on the map is tested at ` +
-    'once, so the map stays mostly plain. A click still shows the trend for the place you pick. Try a longer period.'
+    `${head}, so the map shows every change instead, as the country view does: strong colour where a place is ` +
+    `significant on its own, faded where it is not. With only ${n} years, about 1 place in 20 looks significant by ` +
+    'chance alone, so read this as the direction of change, not as proof. A longer period gives a firmer answer.'
   );
+}
+
+/** Menu line for a map that shows every change (replaces "Plain map = no significant trend"). */
+export function allChangesLine(shown: ShownMap, shareOf: string): string {
+  return `Every change is drawn: strong = significant at that place on its own, faded = not significant. ${Math.round(shown.fracSignificant * 100)}% ${shareOf} passes the map-wide test`;
 }

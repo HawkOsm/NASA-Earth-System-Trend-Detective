@@ -1083,7 +1083,7 @@ export default function App() {
               </button>
             }
           />
-          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} />
+          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} onDetective={() => setDetectiveOpen(true)} />
           <EmptyMapNote
             shown={range.shown}
             period={period}

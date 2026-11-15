@@ -17,7 +17,9 @@ export default function EmptyMapNote({ shown, period, fullYears, covered, onRese
   if (covered || !isEmptyMap(shown) || shown.start !== period[0] || shown.end !== period[1]) return null;
   return (
     <div className="empty-map" role="status">
-      <p>{emptyMapText(shown)}</p>
+      <p>
+        <strong>The map follows a different rule for this short period.</strong> {emptyMapText(shown)}
+      </p>
       <button type="button" className="empty-map-btn" onClick={onReset}>
         Show {periodText(fullYears)}
       </button>

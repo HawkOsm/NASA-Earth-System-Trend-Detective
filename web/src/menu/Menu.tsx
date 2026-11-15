@@ -6,6 +6,7 @@ import { CONFIRMED_DISABLED_TEXT } from '../map/confirmedMap';
 import { WHOLE_GLOBE_BUTTON_BELOW } from '../point/detail';
 import { rateUnits } from '../data/format';
 import { formatTick, overlayBarCss } from '../map/legend';
+import { allChangesLine } from '../map/emptyMap';
 import PeriodBar from './PeriodBar';
 import { periodText, type Period } from './period';
 
@@ -56,7 +57,7 @@ export interface MenuProps {
   recomputing: number | null;
   mapFailed: boolean;
   /** The map actually displayed: its period, colour range and share of significant cells. */
-  shown: { start: number; end: number; vmax: number; fracSignificant: number; recomputed: boolean };
+  shown: { start: number; end: number; vmax: number; fracSignificant: number; recomputed: boolean; allChanges?: boolean };
   /** Wind streaks need the 3D globe; `available` is false on the flat map. */
   wind: { available: boolean; on: boolean; onChange: (on: boolean) => void };
   click: { lift: boolean; sizeDeg: number; onLift: () => void; onSize: (size: number) => void };
@@ -218,6 +219,8 @@ export default function Menu(p: MenuProps) {
                 />
                 {p.confirmed?.on && p.confirmed.line
                   ? p.confirmed.line
+                  : shown.allChanges
+                  ? allChangesLine(shown, shareOfText(meta.surface))
                   : `Plain map = no significant trend · ${Math.round(shown.fracSignificant * 100)}% ${shareOfText(meta.surface)} shows one`}
               </div>
               {shown.recomputed && <div className="menu-dim menu-note">Recomputed for this period at about 100 km detail.</div>}

@@ -21,6 +21,14 @@ export interface AnnualMeta {
 }
 
 export const ALPHA = 0.05;
+/**
+ * When less than this share of a period map passes the map-wide test, the map would look empty (typical below about
+ * 15 years). It then shows every change instead, with the rule of the lifted country view: full strength where a
+ * place is significant on its own (p < ALPHA), FADED_WEIGHT elsewhere. See finishResult.
+ */
+export const SPARSE_SHARE = 0.03;
+/** Overlay weight of a cell that is not significant (a significant cell is 1). Shared with the lifted country view. */
+export const FADED_WEIGHT = 0.3;
 export const TEX_W = 1440;
 export const TEX_H = 720;
 
@@ -319,7 +327,10 @@ export interface RangeResult {
   p: Float64Array;
   q: Float64Array;
   vmax: number;
+  /** Share of the map that passes the map-wide test (q < ALPHA). */
   fracSignificant: number;
+  /** True when that share is below SPARSE_SHARE and the texture therefore shows every change (see SPARSE_SHARE). */
+  allChanges: boolean;
   /** Texture pixels (TEX_W x TEX_H RGBA). */
   rgba: Uint8ClampedArray;
 }
@@ -337,8 +348,14 @@ export function finishResult(
 ): RangeResult {
   const q = bhAdjust(stats.p);
   const vmax = symmetricVmax(stats.slope);
+  const frac = fracSignificant(q, stats.slope, meta);
+  const allChanges = frac < SPARSE_SHARE;
   const sig = new Float64Array(q.length);
-  for (let i = 0; i < q.length; i++) sig[i] = Number.isNaN(q[i]) ? NaN : q[i] < ALPHA ? 1 : 0; // NaN = no data
+  for (let i = 0; i < q.length; i++) {
+    if (Number.isNaN(q[i])) sig[i] = NaN; // no data
+    else if (allChanges) sig[i] = stats.p[i] < ALPHA ? 1 : FADED_WEIGHT;
+    else sig[i] = q[i] < ALPHA ? 1 : 0;
+  }
   const rgba = overlayPixels(bilinearToPixels(stats.slope, meta), bilinearToPixels(sig, meta), vmax, stopsHex, base, render);
   return {
     variable,
@@ -349,7 +366,8 @@ export function finishResult(
     p: stats.p,
     q,
     vmax,
-    fracSignificant: fracSignificant(q, stats.slope, meta),
+    fracSignificant: frac,
+    allChanges,
     rgba,
   };
 }

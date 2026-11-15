@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_SHARE, SPARSE_SHARE, emptyMapText, isEmptyMap } from './emptyMap';
+import { EMPTY_SHARE, SPARSE_SHARE, allChangesLine, emptyMapText, isEmptyMap } from './emptyMap';
 
 describe('empty map notice', () => {
   it('shows for a recomputed period with nothing significant', () => {
@@ -10,7 +10,7 @@ describe('empty map notice', () => {
   it('shows, with the share, when only a few specks are significant', () => {
     const shown = { start: 2001, end: 2015, fracSignificant: 0.0231, recomputed: true };
     expect(isEmptyMap(shown)).toBe(true);
-    expect(emptyMapText(shown)).toContain('Only 2% of the map is significant for 2001–2015.');
+    expect(emptyMapText(shown)).toContain('Only 2% of the map passes the map-wide test for 2001–2015, so the map shows every change instead');
     expect(emptyMapText({ ...shown, fracSignificant: EMPTY_SHARE })).toContain('Only 1% of the map');
   });
 
@@ -24,10 +24,17 @@ describe('empty map notice', () => {
     expect(isEmptyMap({ start: 2016, end: 2025, fracSignificant: NaN, recomputed: true })).toBe(false);
   });
 
-  it('names the period and the number of years', () => {
+  it('names the period, the number of years and how to read the colours', () => {
     const text = emptyMapText({ start: 2016, end: 2025, fracSignificant: 0, recomputed: true });
-    expect(text).toContain('2016–2025');
-    expect(text).toContain('only 10 years');
-    expect(text).toContain('Try a longer period.');
+    expect(text).toContain('No trend passes the map-wide test for 2016–2025');
+    expect(text).toContain('strong colour where a place is significant on its own, faded where it is not');
+    expect(text).toContain('With only 10 years');
+    expect(text).toContain('not as proof');
+  });
+
+  it('the menu line says that every change is drawn', () => {
+    expect(allChangesLine({ start: 2016, end: 2025, fracSignificant: 0.004, recomputed: true }, 'of the globe')).toBe(
+      'Every change is drawn: strong = significant at that place on its own, faded = not significant. 0% of the globe passes the map-wide test',
+    );
   });
 });

@@ -10,6 +10,7 @@ import {
   computeCells,
   extractChunk,
   finishResult,
+  SPARSE_SHARE,
   fracSignificant,
   hexToRgb,
   interpStops,
@@ -231,5 +232,42 @@ describe('per-cell computation on a synthetic grid', () => {
     expect(v.slopeDecade).toBe(stats.slope[1 * 4 + 1]);
     expect(v.q).toBe(r.q[1 * 4 + 1]);
     expect(nearestCell(meta, 0, 178)).toEqual({ i: 1, j: 0 }); // wraps to lon -180
+  });
+
+  describe('a period map on which almost nothing passes the map-wide test shows every change', () => {
+    const stops = ['#0000ff', '#0000ff', '#0000ff', '#0000ff', '#0000ff', '#ffffff', '#ff0000', '#ff0000', '#ff0000', '#ff0000', '#ff0000'];
+    const render = { basemap: 'basemap.png', color_floor: 0.3, alpha_max: 0.92, alpha_full_at: 0.5, ocean: '#96bedc', land: '#b0cd96' };
+    const base = new Uint8ClampedArray(1440 * 720 * 4).fill(200);
+    const pixel = (r: { rgba: Uint8ClampedArray }, lat: number, lng: number) => {
+      const x = Math.floor(((lng + 180) / 360) * 1440);
+      const y = Math.floor(((90 - lat) / 180) * 720);
+      return Array.from(r.rgba.slice((y * 1440 + x) * 4, (y * 1440 + x) * 4 + 3));
+    };
+    const distance = (c: number[]) => Math.abs(c[0] - 200) + Math.abs(c[1] - 200) + Math.abs(c[2] - 200);
+    const own = 1 * 4 + 1; // the cell at lat 0, lng -90
+
+    it('strong where a place is significant on its own, faded elsewhere, plain nowhere', () => {
+      const slope = new Float64Array(ncells).fill(1);
+      const p = new Float64Array(ncells).fill(0.5);
+      p[own] = 0.04; // significant on its own; after the map-wide correction nothing is
+      const r = finishResult('T2M', 2016, 2025, meta, { slope, p }, stops, base, render);
+      expect(r.fracSignificant).toBe(0);
+      expect(r.allChanges).toBe(true);
+      const strong = distance(pixel(r, 0, -90));
+      const faded = distance(pixel(r, 0, 90));
+      expect(faded).toBeGreaterThan(0); // not plain
+      expect(strong).toBeGreaterThan(2 * faded); // weight 1 against FADED_WEIGHT
+    });
+
+    it('a map with enough significant area keeps the rule "plain = not significant"', () => {
+      const slope = new Float64Array(ncells).fill(1);
+      const p = new Float64Array(ncells).fill(0.9);
+      for (let k = 0; k < ncells; k += 2) p[k] = 1e-6;
+      p[own] = 0.9;
+      const r = finishResult('T2M', 1991, 2025, meta, { slope, p }, stops, base, render);
+      expect(r.allChanges).toBe(false);
+      expect(r.fracSignificant).toBeGreaterThan(SPARSE_SHARE);
+      expect(pixel(r, 0, -90)).toEqual([200, 200, 200]); // the base map shows through
+    });
   });
 });

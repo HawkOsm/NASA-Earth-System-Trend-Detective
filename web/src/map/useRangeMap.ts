@@ -27,6 +27,8 @@ declare global {
       variable: string;
       vmax: number;
       fracSignificant: number;
+      /** The map on screen shows every change because almost nothing passes the map-wide test. */
+      allChanges: boolean;
       ms: number;
       valueAt: (lat: number, lng: number) => ReturnType<typeof valueAtResult> | undefined;
     };
@@ -176,7 +178,7 @@ export interface RangeMapView {
   /** Texture currently shown (PNG for the full period, otherwise the recomputed canvas image). */
   textureUrl: string;
   /** Period, vmax and significance share of the texture that is currently shown. */
-  shown: { start: number; end: number; vmax: number; fracSignificant: number; recomputed: boolean };
+  shown: { start: number; end: number; vmax: number; fracSignificant: number; recomputed: boolean; allChanges: boolean };
   progress: number;
 }
 
@@ -255,6 +257,7 @@ export function useRangeMap(variable: string, period: Period, meta: VariableMeta
           vmax: meta?.vmax ?? 1,
           fracSignificant: meta?.frac_significant ?? 0,
           recomputed: false,
+          allChanges: false,
         },
         progress,
       }
@@ -267,6 +270,7 @@ export function useRangeMap(variable: string, period: Period, meta: VariableMeta
           vmax: shownRes!.result.vmax,
           fracSignificant: shownRes!.result.fracSignificant,
           recomputed: true,
+          allChanges: shownRes!.result.allChanges,
         },
         progress,
       };
@@ -282,6 +286,7 @@ export function useRangeMap(variable: string, period: Period, meta: VariableMeta
       variable,
       vmax: res ? res.vmax : meta?.vmax ?? NaN,
       fracSignificant: res ? res.fracSignificant : meta?.frac_significant ?? NaN,
+      allChanges: res ? res.allChanges : false,
       ms: res ? msRef.current : 0,
       valueAt: (lat, lng) => (res && res.start === p0 && res.end === p1 ? valueAtResult(res, lat, lng) : undefined),
     };

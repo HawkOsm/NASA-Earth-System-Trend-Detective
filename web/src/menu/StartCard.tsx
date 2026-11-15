@@ -16,13 +16,15 @@ interface Props {
   /** Something else is in front (side panel, country piece, Detective): the card steps aside but is not dismissed. */
   covered: boolean;
   onOpen: (finding: StartFinding) => void;
+  /** Opens the Detective panel (a place or a question typed in words). */
+  onDetective: () => void;
 }
 
 /**
- * A strip across the top of the globe for a first-time visitor: one line saying what a click does, and three findings
- * that open the ordinary point panel. It closes for the rest of the visit when the visitor closes it or opens a finding.
+ * A strip across the top of the globe for a first-time visitor: one line saying what a click does, three findings
+ * that open the ordinary point panel, and a way into the Detective. It closes for the rest of the visit when the visitor closes it or opens a finding.
  */
-export default function StartCard({ covered, onOpen }: Props) {
+export default function StartCard({ covered, onOpen, onDetective }: Props) {
   const [closed, setClosed] = useState(alreadyClosed);
   const close = () => {
     setClosed(true);
@@ -37,7 +39,8 @@ export default function StartCard({ covered, onOpen }: Props) {
     <section className="start" aria-label="Where to start">
       <div className="start-top">
         <p className="start-lead">
-          <strong>New here?</strong> Click anywhere on the globe, or open a finding that an independent record confirms:
+          <strong>New here?</strong> Click anywhere on the globe, open a finding that an independent record confirms, or ask the
+          Detective about any place:
         </p>
         <button type="button" className="start-close" onClick={close} aria-label="Close the start card">
           Got it
@@ -62,6 +65,20 @@ export default function StartCard({ covered, onOpen }: Props) {
             </button>
           </li>
         ))}
+        <li>
+          <button
+            type="button"
+            className="start-item start-detective"
+            onClick={() => {
+              close();
+              onDetective();
+            }}
+          >
+            <span className="start-headline">Ask the Detective</span>
+            <span className="start-rate">Type a place or a question, like &ldquo;What is changing in Europe?&rdquo;</span>
+            <span className="start-record">It ranks all ten variables there. No AI: it looks the answer up.</span>
+          </button>
+        </li>
       </ul>
     </section>
   );

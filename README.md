@@ -79,6 +79,13 @@ browser, in Web Workers, from a coarse annual grid (`web/public/data/<VAR>_annua
 Sen-interval statistics on the years in the period, followed by Benjamini–Hochberg over all cells. For the full
 1981–2025 period the precomputed full-resolution texture is used instead.
 
+**Short periods.** Over ten years no trend passes the map-wide test for any of the ten variables, and over fifteen years
+almost none does for seven of them, so a map that only colours what passes would be empty. When less than 3% of a period map
+passes (`SPARSE_SHARE` in `web/src/map/rangeMap.ts`), the map switches to the rule of the lifted country view: every change is
+drawn, strong where a place is significant on its own (p < 0.05, no map-wide correction) and faded where it is not. A notice on
+the map says that the rule has changed and that about 1 place in 20 looks significant by chance alone, and the menu line changes
+with it. This keeps the globe and the country view in step for the same period.
+
 The statistics are implemented twice — Python (`pipeline/core/trendstats.py`) for the map and TypeScript
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series
 (`pipeline/tests/fixtures/`) so the two agree to 1e-12.
