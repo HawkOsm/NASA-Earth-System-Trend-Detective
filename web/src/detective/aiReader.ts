@@ -8,7 +8,7 @@
  * (`?ai=0`), the Detective falls back to its own word matching.
  */
 export const AI_READER_URL = 'https://trend-detective-ai-589159634791.europe-west1.run.app/ask';
-export const AI_TIMEOUT_MS = 7000;
+export const AI_TIMEOUT_MS = 9500;
 
 export const AI_VARIABLES = ['T2M', 'T2M_MAX', 'PRECTOTCORR', 'GWETROOT', 'EVLAND', 'RH2M', 'FRSNO', 'FRSEAICE', 'WS2M', 'TO3'] as const;
 /** How a variable is named in the sentence that says how the question was read. */

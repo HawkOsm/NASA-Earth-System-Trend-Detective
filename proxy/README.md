@@ -14,8 +14,8 @@ It never returns a number about the climate. The site looks every number up in i
 
 - **Who may call it:** only the site's own addresses (`ALLOWED_ORIGINS`, default the GitHub Pages site and localhost).
 - **Limits:** a question is cut at 300 characters; 12 questions a minute per address; 1,500 a day in total.
-- **Models:** `MODELS`, tried in order (default `gemini-3.5-flash`, then `gemini-flash-lite-latest`), each with a
-  6 second limit.
+- **Models:** `MODELS`, tried in order, each with a 3 second limit: Gemini Flash-Lite twice (it answers this small
+  task in about a second and is sometimes briefly overloaded), then Gemini Flash as the backup.
 - **Key:** the environment variable `GEMINI_API_KEY`, filled from Secret Manager. It is not in this repository.
 - **No dependencies.** `node server.js` runs it; `node --test` runs its tests.
 

@@ -469,7 +469,8 @@ This project was built with substantial AI assistance, disclosed here as the hac
   precomputed grid.
 
 **AI on the site.** One part of the site uses an AI model at runtime: the Detective sends a typed question to Google's
-**Gemini Flash**, which returns its reading of the question as a small structured object: the place (with its position), the
+**Gemini** (the Flash-Lite model, which answers in about a second, with Flash as the backup), which returns its reading of the
+question as a small structured object: the place (with its position), the
 years and the variable. Nothing else comes from the model. Every number shown is looked up from the precomputed statistics
 described above, and the answer says how Gemini read the question ("Gemini read this as: Gobi Desert, 1990–1999, about
 rainfall"). If the model is slow, refuses or is switched off (`?ai=0`), the Detective falls back to its own word matching.

@@ -18,11 +18,13 @@ const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://hawkosm.github.io,http:
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
-const MODELS = (process.env.MODELS || 'gemini-3.5-flash,gemini-flash-lite-latest')
+// Tried in order. Flash-Lite answers this small task in about a second and is tried twice (it is sometimes briefly
+// overloaded); Flash, slower because it reasons first, is the backup.
+const MODELS = (process.env.MODELS || 'gemini-flash-lite-latest,gemini-flash-lite-latest,gemini-3.5-flash')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
-const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 6000);
+const MODEL_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS || 3000);
 const MAX_TEXT = 300;
 const PER_MINUTE = 12;
 const PER_DAY = 1500;
@@ -89,7 +91,14 @@ async function callModel(model, text) {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
         contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 1000, responseMimeType: 'application/json', responseSchema: SCHEMA },
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 1000,
+          responseMimeType: 'application/json',
+          responseSchema: SCHEMA,
+          // The task needs no reasoning step; without it Flash answers in a few seconds instead of up to fifteen.
+          ...(model.includes('lite') ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+        },
       }),
     });
     if (!res.ok) throw new Error(`model ${model}: HTTP ${res.status}`);

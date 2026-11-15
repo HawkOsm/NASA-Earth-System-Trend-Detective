@@ -111,7 +111,7 @@ not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
 react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 513 browser-side and 240
-pipeline-side tests; GitHub Pages for hosting; Google Gemini Flash through a small Google Cloud Run service for
+pipeline-side tests; GitHub Pages for hosting; Google Gemini (Flash-Lite and Flash) through a small Google Cloud Run service for
 reading questions in the Detective.
 
 ## Use of Super Intelligence (SI)
@@ -138,8 +138,8 @@ Results were checked independently of the generated code wherever possible: the 
 pymannkendall and a separately written reference; the browser code against the pipeline's test cases; the
 site's numbers against values recomputed from the pipeline's data.
 
-One part of the site uses AI at runtime: the Detective sends a typed question to Google's Gemini Flash, which
-returns only its reading of the question (the place, the years, the variable). Every number the site shows is
+One part of the site uses AI at runtime: the Detective sends a typed question to Google's Gemini (Flash-Lite,
+with Flash as backup), which returns only its reading of the question (the place, the years, the variable). Every number the site shows is
 looked up from precomputed statistics, never generated, and the answer states how Gemini read the question. The
 question passes through a small server of this project on Google Cloud Run, which keeps the API key off the page.
 No image or video in the
