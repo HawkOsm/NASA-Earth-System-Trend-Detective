@@ -68,7 +68,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     key: 'point',
     title: 'One exact place',
-    text: 'A click can also open a single place instead of a whole country. Click “Point” in the Click row of the menu.',
+    text: 'A click can also open a single place instead of a whole country. Click “Point” under Click in the menu.',
     target: 'click-point',
     done: (s) => !s.lift,
   },

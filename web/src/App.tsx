@@ -1101,6 +1101,7 @@ export default function App() {
             referenceLine={referenceMenuLine}
             instrumentLine={instrumentMenuLine}
             confirmed={{ enabled: confirmedAllowed, on: confirmedOn, onChange: setConfirmedChoice, line: confirmedLine }}
+            showAll={tourActive}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
                 Detective

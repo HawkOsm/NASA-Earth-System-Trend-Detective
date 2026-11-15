@@ -1,83 +1,89 @@
-/* ---- control menu (bottom-left over the globe): rows of "Label | options" ---- */
+/* ---- control menu (top-left over the globe): a button that holds a row of dropdown sub-menus ----
+   Nothing here has a box: the text and controls float over the map, with a dark halo so they read on any colour.
+   The wrappers take no clicks, so the globe stays clickable between them. */
 .menu-wrap {
-  position: absolute; left: 12px; bottom: 12px; z-index: 6; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 8px; width: min(460px, calc(100% - 24px)); max-height: calc(100% - 24px); pointer-events: none;
+  position: absolute; left: 12px; top: 10px; right: 128px; z-index: 6; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 10px; pointer-events: none; color: #f2f4f8; font-size: 0.92rem; line-height: 1.35;
+  text-shadow: 0 0 1px #05070c, 0 0 2px #05070c, 0 0 3px #05070c, 0 0 5px #05070c, 0 0 9px #05070c, 0 0 16px rgba(5, 7, 12, 0.9);
 }
-.menu-wrap > * { pointer-events: auto; }
-.menu {
-  box-sizing: border-box; width: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  padding: 8px 14px 10px; font-size: 0.95rem; line-height: 1.35; color: #98a1b3;
-  background: rgba(14, 18, 28, 0.82); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-}
+.menu-wrap button, .menu-wrap a, .menu-wrap input, .menu-wrap label { pointer-events: auto; }
+.menu-wrap button { text-shadow: inherit; }
+
 .menu-toggle {
-  padding: 6px 14px; font: inherit; font-size: 0.9rem; color: #e6e9ef; cursor: pointer;
-  background: rgba(14, 18, 28, 0.85); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px;
+  padding: 4px 2px; font: inherit; font-size: 1rem; font-weight: 600; color: #fff; cursor: pointer; background: none; border: 0;
 }
-.menu-toggle:hover { background: rgba(40, 48, 68, 0.92); }
-.menu-row {
-  display: grid; grid-template-columns: 5.4rem minmax(0, 1fr); align-items: start; padding: 5px 0;
+.menu-toggle:hover { color: #f5d66b; }
+
+/* The sub-menus sit side by side; a folded one is only its name, a dropped one is a column under its name. */
+.menu { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 30px; max-width: 100%; }
+.menu-seg { min-width: 0; max-width: 100%; flex: 0 0 auto; }
+.menu-seg-data.is-open { flex: 0 1 330px; }
+.menu-seg-period.is-open { flex: 0 1 270px; }
+.menu-seg-scale.is-open { flex: 0 1 250px; }
+.menu-seg-click.is-open { flex: 0 1 210px; }
+.menu-seg-layers.is-open { flex: 0 1 240px; }
+.menu-seg-head {
+  padding: 3px 0; font: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #f2f4f8; cursor: pointer; background: none; border: 0;
 }
-.menu-label {
-  padding: 3px 0; color: #cdd3df; border-right: 1px solid rgba(255, 255, 255, 0.2); margin-right: 10px;
-  align-self: stretch;
-}
-.menu-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 2px; min-width: 0; }
+.menu-seg-head:hover, .menu-seg-head[aria-expanded='true'] { color: #f5d66b; }
+.menu-seg-body { margin-top: 2px; }
+.menu-extra { display: flex; align-items: center; gap: 0 12px; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, 0.45); }
+
+.menu-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
 .menu-opt {
-  padding: 3px 10px; font: inherit; color: #98a1b3; cursor: pointer; background: transparent; border: 0;
-  border-radius: 999px;
+  padding: 3px 0; font: inherit; color: #f2f4f8; cursor: pointer; background: transparent; border: 0;
+  border-bottom: 2px solid transparent;
 }
-.menu-opt:hover:not(:disabled) { color: #e6e9ef; }
-.menu-opt[aria-pressed='true'] { color: #f5d66b; background: rgba(255, 255, 255, 0.11); }
-.menu-opt:disabled { opacity: 0.4; cursor: default; }
-.menu-opt:focus-visible, .menu-toggle:focus-visible, .menu-link:focus-visible {
+.menu-opt:hover:not(:disabled) { color: #fff; }
+.menu-opt[aria-pressed='true'] { color: #f5d66b; font-weight: 600; border-bottom-color: #f5d66b; }
+.menu-opt:disabled { color: #aab2c2; cursor: default; }
+.menu-opt:focus-visible, .menu-toggle:focus-visible, .menu-link:focus-visible, .menu-seg-head:focus-visible, .menu-info:focus-visible {
   outline: 2px solid #6aa3ff; outline-offset: 1px;
 }
-.menu-dim { color: #8089a0; }
+.menu-dim { color: #dfe4ee; }
 .menu-note { font-size: 0.8rem; line-height: 1.35; }
-.menu-wide { flex: 1 1 100%; padding: 2px 10px 0; }
-.menu-data .menu-opts, .menu-scale .menu-opts, .menu-period .menu-opts { display: block; }
-.menu-data-main { padding: 3px 10px 0; color: #e6e9ef; }
+.menu-data-main { color: #fff; font-size: 1.05rem; }
 .menu-data-main strong { font-weight: 600; }
-.menu-def { margin: 2px 0 0; padding: 0 10px; font-size: 0.8rem; color: #8089a0; }
-.menu-link { display: inline-block; padding: 3px 10px; color: #98a1b3; text-decoration: none; border-radius: 999px; }
-.menu-link:hover { color: #f5d66b; text-decoration: underline; }
-.menu-scale .menu-opts { padding: 2px 10px 0; }
-.menu-scale .legend-bar { height: 12px; }
-.menu-scale .legend-ticks { font-size: 0.8rem; color: #c4cad6; }
-.menu-scale .menu-note { margin-top: 3px; }
-.menu-scale-changed { color: #e9d48a; }
-.menu-plain { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: -1px; border: 1px solid #666; }
-.menu-footer { padding-top: 2px; }
-.menu-show-off { padding: 3px 10px; }
+.menu-data-main .menu-dim { font-size: 0.85rem; }
+.menu-vars { margin-top: 1px; font-size: 0.88rem; }
+.menu-info { margin-left: 4px; padding: 0 3px; font: inherit; font-size: 0.9rem; color: #c9cfdb; cursor: pointer; background: none; border: 0; }
+.menu-info:hover, .menu-info[aria-expanded='true'] { color: #f5d66b; }
+.menu-more { margin: 2px 0 4px; }
+.menu-def { margin: 2px 0 0; font-size: 0.8rem; color: #dfe4ee; }
+.menu-link { color: #f2f4f8; text-decoration: underline; }
+.menu-link:hover { color: #f5d66b; }
+.menu-scale .legend-bar { height: 12px; box-shadow: 0 0 0 1px rgba(5, 7, 12, 0.7), 0 0 10px rgba(5, 7, 12, 0.7); }
+.menu-scale .legend-ticks { font-size: 0.8rem; color: #f2f4f8; }
+.menu-scale .menu-note { margin-top: 2px; }
+.menu-scale-changed { color: #f5d66b; }
+.menu-plain { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: -1px; border: 1px solid #05070c; }
+.menu-show { margin-top: 2px; font-size: 0.88rem; }
 
-/* The period bar inside the menu: no box of its own, the label column names it. */
+/* The period bar inside the menu: no box of its own. */
 .menu .period-bar {
-  position: static; max-width: none; margin: 0; padding: 0 10px; font-size: 0.85rem; background: none; border: 0;
+  position: static; max-width: none; margin: 0; padding: 0; font-size: 0.85rem; background: none; border: 0;
 }
-.menu .period-title { font-weight: 400; color: #e6e9ef; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.menu .period-title { font-weight: 600; color: #fff; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
 .menu .period-head { min-height: 26px; }
 .menu .period-status { font-size: 0.8rem; }
+.menu .period-name { color: #dfe4ee; }
+.menu .period-reset { background: rgba(5, 7, 12, 0.55); }
 
-/* "Whole globe" now lives in the menu (View row); the globe's own floating button is hidden. */
+/* "Whole globe" lives in the menu (Layers); the globe's own floating button is hidden. */
 .whole-globe { display: none; }
 
-/* Side panel open next to the menu. */
-@media (min-width: 761px) and (max-width: 1099px) {
-  .globe-wrap.has-panel .menu-wrap { width: min(460px, calc(100% - 424px)); }
-}
+/* Room for what else sits at the top right: the Detective pill, its panel, or the side panel. */
+.globe-wrap.detective-open .menu-wrap { right: 384px; }
+/* With the side panel open the globe area is already narrower, and the Detective pill is hidden. */
+.globe-wrap.has-panel .menu-wrap { right: 12px; }
 .globe-wrap.country-open .menu-wrap { visibility: hidden; }
 
-/* Narrow screens: the menu is a full-width bottom sheet that scrolls inside itself. */
+/* Narrow screens: a dropped sub-menu takes the full width, and the menu scrolls inside itself when it is tall. */
 @media (max-width: 760px) {
-  .menu-wrap { left: 8px; right: 8px; bottom: 8px; width: auto; max-height: calc(100% - 16px); }
-  .menu { max-height: 70vh; border-radius: 16px; font-size: 0.9rem; padding: 6px 12px 8px; }
-  .menu-row { grid-template-columns: 4.6rem minmax(0, 1fr); }
-  .menu-opt { padding: 5px 9px; }
-  .globe-wrap.has-panel .menu-wrap { bottom: calc(55% + 8px); }
-  .globe-wrap.has-panel .menu { max-height: calc(45vh - 80px); }
-}
-@media (max-width: 400px) {
-  .menu-row { grid-template-columns: 4.1rem minmax(0, 1fr); }
-  .menu-label { margin-right: 6px; }
+  .menu-wrap { left: 8px; right: 8px; top: 6px; gap: 6px; }
+  .menu { gap: 6px 22px; max-height: 58vh; overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; }
+  .menu-seg.is-open { flex-basis: 100%; }
+  .menu-opt { padding: 5px 0; }
+  .globe-wrap.has-panel .menu { display: none; }
 }
