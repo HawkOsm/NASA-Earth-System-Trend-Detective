@@ -105,7 +105,7 @@ def stops_colour(stops_rgb, pos):
 
 def overlay_rgb(slope, w, vmax, stops_hex, base, floor=config.COLOR_FLOOR, alpha_max=config.ALPHA_MAX,
                 alpha_full_at=config.ALPHA_FULL_AT):
-    """THE overlay rule (mirrored by overlayPixels in web/src/rangeMap.ts, tied by tests/fixtures/overlay_cases.json).
+    """THE overlay rule (mirrored by overlayPixels in web/src/map/rangeMap.ts, tied by tests/fixtures/overlay_cases.json).
     slope (any shape, per decade), significance weight w in [0, 1], base-map colour (..., 3) uint8 or 0..255 floats.
       x = min(|s|/vmax, 1);  t = sign(s) * (floor + (1 - floor) * x)  -> colormap position (t + 1) / 2
       alpha = alpha_max * w * min(x / alpha_full_at, 1);  out = (1 - alpha) * base + alpha * colour

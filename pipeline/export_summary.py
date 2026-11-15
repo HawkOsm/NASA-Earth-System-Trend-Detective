@@ -1,6 +1,6 @@
 """Export web/public/data/summary.bin (+ summary.json): for every cell of the coarse annual grid and every variable the
 Theil-Sen slope per decade, the Mann-Kendall p-value and the Benjamini-Hochberg adjusted p-value for the full
-1981-2025 period. It feeds the "what is changing here?" ranking (web/src/whatsChanging.ts).
+1981-2025 period. It feeds the "what is changing here?" ranking (web/src/detective/whatsChanging.ts).
 
 Grid and values are exactly what {VAR}_annual.bin ships (288 x 181, 1.25 x 1.0 deg; products.coarse_stack -> to_int16 ->
 from_int16, so the Int16 quantisation of the shipped file is included). Statistics come from trendstats.py (trend_grid,

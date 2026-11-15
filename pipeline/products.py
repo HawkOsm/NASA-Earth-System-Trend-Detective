@@ -6,7 +6,7 @@ One definition of "no data", used by compute.py, export.py, export_annual_grid.p
     ("there is never any snow / sea ice here");
   * percent variables ("display_scale": 100) are shown as an exact integer percent: round(round(x, 2) * 100);
   * Int16 files store round((value - int16_offset) * 100); a missing value is -32768.
-The browser applies the same rules to the NASA POWER API values (web/src/noData.ts).
+The browser applies the same rules to the NASA POWER API values (web/src/data/noData.ts).
 """
 import os
 

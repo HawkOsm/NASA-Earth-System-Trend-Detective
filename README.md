@@ -16,7 +16,7 @@ selected location's data live from NASA POWER and computes the same statistics i
 1. **Start with a confirmed finding.** A strip at the top offers three places to open with one click: Istanbul is
    getting warmer (+0.54 °C per decade), Shanghai is getting wetter (+0.36 mm/day per decade) and the Amazon at
    Porto Velho is getting drier (-0.67 mm/day per decade). They were picked because an independent observation
-   record shows the same change, not only because MERRA-2 does (`web/src/startFindings.ts`).
+   record shows the same change, not only because MERRA-2 does (`web/src/menu/startFindings.ts`).
 2. **Click the globe.** By default a click lifts the country, sea or ocean under it into a full-screen view of its
    own: the trend for the whole area, every grid cell inside it, its provinces and its cities.
 3. **Use the menu** at the bottom left. Its rows choose the variable (ten, in four groups), the years (two sliders,
@@ -44,7 +44,7 @@ selected location's data live from NASA POWER and computes the same statistics i
 | Wind speed (`WS2M`) | Average wind speed 2 metres above the ground | m/s |
 | Ozone layer (`TO3`) | Total ozone in the air column above the place | Dobson units |
 
-The menu groups them as Temperature, Water, Ice & snow and Air (`web/src/demos.ts`, `pipeline/config.py`).
+The menu groups them as Temperature, Water, Ice & snow and Air (`web/src/data/demos.ts`, `pipeline/config.py`).
 
 ## Method
 
@@ -65,7 +65,7 @@ The same method is used for the map and for the click panel, so they agree.
 **What is changing here? (ranking).** `pipeline/export_summary.py` writes `web/public/data/summary.bin` (+ `summary.json`
 with the layout): for every cell of the coarse 100 km annual grid and every variable, the Theil–Sen slope per decade, the
 Mann–Kendall p-value and the Benjamini–Hochberg adjusted p-value for 1981–2025 (BH across the cells that have data for
-that variable; only those cells are stored). `web/src/whatsChanging.ts` ranks all variables at a place: significant
+that variable; only those cells are stored). `web/src/detective/whatsChanging.ts` ranks all variables at a place: significant
 (p < 0.05) first, then possible (0.05–0.10), then no clear trend (the verdict rules above); inside each group by
 strength = |slope per decade| divided by that variable's own spread (the 98th percentile of |slope| over its cells), so
 variables with different units can be compared; ties by the order of the variables on the site. The numbers are for the
@@ -104,7 +104,7 @@ headline is the same cos(latitude)-weighted mean through the same trend code. Fo
 
 ### No data
 
-One rule decides "no data", in the pipeline (`pipeline/products.py`) and in the browser (`web/src/noData.ts`):
+One rule decides "no data", in the pipeline (`pipeline/products.py`) and in the browser (`web/src/data/noData.ts`):
 
 - a value that is missing, equal to NASA POWER's fill value (-999) or at or below -900 is no data. Soil moisture and
   evaporation are land-only, so over water they are no data, never zero;
@@ -141,7 +141,7 @@ A trend can be statistically significant and still be a flaw in the data (a jump
 bad year). Next to every significant or possible trend the site therefore shows a grade, **Robust**, **Use with caution**
 or **Doubtful**, with the reason in plain words (click panel, country / sea view, Detective), a one-line caveat for each
 variable (what is measured and what is modelled) and, in the Menu, the share of each grade over the area where the map
-shows a trend. The checks have fixed definitions (`pipeline/quality.py`, mirrored in `web/src/quality.ts` and tied by
+shows a trend. The checks have fixed definitions (`pipeline/quality.py`, mirrored in `web/src/evaluation/quality.ts` and tied by
 `pipeline/tests/fixtures/quality_cases.json`); with fewer than 20 valid years in the selected period nothing is checked.
 
 - **Jump** (Pettitt change-point test, p < 0.05, plus: the slope inside the two parts is under half the overall slope, and a
@@ -207,7 +207,7 @@ TO3              20763     98.8      1.2       0.0 |    1.0     0.0     0.2   0.
 
 Everything above looks at the pattern of one series. The independent-record check is the only check on the site that tests
 MERRA-2 against something else: MERRA-2, averaged over the boxes of an independent observation record, is compared with that
-record (`pipeline/reference.py`, results in `web/public/data/reference/*.json`, logic in `web/src/reference.ts`). Air temperature
+record (`pipeline/reference.py`, results in `web/public/data/reference/*.json`, logic in `web/src/evaluation/reference.ts`). Air temperature
 (T2M) is compared with **NASA GISTEMP** v4 (thermometer and ship records, 2 degree boxes, about 220 km) and **GHCN-CAMS** (weather
 stations, land only, 0.5 degree values averaged to the same 2 degree boxes). Rainfall (PRECTOTCORR) is compared with four records on
 2.5 degree boxes (about 280 km): **GPCP** v2.3 and **CMAP** (rain gauges and satellites, land and ocean), **GPCC** v2025 and
@@ -237,7 +237,7 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
   GPCP +0.09 (not significant), CMAP +0.56, GPCC +0.44, PREC/L +0.48 (all significant): GPCP alone said "not confirmed", three of
   four confirm. A rainfall trend that none of the four records confirms is therefore the strong signal that MERRA-2 may be wrong;
   one that some confirm and others do not is less clear-cut. Read MERRA-2 rainfall trends with that in mind. A plain-language guide to the whole evaluation layer is in `docs/EVALUATION.md`.
-- **"Confirmed only" map** (Menu, row Show; `pipeline/export_confirmed.py`, `web/src/confirmedMap.ts`): redraws the temperature or
+- **"Confirmed only" map** (Menu, row Show; `pipeline/export_confirmed.py`, `web/src/map/confirmedMap.ts`): redraws the temperature or
   rainfall map with only the trends the independent records confirm, full period only. A MERRA-2 cell counts as confirmed if its
   trend is map-significant, the reference box around it is eligible and the class at that box, for the cell's own sign, is
   "confirmed" (see above); "partly" cells are counted but not drawn. Significant cells in ineligible boxes (sea for temperature,
@@ -271,6 +271,21 @@ PRECTOTCORR  4 records, 2547 boxes:   confirmed 20.1%  partly 43.5%  not confirm
 pipeline/   Python scripts, run once offline: fetch data, compute trend grids, export textures
 web/        Vite + React + TypeScript site (react-globe.gl, uPlot)
 web/public/data/   Exported textures and metadata (committed, so the site builds without Python)
+```
+
+The site's code (`web/src/`) is sorted into folders by task; each test file sits next to the code it tests:
+
+```
+App.tsx, main.tsx   the page: wires the parts below together
+map/         the globe and the flat fallback, their lines and labels, the map for a chosen period, the
+             "Confirmed only" map, the notice for an empty map, the wind streaks (map/wind/)
+menu/        the menu, the period sliders, the start strip, "How to read this"
+point/       one place: the panel, its chart, the live NASA POWER request, the close-up map, the verdict sentence
+areas/       a lifted country, sea or ocean: its map, provinces, cities; continents for the Detective
+detective/   the Detective panel: understanding the question, ranking the variables at a place
+evaluation/  pattern checks and grades, the comparison with independent records
+stats/       Theil-Sen and Mann-Kendall (the same statistics as pipeline/trendstats.py)
+data/        the list of variables, loading of data files, the "no data" rule, number formats
 ```
 
 ## Running the pipeline

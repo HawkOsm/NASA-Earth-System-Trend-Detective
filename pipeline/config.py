@@ -123,7 +123,7 @@ VARIABLES = {
 # Variables whose figures are used as test fixtures (country_cases.json, sea_cases.json, overlay_cases.json):
 FIXTURE_VARIABLES = ["T2M", "PRECTOTCORR", "WS2M"]
 
-# Base map (pipeline/basemap.py) and trend overlay (pipeline/export.py overlay_rgb, mirrored in web/src/rangeMap.ts).
+# Base map (pipeline/basemap.py) and trend overlay (pipeline/export.py overlay_rgb, mirrored in web/src/map/rangeMap.ts).
 # Tune the look here; export.py copies these values into every {VAR}_meta.json ("render") and the browser reads them.
 BASEMAP_OCEAN = (150, 190, 220)  # soft blue
 BASEMAP_LAND = (176, 205, 150)   # soft green

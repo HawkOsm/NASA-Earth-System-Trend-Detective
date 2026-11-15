@@ -31,7 +31,7 @@ These look only at the shape of the 45 yearly values at one place. They need no 
 Result: a grade. **Robust** (no flag), **Use with caution** (one flag), **Doubtful** (it depends on one year,
 or two or more flags).
 
-Code: `pipeline/quality.py` (Python) and `web/src/quality.ts` (browser). They must give identical answers;
+Code: `pipeline/quality.py` (Python) and `web/src/evaluation/quality.ts` (browser). They must give identical answers;
 `pipeline/tests/fixtures/quality_cases.json` holds 64 cases both are tested against.
 
 ### B. The independent check (air temperature and rainfall only)
@@ -69,7 +69,7 @@ and for rainfall poleward of 60° (GPCP is weak near the poles).
 
 Code: `pipeline/reference.py` and `pipeline/reference_multi.py` write `web/public/data/reference/T2M.json` and
 `PRECTOTCORR.json` (the `records` list with each record's trend per box, and the `consensus` and `byCount` summaries);
-`web/src/reference.ts` reads them in the browser.
+`web/src/evaluation/reference.ts` reads them in the browser.
 
 ## 3. What we measured
 
@@ -209,7 +209,7 @@ These are judgement calls, not statistics. Each can be changed in one place.
 1. **What to do with "Not confirmed" rainfall trends.** Now: they stay on the map and get "Use with caution".
    Alternatives: fade them on the map, or hide them from the Detective's list.
 2. **How strict the jump check is.** Now: few false alarms, small jumps often missed.
-   (`RATIO_MAX` and `FIT_MAX` in `pipeline/quality.py` and `web/src/quality.ts`; change both, then rerun
+   (`RATIO_MAX` and `FIT_MAX` in `pipeline/quality.py` and `web/src/evaluation/quality.ts`; change both, then rerun
    the calibration.)
 3. **Whether a "Robust" grade should be reworded for the eight variables with no independent record**, for
    example "No warning signs" instead of "Robust", so nobody reads it as "confirmed".

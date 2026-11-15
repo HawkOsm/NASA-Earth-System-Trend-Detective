@@ -66,8 +66,8 @@ Rules from the guide that affect us:
 - [x] Form text written (`SUBMISSION_FORM.md`).
 - [x] Deck built from `docs/deck/deck.html` (7 slides) and hosted on the site as a PDF. Slide 1 states the team
       (HawkTeam), the member (Osman Sahin Guler) and the challenge, as the guide requires.
-- [x] Start strip on the site with three findings that open with one click (`web/src/StartCard.tsx`,
-      `web/src/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
+- [x] Start strip on the site with three findings that open with one click (`web/src/menu/StartCard.tsx`,
+      `web/src/menu/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
       record: Istanbul air temperature +0.54 °C per decade (NASA GISTEMP +0.55); Shanghai rainfall +0.36 mm/day
       per decade (GPCP +0.26); the Amazon at Porto Velho rainfall −0.67 mm/day per decade (GPCP −0.36).
       Rainfall at Cebu was considered too: three of four rainfall records confirm it (GPCP does not), at about
@@ -76,7 +76,7 @@ Rules from the guide that affect us:
       Guide: [EVALUATION.md](EVALUATION.md).
 - [x] README describes the site as it is now.
 - [x] No two source files differ only in letter case, so the project builds on Windows and macOS as well as Linux.
-- [x] A trend of exactly zero is never reported as significant (`web/src/verdicts.ts`).
+- [x] A trend of exactly zero is never reported as significant (`web/src/point/verdicts.ts`).
 - [x] Credits: NASA POWER, MERRA-2, GISTEMP, GHCN-CAMS, GPCP, CMAP, GPCC, PREC/L, Natural Earth, cambecc/earth,
       libraries and methods.
 

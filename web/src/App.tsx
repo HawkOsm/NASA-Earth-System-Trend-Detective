@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import GlobeArea, { hasWebGL } from './GlobeArea';
-import { prefersReducedMotion } from './wind/WindLayer';
-import type { LatLng, PointOfView } from './Globe';
-import Menu from './Menu';
-import HowToRead from './HowToRead';
-import Detective, { type LiftTarget } from './Detective';
-import StartCard from './StartCard';
-import type { StartFinding } from './startFindings';
-import { VARIABLES } from './demos';
-import { LANDMARKS } from './landmarks';
-import Panel, { type PanelState } from './Panel';
-import CountryOverlay from './CountryOverlay';
-import CountryPanel, { type CountryData, type CountryPanelState } from './CountryPanel';
-import { useCountryTrends } from './useCountryTrends';
-import { useProvinces, useProvinceTrends } from './useProvinces';
+import GlobeArea, { hasWebGL } from './map/GlobeArea';
+import { prefersReducedMotion } from './map/wind/WindLayer';
+import type { LatLng, PointOfView } from './map/Globe';
+import Menu from './menu/Menu';
+import HowToRead from './menu/HowToRead';
+import Detective, { type LiftTarget } from './detective/Detective';
+import StartCard from './menu/StartCard';
+import type { StartFinding } from './menu/startFindings';
+import { VARIABLES } from './data/demos';
+import { LANDMARKS } from './map/landmarks';
+import Panel, { type PanelState } from './point/Panel';
+import CountryOverlay from './areas/CountryOverlay';
+import CountryPanel, { type CountryData, type CountryPanelState } from './areas/CountryPanel';
+import { useCountryTrends } from './areas/useCountryTrends';
+import { useProvinces, useProvinceTrends } from './areas/useProvinces';
 import {
   countryCells,
   countryMeanSeries,
@@ -27,7 +27,7 @@ import {
   loadOutlines,
   pickCountry,
   type CountryRec,
-} from './country';
+} from './areas/country';
 import {
   citiesInFrame,
   findSea,
@@ -41,23 +41,23 @@ import {
   seaAsRec,
   seaFrame,
   seaWrapRef,
-} from './sea';
-import { splitLines, type LngLat } from './coastlines';
-import type { CityTrend } from './CountryMap';
-import { analyze } from './analysis';
-import type { Grade, QualityResult } from './quality';
-import { chooseTexture, confirmedEnabled, confirmedSentence, effectiveMode, loadConfirmed, type ConfirmedData } from './confirmedMap';
-import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './reference';
-import { rateUnitsLong } from './format';
-import { rulesFromMeta, surfaceMessage } from './noData';
-import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './power';
-import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './region';
-import DetailMap from './DetailMap';
-import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './detail';
-import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data';
-import { useRangeMap } from './useRangeMap';
-import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './period';
-import EmptyMapNote from './EmptyMapNote';
+} from './areas/sea';
+import { splitLines, type LngLat } from './map/coastlines';
+import type { CityTrend } from './areas/CountryMap';
+import { analyze } from './point/analysis';
+import type { Grade, QualityResult } from './evaluation/quality';
+import { chooseTexture, confirmedEnabled, confirmedSentence, effectiveMode, loadConfirmed, type ConfirmedData } from './map/confirmedMap';
+import { combineGrade, hasReference, loadReference, referenceCheck, summaryLine, type RefCheck, type RefData } from './evaluation/reference';
+import { rateUnitsLong } from './data/format';
+import { rulesFromMeta, surfaceMessage } from './data/noData';
+import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './point/power';
+import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './point/region';
+import DetailMap from './point/DetailMap';
+import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './point/detail';
+import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data/data';
+import { useRangeMap } from './map/useRangeMap';
+import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './menu/period';
+import EmptyMapNote from './map/EmptyMapNote';
 
 const DEFAULT_VARIABLE = VARIABLES[0];
 

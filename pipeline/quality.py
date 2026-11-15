@@ -1,7 +1,7 @@
 """Quality checks on a trend: is it a real change, or does it look like a flaw in the data? (evaluation layer)
 
 One FIXED definition, implemented here (Python reference + a vectorised grid version) and mirrored in
-web/src/quality.ts, tied by tests/fixtures/quality_cases.json. Thresholds are not tunable parameters.
+web/src/evaluation/quality.ts, tied by tests/fixtures/quality_cases.json. Thresholds are not tunable parameters.
 
 Input: years t (ascending) and values y after the usual missing-value handling (only the valid years of the selected
 period); n = len(y). All checks need n >= 20, otherwise every flag is false and the grade is "unchecked".
