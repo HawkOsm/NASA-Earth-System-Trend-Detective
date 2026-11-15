@@ -19,6 +19,8 @@ import {
   frameRing,
   hitCountryCell,
   labelOrder,
+  leftOutText,
+  mainPart,
   niceKm,
   placeLabels,
   type CityRec,
@@ -131,7 +133,9 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
 
   const stops = useMemo(() => parseStops(meta.colormap_stops), [meta]);
   const units = rateUnits(meta.units);
-  const pr = useMemo(() => (width > 0 && polys.length ? fitCountryProjection(polys, width, maxHeight) : null), [polys, width, maxHeight]);
+  // The view frames the country's main part (country.ts mainPart): far-away territories would shrink it to a speck.
+  const main = useMemo(() => (sea ? { polys, left: 0 } : mainPart(polys)), [polys, sea]);
+  const pr = useMemo(() => (width > 0 && main.polys.length ? fitCountryProjection(main.polys, width, maxHeight) : null), [main, width, maxHeight]);
   const fcells = useMemo(() => cells.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cells, wrapRef]);
   const fcities = useMemo(() => cities.map((c) => ({ ...c, flng: wrapRef === null ? c.lng : frameLng(c.lng, wrapRef) })), [cities, wrapRef]);
 
@@ -382,7 +386,13 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
 
     // Cities: dots, then labels for the capital and the largest few (a label that would collide is skipped).
     ctx.font = '11px system-ui, sans-serif';
+    const inView = (c: { flng: number; lat: number }) => {
+      const x = cx(pr, c.flng);
+      const y = cy(pr, c.lat);
+      return x >= 0 && x <= pr.width && y >= 0 && y <= pr.height;
+    };
     fcities.forEach((c, k) => {
+      if (!inView(c)) return; // a city in a distant part that is outside the view
       const x = cx(pr, c.flng);
       const y = cy(pr, c.lat);
       ctx.beginPath();
@@ -400,7 +410,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
         ctx.stroke();
       }
     });
-    const order = labelOrder(fcities, 7);
+    const order = labelOrder(fcities.filter(inView), 7);
     const cands = order.map((c) => ({
       key: c.id,
       x: cx(pr, c.flng),
@@ -511,7 +521,7 @@ export default function CountryMap({ meta, name, polys, wrapRef, cells, cities, 
       {children}
       {pr && (
         <p className="country-size">
-          {sea ? 'This view is about' : 'About'} {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.
+          {sea ? 'This view is about' : 'About'} {Math.round(countryWidthKm(pr)).toLocaleString('en-US')} km wide{tiny ? ' (smaller than one grid cell)' : ''}.{leftOutText(main.left)}
         </p>
       )}
     </div>

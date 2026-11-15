@@ -7,6 +7,7 @@ import {
   OPENING,
   OPENING_HELP,
   THEMES,
+  themeFor,
   buildAnswer,
   countryPlace,
   lastSummary,
@@ -334,7 +335,12 @@ export default function Detective(p: DetectiveProps) {
         return;
       }
       const m = matchPlace(input, idx);
-      if (m.kind === 'place') {
+      // A region a theme button stands for ("the Sahara", "the Amazon"), unless the text names a listed place exactly.
+      const theme = themeFor(input);
+      if (theme && !(m.kind === 'place' && !m.read) && m.kind !== 'point' && m.kind !== 'bad-coordinates') {
+        p.onFly(theme.lat, theme.lng);
+        await answerTheme(theme);
+      } else if (m.kind === 'place') {
         await answerNamed(m.place, m.read ?? null, m.others ?? []);
       } else if (m.kind === 'choose') {
         push({

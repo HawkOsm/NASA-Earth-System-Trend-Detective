@@ -245,6 +245,86 @@ export function polygonBounds(polys: Ring[][]): { latMin: number; latMax: number
   return { latMin, latMax, lngMin, lngMax };
 }
 
+// ---- main part ---------------------------------------------------------------------------------------------------
+
+type Box = { latMin: number; latMax: number; lngMin: number; lngMax: number };
+
+/** A part further than this from the main part is "distant" even for a very small country (degrees, about 550 km). */
+export const FAR_MIN_DEG = 5;
+/** A part holding at least this share of the country's area is never left out of the view. */
+export const KEEP_AREA_SHARE = 0.2;
+
+const cosDeg = (lat: number) => Math.max(Math.cos((lat * Math.PI) / 180), 0.05);
+
+function ringBox(ring: Ring): Box {
+  return polygonBounds([[ring]]);
+}
+
+/** Planar area of a ring in square degrees, x scaled by cos(mid latitude). Only used to rank parts by size. */
+function ringArea(ring: Ring, box: Box): number {
+  let a = 0;
+  for (let k = 0; k < ring.length; k++) {
+    const [x0, y0] = ring[k];
+    const [x1, y1] = ring[(k + 1) % ring.length];
+    a += x0 * y1 - x1 * y0;
+  }
+  return (Math.abs(a) / 2) * cosDeg((box.latMin + box.latMax) / 2);
+}
+
+function boxDiag(b: Box): number {
+  return Math.hypot((b.lngMax - b.lngMin) * cosDeg((b.latMin + b.latMax) / 2), b.latMax - b.latMin);
+}
+
+/** Shortest distance between two boxes in degrees (x scaled by cos of the latitude between them); 0 if they touch. */
+function boxGap(a: Box, b: Box): number {
+  const dx = Math.max(0, a.lngMin - b.lngMax, b.lngMin - a.lngMax);
+  const dy = Math.max(0, a.latMin - b.latMax, b.latMin - a.latMax);
+  const midLat = (Math.max(a.latMin, b.latMin) + Math.min(a.latMax, b.latMax)) / 2;
+  return Math.hypot(dx * cosDeg(midLat), dy);
+}
+
+/**
+ * The polygons the lifted view frames. A country's far-away territories (French Guiana for France, the Caribbean
+ * islands of the Netherlands, the scattered atolls of Kiribati) would shrink the main part to a speck, so they are
+ * left out of the frame: starting from the largest polygon, a part joins when it lies within one diagonal of the
+ * frame so far (at least FAR_MIN_DEG) or holds KEEP_AREA_SHARE of the country's area. `left` counts the parts left
+ * out. The polygons must already be in one longitude frame. The country's numbers are not affected.
+ */
+export function mainPart(polys: Ring[][]): { polys: Ring[][]; left: number } {
+  if (polys.length <= 1) return { polys, left: 0 };
+  const parts = polys.map((p, index) => {
+    const box = ringBox(p[0]);
+    return { index, box, area: ringArea(p[0], box) };
+  });
+  const bySize = [...parts].sort((a, b) => b.area - a.area);
+  const total = parts.reduce((s, p) => s + p.area, 0);
+  const frame: Box = { ...bySize[0].box };
+  const keep = new Set<number>([bySize[0].index]);
+  // Two passes: a part skipped early may be close to the frame once nearer parts have joined it.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const part of bySize) {
+      if (keep.has(part.index)) continue;
+      const near = boxGap(frame, part.box) <= Math.max(boxDiag(frame), FAR_MIN_DEG);
+      if (!near && !(total > 0 && part.area >= KEEP_AREA_SHARE * total)) continue;
+      keep.add(part.index);
+      frame.latMin = Math.min(frame.latMin, part.box.latMin);
+      frame.latMax = Math.max(frame.latMax, part.box.latMax);
+      frame.lngMin = Math.min(frame.lngMin, part.box.lngMin);
+      frame.lngMax = Math.max(frame.lngMax, part.box.lngMax);
+    }
+  }
+  if (keep.size === polys.length) return { polys, left: 0 };
+  return { polys: polys.filter((_, k) => keep.has(k)), left: polys.length - keep.size };
+}
+
+/** "3 distant parts of the country are outside this view; the numbers include them." (empty when none is). */
+export function leftOutText(left: number): string {
+  if (left <= 0) return '';
+  return left === 1
+    ? ' One distant part of the country is outside this view; the numbers include it.'
+    : ` ${left} distant parts of the country are outside this view; the numbers include them.`;
+}
+
 /**
  * Fit a country's polygons (already in one longitude frame) into a canvas `width` px wide and at most `maxHeight`
  * px tall, equirectangular with x scaled by cos(mid latitude), north up, `margin` px around, letterboxed.

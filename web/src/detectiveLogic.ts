@@ -304,6 +304,35 @@ export const COUNTRY_ALIASES: [string, string, boolean][] = [
   ['east timor', 'Timor-Leste', true],
   ['cape verde', 'Cabo Verde', true],
   ['bosnia', 'Bosnia and Herz.', true],
+  // Full names of the countries the atlas abbreviates ("W. Sahara", "Dem. Rep. Congo").
+  ['western sahara', 'W. Sahara', true],
+  ['south sudan', 'S. Sudan', true],
+  ['dominican republic', 'Dominican Rep.', true],
+  ['democratic republic of the congo', 'Dem. Rep. Congo', true],
+  ['dr congo', 'Dem. Rep. Congo', true],
+  ['drc', 'Dem. Rep. Congo', true],
+  ['congo kinshasa', 'Dem. Rep. Congo', true],
+  ['central african republic', 'Central African Rep.', true],
+  ['equatorial guinea', 'Eq. Guinea', true],
+  ['solomon islands', 'Solomon Is.', true],
+  ['marshall islands', 'Marshall Is.', true],
+  ['falkland islands', 'Falkland Is.', true],
+  ['falklands', 'Falkland Is.', true],
+  ['french polynesia', 'Fr. Polynesia', true],
+  ['faroe islands', 'Faeroe Is.', true],
+  ['northern cyprus', 'N. Cyprus', true],
+  ['bosnia and herzegovina', 'Bosnia and Herz.', true],
+  ['cayman islands', 'Cayman Is.', true],
+  ['cook islands', 'Cook Is.', true],
+  ['antigua and barbuda', 'Antigua and Barb.', true],
+  ['saint kitts and nevis', 'St. Kitts and Nevis', true],
+  ['saint vincent and the grenadines', 'St. Vin. and Gren.', true],
+  ['northern mariana islands', 'N. Mariana Is.', true],
+  ['turks and caicos islands', 'Turks and Caicos Is.', true],
+  ['british virgin islands', 'British Virgin Is.', true],
+  ['us virgin islands', 'U.S. Virgin Is.', true],
+  ['pitcairn islands', 'Pitcairn Is.', true],
+  ['south georgia', 'S. Geo. and the Is.', true],
 ];
 /** The World entry of regions.json and what the user may call it. 'global' is weak: only used when nothing else is named. */
 const WORLD_ALIASES: [string, boolean][] = [
@@ -551,6 +580,24 @@ export const THEMES: Theme[] = [
   },
   { id: 'arctic', button: 'The Arctic', lat: 76.0, lng: 40.0, place: 'the Barents Sea', suggest: ['FRSEAICE', 'T2M'] },
 ];
+
+/**
+ * Well-known regions that are not in the list of cities, countries and seas but that a theme button stands for.
+ * Without this, "the Sahara" is read as a typo of the city of Samara. Word -> theme id; "Western Sahara" is a
+ * country and is left to the place lookup.
+ */
+const THEME_WORDS: [string, Theme['id']][] = [
+  ['sahara', 'desert'],
+  ['amazon', 'rainforest'],
+  ['amazonia', 'rainforest'],
+];
+
+export function themeFor(text: string): Theme | null {
+  const words = normalise(text).split(' ');
+  if (words.includes('western') && words.includes('sahara')) return null;
+  for (const [word, id] of THEME_WORDS) if (words.includes(word)) return THEMES.find((t) => t.id === id) ?? null;
+  return null;
+}
 
 export const CLICK_BUTTON = 'Click a place on the globe';
 

@@ -286,7 +286,7 @@ export default function CountryOverlay(p: Props) {
                     {surfaceMessage(meta.label, meta.surface, !!sea)
                       ? `No data: ${surfaceMessage(meta.label, meta.surface, !!sea)}`
                       : ready.nCellsUsed === 0
-                      ? `No data: ${meta.label} has no values for this ${what}. Either it is not measured here (some variables exist only over land, or only over the sea) or it is always zero here (no snow or ice ever).`
+                      ? `No data: ${meta.label} has no values for this ${what}. Either it is not defined here (some variables exist only over land or only over the sea, and snow cover, soil moisture and evaporation have no values on ice sheets) or it is always zero here (no snow or ice ever).`
                       : `Not enough data: only ${ready.nYears} years have values for this ${what}${p.fullPeriod ? '' : ` in ${periodText(p.period)}`} (at least ${MIN_YEARS} are needed).`}
                   </p>
                 </section>

@@ -19,6 +19,8 @@ import {
   cy,
   findCountry,
   fitCountryProjection,
+  leftOutText,
+  mainPart,
   frameLng,
   hitCountryCell,
   labelOrder,
@@ -423,5 +425,60 @@ describe('pipeline fixture vs the real data files', () => {
     expect(countryAt(mask, 0, -150)).toBeUndefined();
     expect(pickCountry(mask, recs, 43.75, 7.4)).toBe(recs.find((r) => r.name === 'Monaco')!.idx);
     expect(recs[pickCountry(mask, recs, 43.5, 7.0)!].name).toBe('France');
+  });
+});
+
+describe('main part of a country (the frame of the lifted view)', () => {
+  const box = (lng0: number, lat0: number, w: number, h: number): Ring[] => [
+    [[lng0, lat0], [lng0 + w, lat0], [lng0 + w, lat0 + h], [lng0, lat0 + h], [lng0, lat0]],
+  ];
+  it('a single polygon is its own main part', () => {
+    const polys = [box(0, 40, 10, 8)];
+    expect(mainPart(polys)).toEqual({ polys, left: 0 });
+  });
+  it('leaves out a small territory an ocean away (France and French Guiana)', () => {
+    const mainland = box(-5, 42, 13, 9);
+    const corsica = box(8.5, 41.4, 1, 1.6);
+    const guiana = box(-54.5, 2.1, 3, 3.6);
+    const r = mainPart([guiana, mainland, corsica]);
+    expect(r.left).toBe(1);
+    expect(r.polys).toEqual([mainland, corsica]); // original order kept
+    const pr = fitCountryProjection(r.polys, 600, 420);
+    expect(pr.lngSpan).toBeCloseTo(14.5, 9);
+  });
+  it('keeps large or nearby parts (Alaska and Hawaii with the lower 48)', () => {
+    const lower48 = box(-125, 25, 58, 24);
+    const alaska = box(-170, 55, 40, 16);
+    const hawaii = box(-160, 19, 5, 3);
+    expect(mainPart([lower48, alaska, hawaii]).left).toBe(0);
+  });
+  it('never leaves out a part holding a fifth of the area, however far', () => {
+    const a = box(0, 0, 10, 10);
+    const b = box(100, 0, 6, 6);
+    expect(mainPart([a, b]).left).toBe(0);
+  });
+  it('a scattered island state is framed on its largest island', () => {
+    const big = box(-157.5, 1.7, 0.4, 0.3);
+    const atolls = [box(173, 1.3, 0.1, 0.1), box(-171.7, -2.8, 0.05, 0.05), box(176.4, -1.4, 0.03, 0.03)];
+    const r = mainPart([atolls[0], big, atolls[1], atolls[2]]);
+    expect(r.polys).toEqual([big]);
+    expect(r.left).toBe(3);
+  });
+  it('islands within about 550 km of a small main island stay in the frame', () => {
+    const main = box(177.2, -18.3, 1.4, 1);
+    const second = box(178.5, -17, 1.4, 0.8);
+    const outer = box(181, -19.2, 0.2, 0.2); // 178 W in the country's own frame
+    expect(mainPart([main, second, outer]).left).toBe(0);
+  });
+  it('a part skipped at first joins once the frame has grown towards it', () => {
+    const main = box(0, 0, 4, 4);
+    const far = box(13, 0, 0.5, 0.5); // 9 degrees from the main part: too far at first
+    const bridge = box(7, 0, 3, 3); // joins, and the frame then reaches to 10
+    expect(mainPart([main, far, bridge]).left).toBe(0);
+  });
+  it('says how many parts are outside the view', () => {
+    expect(leftOutText(0)).toBe('');
+    expect(leftOutText(1)).toContain('One distant part');
+    expect(leftOutText(4)).toContain('4 distant parts');
   });
 });

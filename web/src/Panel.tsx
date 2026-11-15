@@ -163,7 +163,7 @@ export default function Panel({
       {state.status === 'insufficient' && (
         <p className="panel-msg">
           {state.nYears === 0
-            ? 'No data here: this variable has no values at this spot (it is only measured over land or only over the sea, or it is always zero here, like snow in a desert).'
+            ? 'No data here: this variable has no values at this spot. It is only defined over land or only over the sea, or it is always zero here (like snow in a desert), or the ground is an ice sheet, where snow cover, soil moisture and evaporation have no values.'
             : `Not enough data: only ${state.nYears} years have values here${fullPeriod ? '' : ` in ${periodText(period)}`} (at least ${MIN_YEARS} are needed).`}
         </p>
       )}
