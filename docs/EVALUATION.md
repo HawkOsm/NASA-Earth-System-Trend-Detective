@@ -71,6 +71,23 @@ Code: `pipeline/reference.py` and `pipeline/reference_multi.py` write `web/publi
 `PRECTOTCORR.json` (the `records` list with each record's trend per box, and the `consensus` and `byCount` summaries);
 `web/src/evaluation/reference.ts` reads them in the browser.
 
+### C. The satellite check (rainfall and snow cover)
+
+The challenge names instruments a trend tool should use: MODIS, OMI, AIRS, GPM, and the GLDAS model. Their records
+start around 2000, so they cannot take part in the 1981-2025 check. Each one that could be read without a sign-in
+is compared with MERRA-2 over the years they share, on 2 degree boxes (about 220 km):
+
+| Variable | Instrument | Read from | Years | What the panel says |
+|---|---|---|---|---|
+| Rainfall | GPM IMERG | NASA POWER's public archive | 2001-2025 | GPM's trend and MERRA-2's over the same years, and whether they agree |
+| Snow cover | MODIS (Terra) | NASA GIBS | 20 full years in 2004-2025 | the same, where MODIS saw every month of the year |
+
+Of MERRA-2's significant trends in those years, GPM confirms 22% of the rainfall area (73% not confirmed, 5%
+contradicted) and MODIS 28% of the snow area it can see (72% not confirmed). The satellite check is information
+only: it never changes a grade, because the grade is about the whole period. AIRS and GLDAS are missing because
+every source found needs a NASA Earthdata sign-in. Code: `pipeline/instrument_check.py`, `pipeline/instruments/`,
+`web/src/evaluation/instrument.ts`.
+
 ## 3. What we measured
 
 All numbers below were computed by the pipeline and recomputed independently in review.

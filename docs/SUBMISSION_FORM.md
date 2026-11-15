@@ -79,6 +79,8 @@ system can leave jumps and drifts in it. So:
   opposite. The site names the records on each side.
 - the comparison also finds individual years where MERRA-2 departs from the first record (GISTEMP or GPCP),
   names them, and shows the trend without them.
+- a satellite check compares MERRA-2 with two instruments the challenge names, over their own years: rainfall
+  with GPM (2001–2025) and snow cover with MODIS (2004–2025). The panel says whether the two trends agree.
 
 Over the area where MERRA-2 shows a significant trend, most of the records confirm 90% for land temperature
 (8% partly, 2% not confirmed) and 20% for rainfall (43% partly, 28% confirmed by none, 9% contradicted). The
@@ -103,7 +105,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 452 browser-side and 223
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 474 browser-side and 230
 pipeline-side tests; GitHub Pages for hosting.
 
 ## Use of Super Intelligence (SI)
@@ -142,6 +144,12 @@ project is AI-generated: the pictures in the deck are screenshots of the site. N
 - **MERRA-2**, NASA Global Modeling and Assimilation Office: the reanalysis behind NASA POWER's variables.
 - **GISTEMP v4**, NASA Goddard Institute for Space Studies, https://data.giss.nasa.gov/gistemp/: the
   independent temperature record used by the evaluation layer.
+- **GPM IMERG** precipitation (NASA Global Precipitation Measurement mission), read from NASA POWER's public
+  archive: the satellite check for rainfall, 2001–2025.
+- **MODIS** snow cover (NASA Terra, product MOD10CM), read from NASA GIBS (https://gibs.earthdata.nasa.gov): the
+  satellite check for snow cover.
+- The challenge description itself names MERRA-2 among the models, and MODIS and GPM among the instruments, whose
+  data a response should analyse. All three are used here.
 - **"Time-Series Analysis of Remotely-Sensed SeaWiFS Chlorophyll in River-Influenced Coastal Regions"**
   (Acker and co-authors, NASA Goddard Earth Sciences Data and Information Services Center), the research
   article listed in this challenge's Resources. Its workflow is the one this project implements: an
