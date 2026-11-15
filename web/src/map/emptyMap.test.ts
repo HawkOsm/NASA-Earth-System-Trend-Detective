@@ -1,40 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_SHARE, SPARSE_SHARE, allChangesLine, emptyMapText, isEmptyMap } from './emptyMap';
+import { allChangesLine, scaleChangedLine } from './emptyMap';
 
-describe('empty map notice', () => {
-  it('shows for a recomputed period with nothing significant', () => {
-    expect(isEmptyMap({ start: 2016, end: 2025, fracSignificant: 0, recomputed: true })).toBe(true);
-    expect(isEmptyMap({ start: 2016, end: 2025, fracSignificant: EMPTY_SHARE - 1e-6, recomputed: true })).toBe(true);
-  });
-
-  it('shows, with the share, when only a few specks are significant', () => {
-    const shown = { start: 2001, end: 2015, fracSignificant: 0.0231, recomputed: true };
-    expect(isEmptyMap(shown)).toBe(true);
-    expect(emptyMapText(shown)).toContain('Only 2% of the map passes the map-wide test for 2001–2015, so the map shows every change instead');
-    expect(emptyMapText({ ...shown, fracSignificant: EMPTY_SHARE })).toContain('Only 1% of the map');
-  });
-
-  it('does not show when a real part of the map is significant', () => {
-    expect(isEmptyMap({ start: 2006, end: 2025, fracSignificant: 0.2284, recomputed: true })).toBe(false);
-    expect(isEmptyMap({ start: 2011, end: 2025, fracSignificant: SPARSE_SHARE, recomputed: true })).toBe(false);
-  });
-
-  it('does not show for the precomputed full-period map or while a share is unknown', () => {
-    expect(isEmptyMap({ start: 1981, end: 2025, fracSignificant: 0, recomputed: false })).toBe(false);
-    expect(isEmptyMap({ start: 2016, end: 2025, fracSignificant: NaN, recomputed: true })).toBe(false);
-  });
-
-  it('names the period, the number of years and how to read the colours', () => {
-    const text = emptyMapText({ start: 2016, end: 2025, fracSignificant: 0, recomputed: true });
-    expect(text).toContain('No trend passes the map-wide test for 2016–2025');
-    expect(text).toContain('strong colour where a place is significant on its own, faded where it is not');
-    expect(text).toContain('With only 10 years');
-    expect(text).toContain('not as proof');
-  });
-
-  it('the menu line says that every change is drawn', () => {
+describe('menu lines of a period map', () => {
+  it('says that every change is drawn when almost nothing passes the map-wide test', () => {
     expect(allChangesLine({ start: 2016, end: 2025, fracSignificant: 0.004, recomputed: true }, 'of the globe')).toBe(
       'Every change is drawn: strong = significant at that place on its own, faded = not significant. 0% of the globe passes the map-wide test',
     );
+  });
+
+  it('says when the colour scale differs from the whole record', () => {
+    const line = scaleChangedLine({ start: 2016, end: 2025, fracSignificant: 0, recomputed: true, vmax: 20 }, 4.5, [1981, 2025]);
+    expect(line).toBe(
+      'The colour scale has changed for this period: ±20 per decade, which is about ±18 in total over 2016–2025. For 1981–2025 it is ±4.5 per decade, about ±20 in total. A rate measured over fewer years swings more, so the per-decade scale is wider for a short period.',
+    );
+    // air temperature: 2.4 per decade over 9 years is less in total than 0.74 per decade over 44 years
+    const t = scaleChangedLine({ start: 2016, end: 2025, fracSignificant: 0, recomputed: true, vmax: 2.4 }, 0.74, [1981, 2025]);
+    expect(t).toContain('±2.4 per decade, which is about ±2.2 in total over 2016–2025');
+    expect(t).toContain('±0.74 per decade, about ±3.3 in total');
+  });
+
+  it('says nothing for the whole record or an unchanged scale', () => {
+    expect(scaleChangedLine({ start: 1981, end: 2025, fracSignificant: 0.2, recomputed: false, vmax: 4.5 }, 4.5, [1981, 2025])).toBeNull();
+    expect(scaleChangedLine({ start: 1990, end: 2025, fracSignificant: 0.2, recomputed: true, vmax: 4.5 }, 4.5, [1981, 2025])).toBeNull();
+    expect(scaleChangedLine({ start: 1990, end: 2025, fracSignificant: 0.2, recomputed: true }, 4.5, [1981, 2025])).toBeNull();
   });
 });

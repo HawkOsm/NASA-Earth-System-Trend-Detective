@@ -599,6 +599,58 @@ export function themeFor(text: string): Theme | null {
   return null;
 }
 
+// ---- the years asked about --------------------------------------------------------------------------------------------
+
+const YEAR = '((?:19|20)\\d{2})';
+const NUMBER_WORDS: Record<string, number> = { ten: 10, fifteen: 15, twenty: 20, 'twenty five': 25, thirty: 30, forty: 40, two: 2, three: 3, four: 4 };
+const MIN_ASK_YEARS = 10;
+
+export interface PeriodAsk {
+  /** The years asked about, fitted into the data (at least ten years, inside `full`); null when the text names none. */
+  period: [number, number] | null;
+  /** The text without the words that named the years, for the place lookup. */
+  rest: string;
+  /** True when the years had to be changed to fit (too short, or outside the data). */
+  adjusted: boolean;
+}
+
+/**
+ * The years a question asks about: "from 2016 to 2025", "2000-2020", "between 1990 and 2010", "since 2005",
+ * "until 2000", "the last 20 years", "the last two decades". The result always has at least ten years inside `full`:
+ * a shorter or out-of-range request is widened / moved and `adjusted` is set. Two plain numbers that are not years
+ * (a latitude and longitude) are left alone.
+ */
+export function parsePeriod(text: string, full: [number, number]): PeriodAsk {
+  const [lo, hi] = full;
+  const fit = (s: number, e: number): { period: [number, number]; adjusted: boolean } => {
+    let a = Math.max(lo, Math.min(hi, Math.min(s, e)));
+    let b = Math.max(lo, Math.min(hi, Math.max(s, e)));
+    if (b - a + 1 < MIN_ASK_YEARS) {
+      b = Math.min(hi, a + MIN_ASK_YEARS - 1);
+      a = Math.max(lo, b - MIN_ASK_YEARS + 1);
+    }
+    return { period: [a, b], adjusted: a !== Math.min(s, e) || b !== Math.max(s, e) };
+  };
+  const cut = (m: RegExpExecArray) => (text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim();
+  let m = new RegExp(`\\b(?:from\\s+|between\\s+)?${YEAR}\\s*(?:-|–|—|to|and|until|till|through)\\s*${YEAR}\\b`, 'i').exec(text);
+  if (m) return { ...fit(Number(m[1]), Number(m[2])), rest: cut(m) };
+  m = new RegExp(`\\b(?:since|after|from)\\s+${YEAR}\\b`, 'i').exec(text);
+  if (m) return { ...fit(Number(m[1]), hi), rest: cut(m) };
+  m = new RegExp(`\\b(?:until|till|before|up to|through)\\s+${YEAR}\\b`, 'i').exec(text);
+  if (m) return { ...fit(lo, Number(m[1])), rest: cut(m) };
+  m = /\b(?:in |over |during |for )?(?:the )?(?:last|past|previous|recent)\s+(\d{1,2}|[a-z]+(?: five)?)?\s*(years|decades?)\b/i.exec(text);
+  if (m) {
+    const word = (m[1] ?? '').toLowerCase();
+    const n = word === '' ? 1 : /^\d+$/.test(word) ? Number(word) : NUMBER_WORDS[word];
+    if (n !== undefined && !(word === '' && /^years$/i.test(m[2]))) {
+      const years = /^decade/i.test(m[2]) ? n * 10 : n;
+      const f = fit(hi - years + 1, hi);
+      return { ...f, adjusted: f.adjusted || years < MIN_ASK_YEARS, rest: cut(m) };
+    }
+  }
+  return { period: null, rest: text, adjusted: false };
+}
+
 export const CLICK_BUTTON = 'Click a place on the globe';
 
 export const OPENING = 'What do you want to investigate?';

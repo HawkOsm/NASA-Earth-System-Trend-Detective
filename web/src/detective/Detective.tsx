@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from 'react';
+import { prefersReducedMotion } from '../map/wind/WindLayer';
 import './detective.css';
 import { loadCities, loadCountries, loadMask, pickCountry } from '../areas/country';
 import {
@@ -7,6 +8,8 @@ import {
   OPENING,
   OPENING_HELP,
   THEMES,
+  YEARS_TEXT,
+  parsePeriod,
   themeFor,
   buildAnswer,
   countryPlace,
@@ -90,9 +93,21 @@ export interface DetectiveProps {
   onFly: (lat: number, lng: number, altitude?: number) => void;
   /** Open the existing country / sea overlay. */
   onLift: (t: LiftTarget) => void;
+  /** Set the period of the map and the country view (the years a question asked about). */
+  onPeriod: (period: [number, number]) => void;
+  /** The years the data covers. */
+  fullYears: [number, number];
   /** Detective registers its globe-click handler here; App calls it instead of the normal click while the panel is open. */
   clickRef: MutableRefObject<((pos: { lat: number; lng: number }) => void) | null>;
 }
+
+/** The years a typed question asked about (see `stepsNote` and `openView` in the component). */
+interface Steps {
+  period: [number, number] | null;
+  adjusted: boolean;
+}
+/** How long the globe takes to turn to a place before its view opens. */
+const TURN_MS = 1500;
 
 const themeChoices = (): Choice[] => [
   ...THEMES.map((t): Choice => ({ label: t.button, action: { t: 'theme', id: t.id } })),
@@ -198,6 +213,36 @@ export default function Detective(p: DetectiveProps) {
     setLast(lastSummary(placeName, rank, answer, region));
   };
 
+  /**
+   * What a typed question sets in motion, in this order: 1. the place is found, 2. the years it names are applied,
+   * 3. the globe turns to the place, 4. its country (or sea) view opens. `steps` is null for buttons and globe clicks,
+   * which only answer.
+   */
+  const liftTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (liftTimer.current !== null) window.clearTimeout(liftTimer.current); }, []);
+  const applyPeriod = (steps: Steps | null) => {
+    if (steps?.period) p.onPeriod(steps.period);
+  };
+  const openView = (steps: Steps | null, lift: LiftTarget | null) => {
+    if (!steps || !lift) return;
+    if (liftTimer.current !== null) window.clearTimeout(liftTimer.current);
+    // After the globe has turned (the flight takes about a second); at once when motion is to be reduced.
+    liftTimer.current = window.setTimeout(() => p.onLift(lift), prefersReducedMotion() ? 0 : TURN_MS);
+  };
+  const stepsNote = (steps: Steps | null, lift: LiftTarget | null, region = false): string | undefined => {
+    if (!steps) return undefined;
+    const parts: string[] = [];
+    if (steps.period) {
+      parts.push(`I set the period to ${steps.period[0]}–${steps.period[1]}; the map and the country view now use it.`);
+      if (steps.adjusted) parts.push(`That is the nearest I can do: at least ten years inside ${p.fullYears[0]}–${p.fullYears[1]}.`);
+      parts.push(`The ranking below is for ${YEARS_TEXT}, the only years I have ready.`);
+    }
+    if (lift) parts.push(`I am turning the globe there and opening the view of ${lift.name}.`);
+    else if (region) parts.push('I have turned the globe there. A continent has no view of its own: tap a country below to open one.');
+    return parts.length ? parts.join(' ') : undefined;
+  };
+  const joinNotes = (...notes: (string | undefined)[]): string | undefined => notes.filter(Boolean).join(' ') || undefined;
+
   const followUps = (lift: LiftTarget | null): Choice[] => [
     ...(lift ? [{ label: `Lift ${lift.name}`, action: { t: 'lift', target: lift } as Action }] : []),
     { label: 'Another place', action: { t: 'another' } },
@@ -218,7 +263,7 @@ export default function Detective(p: DetectiveProps) {
     return { inside: null, lift: null };
   };
 
-  const answerSpot = (lat: number, lng: number, preface?: string) => {
+  const answerSpot = (lat: number, lng: number, preface?: string, steps: Steps | null = null) => {
     const lng0 = wrapLng(lng);
     const run = () =>
       withSummary(async (rank, _summary, quality, refs) => {
@@ -226,9 +271,10 @@ export default function Detective(p: DetectiveProps) {
         const r = rank(lat, lng0);
         const header = spotHeader(lat, lng0, inside);
         reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
-          note: preface,
+          note: joinNotes(preface, stepsNote(steps, lift)),
           choices: followUps(lift),
         });
+        openView(steps, lift);
       }, run);
     return run();
   };
@@ -244,7 +290,7 @@ export default function Detective(p: DetectiveProps) {
   };
   const otherChoices = (others: NamedPlace[]): Choice[] => others.map((o): Choice => ({ label: placeLabel(o), action: { t: 'place', place: o } }));
 
-  const answerPlace = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
+  const answerPlace = (place: NamedPlace, read: string | null, others: NamedPlace[] = [], steps: Steps | null = null) => {
     const run = () =>
       withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(place.lat, place.lng);
@@ -256,15 +302,16 @@ export default function Detective(p: DetectiveProps) {
               ? { kind: 'country', idx: place.countryIdx, name: place.country }
               : null;
         reportAnswer(placeLabel(place), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
-          note: placeNote(place, read, others),
+          note: joinNotes(placeNote(place, read, others), stepsNote(steps, lift)),
           choices: [...otherChoices(others), ...followUps(lift)],
         });
+        openView(steps, lift);
       }, run);
     return run();
   };
 
   /** A continent or the World: the pre-computed average over its land, and its most populous countries as follow-ups. */
-  const answerRegion = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
+  const answerRegion = (place: NamedPlace, read: string | null, others: NamedPlace[] = [], steps: Steps | null = null) => {
     const run = () =>
       withSummary(async (_rank, summary) => {
         const regions = await loadRegions();
@@ -287,7 +334,7 @@ export default function Detective(p: DetectiveProps) {
           rec.name,
           rank,
           buildAnswer(rank, header, [], extras, qualities, areaLineChecks(rank, areaRefs, 'regions', rec.name)),
-          { note: placeNote(place, read, others), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
+          { note: joinNotes(placeNote(place, read, others), stepsNote(steps, null, true)), choices: [...otherChoices(others), ...countries, { label: 'Another place', action: { t: 'another' } }] },
           true,
         );
       }, run);
@@ -295,21 +342,23 @@ export default function Detective(p: DetectiveProps) {
   };
 
   /** Fly to a named place and answer for it. */
-  const answerNamed = (place: NamedPlace, read: string | null, others: NamedPlace[] = []) => {
+  const answerNamed = (place: NamedPlace, read: string | null, others: NamedPlace[] = [], steps: Steps | null = null) => {
+    applyPeriod(steps);
     if (place.kind === 'region') {
       p.onFly(place.lat, place.lng, place.altitude);
-      return answerRegion(place, read, others);
+      return answerRegion(place, read, others, steps);
     }
     p.onFly(place.lat, place.lng);
-    return answerPlace(place, read, others);
+    return answerPlace(place, read, others, steps);
   };
 
-  const answerTheme = (t: Theme) => {
+  const answerTheme = (t: Theme, steps: Steps | null = null) => {
     const run = () =>
       withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(t.lat, t.lng);
         const { lift } = await describeSpot(t.lat, t.lng);
-        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { choices: followUps(lift) });
+        reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { note: stepsNote(steps, lift), choices: followUps(lift) });
+        openView(steps, lift);
       }, run);
     return run();
   };
@@ -334,14 +383,19 @@ export default function Detective(p: DetectiveProps) {
         push({ from: 'bot', text: "I couldn't load my list of places. Please try again.", choices: [{ label: 'Try again', action: { t: 'ask', text: input } }] });
         return;
       }
-      const m = matchPlace(input, idx);
+      // 1. the place, in the text without the words that name years; 2. the years; then 3. turn and 4. open the view.
+      const asked = parsePeriod(input, p.fullYears);
+      const text = asked.rest.trim() || input;
+      const steps: Steps = { period: asked.period, adjusted: asked.adjusted };
+      const m = matchPlace(text, idx);
       // A region a theme button stands for ("the Sahara", "the Amazon"), unless the text names a listed place exactly.
-      const theme = themeFor(input);
+      const theme = themeFor(text);
       if (theme && !(m.kind === 'place' && !m.read) && m.kind !== 'point' && m.kind !== 'bad-coordinates') {
+        applyPeriod(steps);
         p.onFly(theme.lat, theme.lng);
-        await answerTheme(theme);
+        await answerTheme(theme, steps);
       } else if (m.kind === 'place') {
-        await answerNamed(m.place, m.read ?? null, m.others ?? []);
+        await answerNamed(m.place, m.read ?? null, m.others ?? [], steps);
       } else if (m.kind === 'choose') {
         push({
           from: 'bot',
@@ -349,14 +403,15 @@ export default function Detective(p: DetectiveProps) {
           choices: m.options.map((o): Choice => ({ label: placeLabel(o), action: { t: 'place', place: o } })),
         });
       } else if (m.kind === 'point') {
+        applyPeriod(steps);
         p.onFly(m.lat, m.lng);
-        await answerSpot(m.lat, m.lng);
+        await answerSpot(m.lat, m.lng, undefined, steps);
       } else if (m.kind === 'bad-coordinates') {
         push({ from: 'bot', text: 'Those coordinates are outside the globe: latitude must be between -90 and 90 and longitude between -180 and 180.', choices: themeChoices() });
       } else {
         push({
           from: 'bot',
-          text: `I couldn't find a place in “${triedText(input)}”. I can look up cities, countries, continents, seas and oceans by name, or a latitude and longitude like 41.0, 28.9.`,
+          text: `I couldn't find a place in “${triedText(text)}”. I can look up cities, countries, continents, seas and oceans by name, or a latitude and longitude like 41.0, 28.9.`,
           choices: [...m.suggestions.map((s): Choice => ({ label: `Did you mean ${s}?`, action: { t: 'ask', text: s } })), ...themeChoices()],
         });
       }

@@ -24,8 +24,10 @@ selected location's data live from NASA POWER and computes the same statistics i
    box), wind streaks, and borders and labels. The Scale row shows the colour bar and how much of the map is
    significant, robust and independently confirmed.
 4. **Ask the Detective.** Type a city, country, sea, continent or a whole question ("what is changing in Europe?").
-   It lists what is changing there, strongest first, with a button on each line that switches the map. It uses no
-   AI: it looks up precomputed trends.
+   It lists what is changing there, strongest first, with a button on each line that switches the map. A typed
+   question sets four things in motion, in order: it finds the place; it reads any years in the question ("from 2016 to
+   2025", "since 2000", "the last 20 years") and sets the period; it turns the globe to the place; and it opens the
+   country or sea view there. It uses no AI: it looks up precomputed trends.
 5. **Read the grade.** Every verdict comes with a grade (Robust, Use with caution, Doubtful) and, for air temperature
    and rainfall, a line saying whether an independent record confirms the trend. See "Evaluation layer".
 
@@ -82,9 +84,12 @@ Sen-interval statistics on the years in the period, followed by Benjamini–Hoch
 **Short periods.** Over ten years no trend passes the map-wide test for any of the ten variables, and over fifteen years
 almost none does for seven of them, so a map that only colours what passes would be empty. When less than 3% of a period map
 passes (`SPARSE_SHARE` in `web/src/map/rangeMap.ts`), the map switches to the rule of the lifted country view: every change is
-drawn, strong where a place is significant on its own (p < 0.05, no map-wide correction) and faded where it is not. A notice on
-the map says that the rule has changed and that about 1 place in 20 looks significant by chance alone, and the menu line changes
-with it. This keeps the globe and the country view in step for the same period.
+drawn, strong where a place is significant on its own (p < 0.05, no map-wide correction) and faded where it is not; about 1 place
+in 20 looks significant by chance alone. The Scale row of the menu then reads "Every change is drawn..." instead of "Plain map =
+no significant trend". This keeps the globe and the country view in step for the same period. The same row says when the colour
+scale differs from the whole record's and gives both as a rate and as the total change over the years: the scale is a rate per
+decade, a rate measured over fewer years swings more, so it is wider for a short period (soil moisture: ±20 per decade over
+2016-2025 against ±4.5 over 1981-2025, about ±18 and ±20 in total).
 
 The statistics are implemented twice — Python (`pipeline/core/trendstats.py`) for the map and TypeScript
 (`web/src/stats/trend.ts`) for the browser — and tested against a shared set of fixture series

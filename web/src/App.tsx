@@ -58,7 +58,6 @@ import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends
 import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data/data';
 import { useRangeMap } from './map/useRangeMap';
 import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './menu/period';
-import EmptyMapNote from './map/EmptyMapNote';
 
 const DEFAULT_VARIABLE = VARIABLES[0];
 
@@ -1084,13 +1083,6 @@ export default function App() {
             }
           />
           <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen} onOpen={openStartFinding} onDetective={() => setDetectiveOpen(true)} />
-          <EmptyMapNote
-            shown={range.shown}
-            period={period}
-            fullYears={fullYears}
-            covered={!!panel || waterPanel || overlayOpen || recomputing !== null}
-            onReset={resetPeriod}
-          />
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}
@@ -1107,6 +1099,8 @@ export default function App() {
               flyTo({ lat, lng }, altitude ?? pickAltitude(window.__view?.().altitude, 5));
             }}
             onLift={(t: LiftTarget) => (t.kind === 'sea' ? handlersRef.current.pickSeaByName(t.idx) : handlersRef.current.pickCountryByName(t.idx))}
+            onPeriod={(per) => handlersRef.current.setPeriod(per[0], per[1])}
+            fullYears={fullYears}
             clickRef={detectiveClickRef}
           />
         </div>

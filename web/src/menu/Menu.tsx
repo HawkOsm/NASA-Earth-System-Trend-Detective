@@ -6,7 +6,7 @@ import { CONFIRMED_DISABLED_TEXT } from '../map/confirmedMap';
 import { WHOLE_GLOBE_BUTTON_BELOW } from '../point/detail';
 import { rateUnits } from '../data/format';
 import { formatTick, overlayBarCss } from '../map/legend';
-import { allChangesLine } from '../map/emptyMap';
+import { allChangesLine, scaleChangedLine } from '../map/emptyMap';
 import PeriodBar from './PeriodBar';
 import { periodText, type Period } from './period';
 
@@ -223,6 +223,9 @@ export default function Menu(p: MenuProps) {
                   ? allChangesLine(shown, shareOfText(meta.surface))
                   : `Plain map = no significant trend · ${Math.round(shown.fracSignificant * 100)}% ${shareOfText(meta.surface)} shows one`}
               </div>
+              {scaleChangedLine(shown, meta.vmax, p.fullYears) && (
+                <div className="menu-dim menu-note menu-scale-changed">{scaleChangedLine(shown, meta.vmax, p.fullYears)}</div>
+              )}
               {shown.recomputed && <div className="menu-dim menu-note">Recomputed for this period at about 100 km detail.</div>}
               {referenceLine && (
                 <div className="menu-dim menu-note menu-quality menu-reference">{referenceLine}</div>
