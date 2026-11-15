@@ -44,9 +44,9 @@ describe('buildAnswer with quality', () => {
     };
     const a = buildAnswer(ten, 'H', [], undefined, new Map([['A', vq('robust')], ['B', vq('doubtful', { step: true, reversal: true }, 2001)]]));
     // Holm over 10: 0.01 -> 0.10, 0.03 -> 0.27: both >= 0.05
-    expect(a.lines[0]).toMatchObject({ grade: 'caution', reasons: ['Significant on its own, but not after allowing for the 10 variables tested at this place.'] });
+    expect(a.lines[0]).toMatchObject({ grade: 'caution', reasons: ['Significant on its own, but not after allowing for the 10 variables tested at this place: the more are tested, the likelier one looks significant by chance.'] });
     expect(a.lines[1].grade).toBe('doubtful');
-    expect(a.lines[1].reasons).toEqual(['Looks like a jump around 2001 rather than a gradual change.', 'Significant on its own, but not after allowing for the 10 variables tested at this place.']);
+    expect(a.lines[1].reasons).toEqual(['Looks like a jump around 2001 rather than a gradual change.', 'Significant on its own, but not after allowing for the 10 variables tested at this place: the more are tested, the likelier one looks significant by chance.']);
   });
 });
 

@@ -17,14 +17,17 @@ declare global {
   }
 }
 
-/** What a click on the globe does: lift the country or sea (default), or the Point / box sizes of the Area row. */
-export const CLICK_OPTIONS: { key: 'lift' | number; label: string }[] = [
-  { key: 'lift', label: 'Lift' },
-  { key: 0, label: 'Point' },
-  { key: 2, label: '2°' },
-  { key: 5, label: '5°' },
-  { key: 10, label: '10°' },
+/** What a click on the globe does: lift the country or sea (default), or the Point / box sizes of the Area row.
+ *  `what` says it in words: it is the tooltip of the option, and the line under the row for the one that is chosen. */
+export const CLICK_OPTIONS: { key: 'lift' | number; label: string; what: string }[] = [
+  { key: 'lift', label: 'Lift', what: 'the country, sea or ocean under the click, lifted out of the map' },
+  { key: 0, label: 'Point', what: 'one place: a single grid cell of about 50 km' },
+  { key: 2, label: '2°', what: 'the average over a box 2° wide, about 200 km' },
+  { key: 5, label: '5°', what: 'the average over a box 5° wide, about 500 km' },
+  { key: 10, label: '10°', what: 'the average over a box 10° wide, about 1,000 km' },
 ];
+
+const CONFIRMED_TITLE = 'Keep only the trends that most of the independent records also show (temperature and rainfall)';
 
 /** The pressed option of the Click row, from the app's state (lift mode wins over the box size). */
 export function clickKey(lift: boolean, sizeDeg: number): 'lift' | number {
@@ -87,15 +90,18 @@ function Opt({
   pressed,
   onClick,
   disabled,
+  title,
   children,
 }: {
   pressed: boolean;
   onClick: () => void;
   disabled?: boolean;
+  /** A few words on what the option does (a tooltip). */
+  title?: string;
   children: ReactNode;
 }) {
   return (
-    <button type="button" className="menu-opt" aria-pressed={pressed} disabled={disabled} onClick={onClick}>
+    <button type="button" className="menu-opt" aria-pressed={pressed} disabled={disabled} title={title} onClick={onClick}>
       {children}
     </button>
   );
@@ -180,6 +186,7 @@ export default function Menu(p: MenuProps) {
   };
 
   const key = clickKey(p.click.lift, p.click.sizeDeg);
+  const chosenClick = CLICK_OPTIONS.find((o) => o.key === key);
   const { shown } = p;
   const scaleChanged = meta ? scaleChangedLine(shown, meta.vmax, p.fullYears) : null;
   const scaleDetails = !!meta && (shown.recomputed || !!p.referenceLine || !!p.instrumentLine || !!meta.quality || (!!p.confirmed && !p.confirmed.enabled));
@@ -245,9 +252,13 @@ export default function Menu(p: MenuProps) {
             <div className="menu-scale">
               <div className="legend-bar" style={{ background: overlayBarCss(meta.legend_stops, meta.render) }} />
               <div className="legend-ticks">
-                <span>{formatTick(-shown.vmax)}</span>
+                <span>
+                  {formatTick(-shown.vmax)} <span className="legend-end">falling</span>
+                </span>
                 <span>{formatTick(0)}</span>
-                <span>{formatTick(shown.vmax)}</span>
+                <span>
+                  <span className="legend-end">rising</span> {formatTick(shown.vmax)}
+                </span>
               </div>
               <div className="menu-note">
                 {rateUnits(meta.units)} per decade, {periodText([shown.start, shown.end])}
@@ -267,7 +278,7 @@ export default function Menu(p: MenuProps) {
                   ? p.confirmed.line
                   : shown.allChanges
                   ? allChangesLine(shown, shareOfText(meta.surface))
-                  : `Plain map = no significant trend · ${Math.round(shown.fracSignificant * 100)}% ${shareOfText(meta.surface)} shows one`}
+                  : `Plain map (no colour) = no significant trend · ${Math.round(shown.fracSignificant * 100)}% ${shareOfText(meta.surface)} shows one`}
               </div>
               {scaleChanged && <div className="menu-note menu-scale-changed">{scaleChanged}</div>}
               {scaleInfo && scaleDetails && (
@@ -287,10 +298,10 @@ export default function Menu(p: MenuProps) {
             </div>
             {p.confirmed && p.confirmed.enabled && (
               <div className="menu-opts menu-show" role="group" aria-label="Show">
-                <Opt pressed={!p.confirmed.on} onClick={() => p.confirmed?.onChange(false)}>
+                <Opt pressed={!p.confirmed.on} title="Every trend that passes the map's significance test" onClick={() => p.confirmed?.onChange(false)}>
                   All significant
                 </Opt>
-                <Opt pressed={p.confirmed.on} onClick={() => p.confirmed?.onChange(true)}>
+                <Opt pressed={p.confirmed.on} title={CONFIRMED_TITLE} onClick={() => p.confirmed?.onChange(true)}>
                   Confirmed only
                 </Opt>
               </div>
@@ -302,22 +313,27 @@ export default function Menu(p: MenuProps) {
           <div className="menu-dim menu-note">A click on the map opens</div>
           <div className="menu-opts" role="group" aria-label="Click">
             {CLICK_OPTIONS.map((o) => (
-              <Opt key={String(o.key)} pressed={key === o.key} onClick={() => (o.key === 'lift' ? p.click.onLift() : p.click.onSize(o.key))}>
+              <Opt key={String(o.key)} pressed={key === o.key} title={o.what} onClick={() => (o.key === 'lift' ? p.click.onLift() : p.click.onSize(o.key))}>
                 {o.label}
               </Opt>
             ))}
           </div>
+          {chosenClick && (
+            <div className="menu-dim menu-note menu-click-what">
+              {chosenClick.label}: {chosenClick.what}.
+            </div>
+          )}
         </Seg>
 
         <Seg id="layers" label="Layers" open={has('layers')} onToggle={() => toggle('layers')}>
           <div className="menu-opts menu-animate" role="group" aria-label="Layers">
-            <Opt pressed={p.wind.on} disabled={!p.wind.available} onClick={() => p.wind.onChange(!p.wind.on)}>
+            <Opt pressed={p.wind.on} disabled={!p.wind.available} title="Moving streaks: the average wind, 1981–2025" onClick={() => p.wind.onChange(!p.wind.on)}>
               Wind
             </Opt>
-            <Opt pressed={p.mapLines} onClick={() => p.onMapLines(!p.mapLines)}>
+            <Opt pressed={p.mapLines} title="Country borders, the grid of latitude and longitude, and place names" onClick={() => p.onMapLines(!p.mapLines)}>
               Borders &amp; labels
             </Opt>
-            <Opt pressed={false} disabled={!zoomedIn} onClick={p.onWholeGlobe}>
+            <Opt pressed={false} disabled={!zoomedIn} title={zoomedIn ? 'Zoom back out to the whole globe' : 'You already see the whole globe; this zooms back out after you have gone close'} onClick={p.onWholeGlobe}>
               Whole globe
             </Opt>
           </div>

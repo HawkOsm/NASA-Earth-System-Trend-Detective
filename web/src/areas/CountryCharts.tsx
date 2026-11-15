@@ -14,6 +14,33 @@ export type Stops = [number, number, number][];
 /** The map's colour for a trend, so bars and dots read like the map. */
 export const rateColour = (slope: number, vmax: number, stops: Stops): string => `rgb(${cellRgb(slope, vmax, stops).join(',')})`;
 
+/** The dark card behind the country view's text (`.co-card` in styles.css), as red, green, blue. */
+const CARD_RGB: [number, number, number] = [14, 20, 34];
+/** The contrast that ordinary text needs against its background (WCAG AA). */
+const TEXT_CONTRAST = 4.5;
+
+const luminance = ([r, g, b]: number[]): number => {
+  const lin = (c: number) => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+};
+
+/** Contrast ratio of a colour against the dark card (1 = the same, 21 = white on black). */
+export function contrastOnCard(rgb: number[]): number {
+  return (luminance(rgb) + 0.05) / (luminance(CARD_RGB) + 0.05);
+}
+
+/**
+ * An `rgb(r,g,b)` colour, lightened step by step until it can be read as text on the dark card. The deep blue and
+ * brown ends of the scales are too dark for that (the big rate of a cooling sea had a contrast of 2.9).
+ */
+export function readableOnDark(colour: string): string {
+  const m = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(colour);
+  if (!m) return colour;
+  let rgb = [Number(m[1]), Number(m[2]), Number(m[3])];
+  for (let k = 0; k < 40 && contrastOnCard(rgb) < TEXT_CONTRAST; k++) rgb = rgb.map((c) => c + (255 - c) * 0.1);
+  return `rgb(${rgb.map((c) => Math.round(c)).join(',')})`;
+}
+
 /** Width of an element in CSS pixels, kept current. */
 function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
   const ref = useRef<T>(null);

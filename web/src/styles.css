@@ -42,6 +42,8 @@ html, body, #root {
 .globe-area { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .legend-bar { height: 12px; border-radius: 2px; }
 .legend-ticks { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; margin-top: 2px; }
+/* "falling" / "rising" beside the end numbers of a colour bar: which end of the colours is which. */
+.legend-end { font-size: 0.92em; opacity: 0.8; }
 .header-actions { margin-left: auto; display: flex; gap: 8px; }
 .tour-start-btn { background: transparent; }
 .howto-btn {
@@ -232,7 +234,7 @@ html, body, #root {
 .period-title { font-weight: 600; }
 .period-status { flex: 1 1 auto; color: #9ec1ff; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .period-reset {
-  margin-left: auto; padding: 2px 10px; font-size: 0.78rem; color: #e6e9ef; cursor: pointer;
+  margin-left: auto; min-height: 24px; padding: 2px 10px; font-size: 0.78rem; color: #e6e9ef; cursor: pointer;
   background: #1c2a44; border: 1px solid #3a4a6a; border-radius: 4px;
 }
 .period-reset:hover:not(:disabled) { background: #26375a; }
@@ -364,7 +366,7 @@ html, body, #root {
 .co-howto-btn { align-self: center; }
 
 .hero { display: flex; align-items: center; gap: 12px; }
-.hero-rate { font-size: 2.6rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.hero-rate { font-size: 2.6rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .hero-word { font-size: 1rem; font-weight: 600; }
 .hero-units { font-size: 0.82rem; color: #a8b0c0; }
 
@@ -432,8 +434,12 @@ html, body, #root {
 .vt-name { font-size: 0.76rem; line-height: 1.2; min-height: 2.4em; color: #c9cfdb; overflow-wrap: anywhere; }
 .vt-rate { font-size: 0.76rem; line-height: 1.2; color: #a8b0c0; font-variant-numeric: tabular-nums; }
 .vt-rate.clear { color: #ffd166; }
-@media (max-width: 1099px) {
-  /* One column: the variables are a strip that scrolls sideways, so the headline card stays near the map. */
-  .vt-grid { display: flex; overflow-x: auto; padding-bottom: 4px; }
-  .vt { flex: 0 0 116px; }
+.vt-key { margin: 6px 0 0; font-size: 0.76rem; color: #a8b0c0; }
+/* Fingers need more room than a mouse pointer: on a phone every control is at least 40 px tall. */
+@media (max-width: 760px) {
+  .howto-btn, .co-back, .co-var-select, .area-btn, .retry, .chip, .co-link, .in-country-btn { min-height: 40px; }
+  .panel-close { width: 40px; height: 40px; }
+  .period-reset { min-height: 40px; padding: 2px 14px; }
+  .period-row { min-height: 40px; }
+  .period-row input[type='range'] { height: 40px; }
 }

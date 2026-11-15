@@ -235,7 +235,7 @@ export const ROBUST_TEXT = 'Pattern checks passed: the change is gradual, not dr
 export const UNCHECKED_TEXT = 'Too few years to check (at least 20 are needed).';
 
 export function manyTestsText(n: number): string {
-  return `Significant on its own, but not after allowing for the ${n} variables tested at this place.`;
+  return `Significant on its own, but not after allowing for the ${n} variables tested at this place: the more are tested, the likelier one looks significant by chance.`;
 }
 
 const RANK: Record<VerdictKind, number> = { none: 0, possible: 1, significant: 2 };

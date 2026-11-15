@@ -7,6 +7,11 @@
   color: #f2f4f8; font-size: 0.92rem; line-height: 1.35;
   text-shadow: 0 0 1px #05070c, 0 0 2px #05070c, 0 0 3px #05070c, 0 0 5px #05070c, 0 0 9px #05070c, 0 0 16px rgba(5, 7, 12, 0.9);
 }
+/* Wider than a phone: a soft dark veil behind the column, so the text also reads when the camera is close and the
+   globe behind it is bright red or white. It takes no clicks; the globe under it stays clickable. */
+@media (min-width: 761px) {
+  .menu-wrap { left: 4px; top: 4px; width: min(326px, calc(100% - 8px)); max-height: calc(100% - 8px); padding: 6px 8px; background: rgba(5, 7, 12, 0.42); border-radius: 10px; }
+}
 .menu-wrap button, .menu-wrap a, .menu-wrap input, .menu-wrap label { pointer-events: auto; }
 .menu-wrap button { text-shadow: inherit; }
 
@@ -16,7 +21,7 @@
 .menu-seg { min-width: 0; flex: 0 0 auto; }
 .menu-seg.is-open { margin-bottom: 8px; }
 .menu-seg-head {
-  padding: 3px 0; font: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  min-height: 24px; padding: 3px 0; font: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   color: #f2f4f8; cursor: pointer; background: none; border: 0;
 }
 .menu-seg-head:hover, .menu-seg-head[aria-expanded='true'] { color: #f5d66b; }
@@ -25,7 +30,7 @@
 
 .menu-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-width: 0; }
 .menu-opt {
-  padding: 3px 0; font: inherit; color: #f2f4f8; cursor: pointer; background: transparent; border: 0;
+  min-width: 24px; padding: 3px 0; font: inherit; color: #f2f4f8; cursor: pointer; background: transparent; border: 0;
   border-bottom: 2px solid transparent;
 }
 .menu-opt:hover:not(:disabled) { color: #fff; }
@@ -40,7 +45,7 @@
 .menu-data-main strong { font-weight: 600; }
 .menu-data-main .menu-dim { font-size: 0.85rem; }
 .menu-vars { margin-top: 1px; font-size: 0.88rem; }
-.menu-info { margin-left: 4px; padding: 0 3px; font: inherit; font-size: 0.9rem; color: #c9cfdb; cursor: pointer; background: none; border: 0; }
+.menu-info { margin-left: 4px; min-width: 24px; min-height: 24px; padding: 0 3px; font: inherit; font-size: 0.9rem; color: #c9cfdb; cursor: pointer; background: none; border: 0; }
 .menu-info:hover, .menu-info[aria-expanded='true'] { color: #f5d66b; }
 .menu-more { margin: 2px 0 4px; }
 .menu-def { margin: 2px 0 0; font-size: 0.8rem; color: #dfe4ee; }
@@ -79,8 +84,10 @@
     pointer-events: auto; background: rgba(8, 11, 20, 0.86); border: 1px solid rgba(58, 74, 106, 0.6); border-radius: 8px;
   }
   .menu { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 2px 18px; overscroll-behavior: contain; }
-  .menu-seg-head { padding: 6px 0; }
+  /* Fingers: every control in the menu is at least 40 px tall, and the short ones ("2°", the ⓘ) 40 px wide. */
+  .menu-seg-head { min-height: 40px; padding: 6px 0; }
   .menu-seg.is-open { flex-basis: 100%; order: 1; margin-bottom: 4px; }
   .menu-extra { margin-top: 0; }
-  .menu-opt { padding: 5px 0; }
+  .menu-opt { min-width: 40px; min-height: 40px; padding: 5px 0; }
+  .menu-info { min-width: 40px; min-height: 40px; }
 }

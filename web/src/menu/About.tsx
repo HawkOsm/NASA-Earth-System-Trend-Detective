@@ -106,6 +106,12 @@ export default function About({ onClose }: { onClose: () => void }) {
           Where the plain map shows through, there is no statistically significant trend.
         </p>
         <p>
+          Three sizes appear on the site. The trends for 1981–2025 are worked out on grid cells of about 50 km. When you choose
+          your own years, the map is worked out again in your browser on cells of about 100 km, and the Detective&rsquo;s rankings
+          use that size too. The independent and satellite checks compare boxes of about 220 to 280 km, because that is the size
+          of those records.
+        </p>
+        <p>
           With the Wind layer on, the moving white streaks show the average wind over 1981–2025 (direction and speed), not a trend.
         </p>
 

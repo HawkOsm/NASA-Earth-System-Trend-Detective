@@ -92,7 +92,7 @@ describe('Holm adjustment (MANY_TESTS)', () => {
     const flags = { step: true, oneYear: false, reversal: true, endSensitive: false };
     const lq = lineQuality({ grade: 'doubtful', flags, stepYear: 1999, outlierYear: null }, 'significant', 0.2, 10);
     expect(lq.reasons).toEqual(['Looks like a jump around 1999 rather than a gradual change.', manyTestsText(10)]);
-    expect(manyTestsText(10)).toBe('Significant on its own, but not after allowing for the 10 variables tested at this place.');
+    expect(manyTestsText(10)).toBe('Significant on its own, but not after allowing for the 10 variables tested at this place: the more are tested, the likelier one looks significant by chance.');
     expect(shortReason({ step: false, oneYear: false, reversal: false, endSensitive: false }, null, null)).toBeNull();
     const robust = lineQuality({ grade: 'robust', flags: { step: false, oneYear: false, reversal: false, endSensitive: false }, stepYear: null, outlierYear: null }, 'significant', 0.01, 5);
     expect(robust).toMatchObject({ grade: 'robust', reasons: [] });

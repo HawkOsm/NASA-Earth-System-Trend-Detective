@@ -28,3 +28,6 @@
 @media (prefers-reduced-motion: reduce) {
   .tour-ring { animation: none; }
 }
+@media (max-width: 760px) {
+  .tour-btn { min-height: 40px; padding: 5px 16px; }
+}

@@ -3,7 +3,7 @@ import { signedRate } from '../point/analysis';
 import CountryMap, { insideText, type CityTrend } from './CountryMap';
 import type { CountryPanelState } from './CountryPanel';
 import { cityMark, countryMeanSeries, provinceHeading, sortProvinces, type ProvinceTrend } from './country';
-import { DecadeChart, RangePlot, RateRows, SeriesChart, Sparkline, TrendHistogram, rateColour, type RateRow } from './CountryCharts';
+import { DecadeChart, RangePlot, RateRows, SeriesChart, Sparkline, TrendHistogram, rateColour, readableOnDark, type RateRow } from './CountryCharts';
 import { useCountryVariables } from './useCountryVariables';
 import type { VariableMeta } from '../data/data';
 import { ALPHA_CELL, parseStops, summarize, type DetailCell, type Ring } from '../point/detail';
@@ -81,6 +81,7 @@ type ChipKey = 'sig' | 'grade' | 'ref' | 'note';
  * the verdict, quality grade and independent check as chips. A chip opens the sentence(s) it stands for.
  */
 function SummaryCard({ a, units, colour, caveat, reference }: { a: Analysis; units: string; colour: string; caveat?: string; reference: AreaCheck | null }) {
+  // The big number is text, so its colour is lightened until it reads on the dark card (the plot keeps the map's colour).
   const [open, setOpen] = useState<ChipKey | null>(null);
   const q = a.quality;
   const grade = combineGrade(q.grade, reference ? reference.cls : null);
@@ -97,7 +98,7 @@ function SummaryCard({ a, units, colour, caveat, reference }: { a: Analysis; uni
   return (
     <>
       <div className="hero">
-        <div className="hero-rate" style={{ color: colour }}>
+        <div className="hero-rate" style={{ color: readableOnDark(colour) }}>
           {signedRate(a.slopeDecade)}
         </div>
         <div className="hero-side">
@@ -380,9 +381,13 @@ export default function CountryOverlay(p: Props) {
                   <div className="co-legend-title">Change per decade ({units}), {periodText(p.period)}</div>
                   <div className="legend-bar" style={{ background: overlayBarCss(meta.legend_stops, meta.render) }} />
                   <div className="legend-ticks">
-                    <span>{formatTick(-p.vmax)}</span>
+                    <span>
+                      {formatTick(-p.vmax)} <span className="legend-end">falling</span>
+                    </span>
                     <span>{formatTick(0)}</span>
-                    <span>{formatTick(p.vmax)}</span>
+                    <span>
+                      <span className="legend-end">rising</span> {formatTick(p.vmax)}
+                    </span>
                   </div>
                 </div>
               </CountryMap>
@@ -417,6 +422,7 @@ export default function CountryOverlay(p: Props) {
                     );
                   })}
                 </div>
+                <p className="co-key vt-key">▲ rising · ▼ falling · – no clear trend · yellow = significant. A click on a tile switches the variable.</p>
               </section>
             )}
           </section>
@@ -436,7 +442,9 @@ export default function CountryOverlay(p: Props) {
                     <SeriesChart a={ready.analysis} years={ready.data.years} values={mean} units={ready.analysis.units} colour={rateColour(ready.analysis.slopeDecade, p.vmax, stops)} />
                   </section>
                   <section className="co-card" aria-label="Decade averages">
-                    <h3 className="co-card-title">Then and now, decade averages</h3>
+                    <h3 className="co-card-title">
+                      Then and now, decade averages <span className="co-card-sub">the whole record, whatever period is chosen</span>
+                    </h3>
                     <DecadeChart years={ready.data.years} values={mean} units={ready.analysis.units} />
                   </section>
                 </>
@@ -523,7 +531,7 @@ export default function CountryOverlay(p: Props) {
               )}
               {areaRate !== null && (provs || (p.trends && p.trends.cities.length > 0)) && (
                 <p className="co-key">
-                  <i className="rr-ref rr-ref-key" /> whole {what} {signedRate(areaRate)} · faded or hollow = not significant on its own
+                  <i className="rr-ref rr-ref-key" /> Dashed line: the whole {what}, {signedRate(areaRate)} · faded or hollow = not significant on its own
                 </p>
               )}
             </div>
