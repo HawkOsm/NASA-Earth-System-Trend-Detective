@@ -14,7 +14,7 @@ Line numbers are those of 15 November and will drift.
 
 ## 1. Fixed during the review
 
-Seven things turned out to be real faults, small enough to fix at once. All are live.
+Nine things turned out to be real faults, small enough to fix at once. All are live.
 
 | What | How it showed | Measured |
 |---|---|---|
@@ -25,6 +25,8 @@ Seven things turned out to be real faults, small enough to fix at once. All are 
 | A Detective question without years kept the previous question's years | "Is it getting drier in the Amazon?" opened Brazil for 2000-2025 because the question before said "since 2000" | Now goes back to 1981-2025 and says so |
 | A country view opened over a newer answer | Pressing another button within 1.5 s of an answer did not call the view off | Reproduced on the live site; fixed |
 | "A continent has no view of its own" was said about the world | Wrong word | Now "The whole world" |
+| On a phone the first tap on the globe did nothing | The globe only answered a tap after an earlier touch had told it where the finger was | Live, touch input: the first tap now opens the view; a finger drag still turns the globe (27.7°) without opening anything |
+| The start strip slid under the top bar on a phone held sideways | "Got it" could not be tapped, so the strip could not be closed | Live at 844 x 390: the strip sits below the bar and "Got it" takes the tap |
 
 ## 2. Code: the hardest places, most confusing first
 
@@ -192,8 +194,28 @@ No text under 11 px was found, and every control has a name a screen reader can 
 
 ## 4. Interface, phone size
 
-<!-- PHONE -->
-Not in yet: the phone walk-through was interrupted and is being rerun.
+From the walk-through at 390 x 844 and, turned on its side, 844 x 390 (117 screenshots), with touch input.
+"Seen" means I looked at the screenshot; "tested" means I repeated it in a browser myself.
+
+| # | Finding | State |
+|---|---|---|
+| 1 | The first tap on the globe did nothing; only a second tap opened a country | Tested; fixed |
+| 2 | With the phone on its side the start strip slid under the top bar and "Got it" could not be tapped | Tested; fixed |
+| 3 | The phone menu has no background: its text lies directly on the globe and is hard to read on red and white. With every part open it also scrolls inside itself (about 177 px hidden; "All significant / Confirmed only" is cut in half) | Seen; not changed |
+| 4 | In a long country view "Back to the globe" scrolls out of sight, and so does the × of the place panel. The only way back is to scroll to the top | Seen; not changed |
+| 5 | A Detective question jumps straight to a full-screen country view, which hides the "Gemini read this as" note and the answer | Not changed |
+| 6 | The Detective's answer area is about four lines tall on a phone | Not changed |
+| 7 | The tour's step 3 says "Left" and "Middle", which describes the laptop layout; on a phone the parts are stacked. Its cards also cover what they describe | Not changed |
+| 8 | "How to read this" speaks of the "left edge" and the "side panel"; a phone has neither | Not changed |
+| 9 | The "All variables" tiles scroll sideways with nothing to show there are more | Not changed |
+| 10 | The large rate is clipped in seven country views (a 105 x 48 px number in a 105 x 42 px box) | Not re-checked |
+| 11 | Eight identical "Show on map" buttons in a row | Not changed |
+| 12 | The place panel is 449 words on one screen | Not changed |
+| 13 | Nearly every control is under 40 x 40 px, the usual minimum for a finger: the menu headings are 29 px tall, "Got it" 60 x 26, the ⓘ icons 20 x 19 | Not changed |
+| 14 | "Plain map" in the Scale row and the Click options are not explained where they stand (as on the laptop) | Not changed |
+
+The reviewer walked the tour before the last site update and did not walk it again afterwards. I ran the tour at
+phone width with a mouse after the two fixes and it passes; nobody has run it with a finger.
 
 ## 5. If you read only a few things
 
