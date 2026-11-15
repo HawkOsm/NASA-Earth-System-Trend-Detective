@@ -5,7 +5,6 @@ import type { LatLng, PointOfView } from './map/Globe';
 import Menu from './menu/Menu';
 import type { SegmentKey } from './menu/menuState';
 import About from './menu/About';
-import type { StartFinding } from './menu/startFindings';
 import Detective, { type LiftTarget } from './detective/Detective';
 import { VARIABLES } from './data/demos';
 import { LANDMARKS } from './map/landmarks';
@@ -705,13 +704,6 @@ export default function App() {
     handlePick({ lat, lng }, true);
   };
 
-  /** About, "Three findings you can check": show one finding in the panel of its place, for the whole period. */
-  const openStartFinding = (f: StartFinding) => {
-    resetPeriod();
-    selectVariable(f.variable, false);
-    selectDetailCell(f.lat, f.lng);
-  };
-
   const closePanel = () => {
     abortRef.current?.abort();
     detailAbortRef.current?.abort();
@@ -1235,7 +1227,7 @@ export default function App() {
         onEnd={endTour}
         onMenu={setTourSegment}
       />
-      {showHelp && <About onClose={() => setShowHelp(false)} onOpenFinding={openStartFinding} />}
+      {showHelp && <About onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

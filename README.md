@@ -21,11 +21,8 @@ show every part of the menu in turn (Data, Period, Scale, Click, Layers), one pl
 phone the menu starts folded, so the tour opens each part for its own step. It can be skipped, and "Take the tour" in
 the top bar starts it again (`web/src/tour/`).
 
-1. **Start with a confirmed finding.** "About" in the top bar lists three places to open with one click: Istanbul is
-   getting warmer (+0.54 °C per decade), Shanghai is getting wetter (+0.36 mm/day per decade) and the Amazon at
-   Porto Velho is getting drier (-0.67 mm/day per decade). They were picked because an independent observation
-   record shows the same change, not only because MERRA-2 does (`web/src/menu/startFindings.ts`). "About" is also
-   the one text that says how to read the map, the grades and the checks.
+1. **Read "About".** The button in the top bar opens the one text that says what the site is, how to get around it,
+   and how to read the map, the grades and the checks.
 2. **Click the globe.** By default a click lifts the country, sea or ocean under it into a full-screen view of its
    own: the trend for the whole area, every grid cell inside it, its provinces and its cities.
 3. **Use the menu** (a column on the left; a row across the top on a phone). Its parts choose the variable (ten, in four groups), the years (two sliders,
@@ -369,7 +366,7 @@ The site's code (`web/src/`) is sorted into folders by task; each test file sits
 App.tsx, main.tsx   the page: wires the parts below together
 map/         the globe and the flat fallback, their lines and labels, the map for a chosen period, the
              "Confirmed only" map, the notice for an empty map, the wind streaks (map/wind/)
-menu/        the menu, the period sliders, "About" (with the three findings to open)
+menu/        the menu, the period sliders, "About"
 point/       one place: the panel, its chart, the live NASA POWER request, the close-up map, the verdict sentence
 areas/       a lifted country, sea or ocean: its map, provinces, cities; continents for the Detective
 detective/   the Detective panel: understanding the question, ranking the variables at a place

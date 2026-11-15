@@ -67,12 +67,6 @@ Rules from the guide that affect us:
 - [x] Form text written (`SUBMISSION_FORM.md`).
 - [x] Deck built from `docs/deck/deck.html` (7 slides) and hosted on the site as a PDF. Slide 1 states the team
       (HawkTeam), the member (Osman Sahin Guler) and the challenge, as the guide requires.
-- [x] Three findings that open with one click, listed under "About" on the site (`web/src/menu/About.tsx`,
-      `web/src/menu/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
-      record: Istanbul air temperature +0.54 °C per decade (NASA GISTEMP +0.55); Shanghai rainfall +0.36 mm/day
-      per decade (GPCP +0.26); the Amazon at Porto Velho rainfall −0.67 mm/day per decade (GPCP −0.36).
-      Rainfall at Cebu was considered too: three of four rainfall records confirm it (GPCP does not), at about
-      half the size MERRA-2 shows. Shanghai, confirmed by all four, was preferred.
 - [x] Evaluation layer live: a grade on every trend, an independent check for temperature and rainfall, and a
       satellite check against GPM (rainfall), MODIS (snow cover), AIRS (air temperature), OMI (ozone) and the
       GLDAS model (evaporation, soil moisture) over their own years.

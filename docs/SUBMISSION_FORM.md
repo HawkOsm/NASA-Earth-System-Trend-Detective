@@ -92,16 +92,6 @@ Over the area where MERRA-2 shows a significant trend, most of the records confi
 rainfall records also disagree with each other, which is why the site asks all of them instead of one. A trend
 that is only partly confirmed or not confirmed stays visible but is labelled "Use with caution".
 
-**Three examples of what the site found.** Any place on Earth can be opened; these three are shown as examples
-because each is significant (p < 0.001), graded Robust, and confirmed by most of the independent records. Buttons
-under "About" on the site open them, so anyone can see the same numbers:
-
-| Place | Change per decade | Independent records |
-|---|---|---|
-| Istanbul | Air temperature +0.54 °C | 2 of 2 confirm (NASA GISTEMP +0.55 °C) |
-| Shanghai | Rainfall +0.36 mm/day | 4 of 4 confirm (GPCP +0.26 mm/day) |
-| The Amazon at Porto Velho | Rainfall −0.67 mm/day | 3 of 4 confirm (GPCP −0.36 mm/day) |
-
 **Benefits and aim.** A student, journalist or local planner can ask a plain question about a real place and
 get an answer with its uncertainty and its reliability stated, from NASA data, without installing anything.
 The aim is a trend tool that is honest about what the data can and cannot support.
@@ -111,7 +101,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 516 browser-side and 240
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 511 browser-side and 240
 pipeline-side tests; GitHub Pages for hosting; Google Gemini (Flash-Lite and Flash) through a small Google Cloud Run service for
 reading questions in the Detective.
 

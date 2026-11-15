@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { INSTRUMENT_VARIABLES } from '../evaluation/instrument';
-import { START_FINDINGS, rateText, recordText, type StartFinding } from './startFindings';
 
 /** What each variable of the satellite check is compared with (only the ones that are built are listed). */
 const CHECKED_WITH: Record<string, string> = {
@@ -23,17 +22,12 @@ function Shot({ file, alt, children }: { file: string; alt: string; children: st
   );
 }
 
-interface Props {
-  onClose: () => void;
-  /** Open one of the three confirmed findings in the panel of its place. */
-  onOpenFinding: (f: StartFinding) => void;
-}
 
 /**
  * "About": the one text that says what the site is, how to get around it and how to read what it shows. It opens from
  * the top bar. (The country view has its own short "How to read this view" for what is special there.)
  */
-export default function About({ onClose, onOpenFinding }: Props) {
+export default function About({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -99,32 +93,6 @@ export default function About({ onClose, onOpenFinding }: Props) {
         <Shot file="detective.jpg" alt="The Detective answering a typed question about a place">
           The Detective: a question in words, how it was read, and the trends at that place.
         </Shot>
-
-        <h3>Three findings you can check</h3>
-        <p>
-          Each of these is significant, graded Robust and confirmed by independent records. A click opens the place so you can see
-          the same numbers.
-        </p>
-        <ul className="about-findings">
-          {START_FINDINGS.map((f) => (
-            <li key={f.key}>
-              <button
-                type="button"
-                className="about-finding"
-                onClick={() => {
-                  onClose();
-                  onOpenFinding(f);
-                }}
-              >
-                <span className="about-finding-head">{f.headline}</span>
-                <span>
-                  {f.variableLabel}: {rateText(f)}
-                </span>
-                <span className="about-finding-record">{recordText(f)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
 
         <h3>What the map shows</h3>
         <p>
