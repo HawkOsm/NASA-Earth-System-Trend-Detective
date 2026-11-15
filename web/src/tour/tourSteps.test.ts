@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOUR_STEPS, shouldAutoStart, stepFinished, stepNeedsMenu, type TourState } from './tourSteps';
+import { TOUR_STEPS, shouldAutoStart, stepFinished, stepSegment, type TourState } from './tourSteps';
 
 const base: TourState = { overlayOpen: false, variable: 'T2M', lift: true, panelOpen: false, detectiveOpen: false };
 const step = (key: string) => TOUR_STEPS.find((s) => s.key === key)!;
@@ -7,7 +7,9 @@ const step = (key: string) => TOUR_STEPS.find((s) => s.key === key)!;
 describe('guided tour', () => {
   it('every step is finished either by a click on the page or by its own button', () => {
     for (const s of TOUR_STEPS) expect(!!s.done || !!s.button).toBe(true);
-    for (const s of TOUR_STEPS.slice(1, -1)) expect([s.key, !!s.done, !!s.button]).toEqual([s.key, true, false]);
+    // In between, a step asks for a click on the page, except the three that only show a part of the menu.
+    const shown = ['period', 'scale', 'layers'];
+    for (const s of TOUR_STEPS.slice(1, -1)) expect([s.key, !!s.done, s.button]).toEqual(shown.includes(s.key) ? [s.key, false, 'Next'] : [s.key, true, undefined]);
     expect(TOUR_STEPS[0].button).toBe('Start');
     expect(TOUR_STEPS[TOUR_STEPS.length - 1].button).toBe('Finish');
   });
@@ -48,10 +50,20 @@ describe('guided tour', () => {
     expect(shouldAutoStart('?flat=1', false)).toBe(true);
   });
 
-  it('opens the menu only for the steps that point into it, so the globe is free for the others', () => {
-    expect(TOUR_STEPS.filter((s) => stepNeedsMenu(s)).map((s) => s.key)).toEqual(['variable', 'point']);
-    expect(stepNeedsMenu(step('lift'))).toBe(false);
-    expect(stepNeedsMenu(step('place'))).toBe(false);
-    expect(stepNeedsMenu(null)).toBe(false);
+  it('shows every part of the menu once, and opens it only for its own step, so the globe is free for the others', () => {
+    expect(TOUR_STEPS.filter((s) => stepSegment(s)).map((s) => [s.key, stepSegment(s)])).toEqual([
+      ['variable', 'data'],
+      ['period', 'period'],
+      ['scale', 'scale'],
+      ['point', 'click'],
+      ['layers', 'layers'],
+    ]);
+    expect(stepSegment(step('lift'))).toBeNull();
+    expect(stepSegment(step('place'))).toBeNull();
+    expect(stepSegment(null)).toBeNull();
+  });
+
+  it('a step that only shows a part of the menu waits for its Next button', () => {
+    for (const key of ['period', 'scale', 'layers']) expect(stepFinished(step(key), { ...base, overlayOpen: true, panelOpen: true, lift: false })).toBe(false);
   });
 });

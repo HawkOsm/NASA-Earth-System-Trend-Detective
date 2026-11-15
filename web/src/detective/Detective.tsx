@@ -230,8 +230,9 @@ export default function Detective(p: DetectiveProps) {
 
   /**
    * What a typed question sets in motion, in this order: 1. the place is found, 2. the years it names are applied,
-   * 3. the globe turns to the place, 4. its country (or sea) view opens. `steps` is null for buttons and globe clicks,
-   * which only answer.
+   * 3. the globe turns to the place, 4. its country (or sea) view opens. `steps` is null for buttons and globe clicks:
+   * they set no years. A button that names a place (a theme, a country, one of several places) still turns the globe
+   * and opens the view; a click on the globe only answers, because the visitor is pointing, not asking to go there.
    */
   const liftTimer = useRef<number | null>(null);
   useEffect(() => () => { if (liftTimer.current !== null) window.clearTimeout(liftTimer.current); }, []);
@@ -254,25 +255,25 @@ export default function Detective(p: DetectiveProps) {
     }
     if (steps?.variable && steps.variable !== p.variable) p.onShowVariable(steps.variable);
   };
-  const openView = (steps: Steps | null, lift: LiftTarget | null) => {
-    if (!steps || !lift) return;
+  const openView = (lift: LiftTarget | null) => {
+    if (!lift) return;
     if (liftTimer.current !== null) window.clearTimeout(liftTimer.current);
     // After the globe has turned (the flight takes about a second); at once when motion is to be reduced.
     liftTimer.current = window.setTimeout(() => p.onLift(lift), prefersReducedMotion() ? 0 : TURN_MS);
   };
+  /** `lift`: the view that is about to open by itself (null when none will). */
   const stepsNote = (steps: Steps | null, lift: LiftTarget | null, region: string | null = null): string | undefined => {
-    if (!steps) return undefined;
     const parts: string[] = [];
-    if (steps.aiNote) parts.push(steps.aiNote);
-    if (steps.variable) parts.push(`The map now shows ${AI_VARIABLE_WORDS[steps.variable] ?? steps.variable}.`);
-    if (steps.period) {
+    if (steps?.aiNote) parts.push(steps.aiNote);
+    if (steps?.variable) parts.push(`The map now shows ${AI_VARIABLE_WORDS[steps.variable] ?? steps.variable}.`);
+    if (steps?.period) {
       parts.push(`I set the period to ${steps.period[0]}–${steps.period[1]}; the map and the country view now use it.`);
       if (steps.adjusted) parts.push(`That is the nearest I can do: at least ten years inside ${p.fullYears[0]}–${p.fullYears[1]}.`);
       parts.push(`The ranking below is for ${YEARS_TEXT}, the only years I have ready.`);
     }
-    if (steps.periodReset) parts.push(`You named no years this time, so the period is back to ${p.fullYears[0]}–${p.fullYears[1]}.`);
+    if (steps?.periodReset) parts.push(`You named no years this time, so the period is back to ${p.fullYears[0]}–${p.fullYears[1]}.`);
     if (lift) parts.push(`I am turning the globe there and opening the view of ${lift.name}.`);
-    else if (region) parts.push(`I have turned the globe there. ${region === 'World' ? 'The whole world' : 'A continent'} has no view of its own: tap a country below to open one.`);
+    else if (steps && region) parts.push(`I have turned the globe there. ${region === 'World' ? 'The whole world' : 'A continent'} has no view of its own: tap a country below to open one.`);
     return parts.length ? parts.join(' ') : undefined;
   };
   const joinNotes = (...notes: (string | undefined)[]): string | undefined => notes.filter(Boolean).join(' ') || undefined;
@@ -304,11 +305,13 @@ export default function Detective(p: DetectiveProps) {
         const { inside, lift } = await describeSpot(lat, lng0);
         const r = rank(lat, lng0);
         const header = spotHeader(lat, lng0, inside);
+        // A typed position or question goes there; a click on the globe (no steps) only answers.
+        const opens = steps ? lift : null;
         reportAnswer(formatLatLng({ lat, lng: lng0 }) + (inside ? ` ${inside}` : ''), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
-          note: joinNotes(preface, stepsNote(steps, lift)),
+          note: joinNotes(preface, stepsNote(steps, opens)),
           choices: followUps(lift),
         });
-        openView(steps, lift);
+        openView(opens);
       }, run);
     return run();
   };
@@ -329,17 +332,18 @@ export default function Detective(p: DetectiveProps) {
       withSummary(async (rank, _summary, quality, refs) => {
         const r = rank(place.lat, place.lng);
         const header = placeHeader(place, r.cellKm);
+        // The view to open: the place's own sea or country, else whatever country or sea lies at its position.
         const lift: LiftTarget | null =
           place.kind === 'sea' && place.seaIdx !== null
             ? { kind: 'sea', idx: place.seaIdx, name: place.name }
             : place.countryIdx !== null && place.country
               ? { kind: 'country', idx: place.countryIdx, name: place.country }
-              : null;
+              : (await describeSpot(place.lat, place.lng)).lift;
         reportAnswer(placeLabel(place), r, buildAnswer(r, header, [], undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), {
           note: joinNotes(placeNote(place, read, others), stepsNote(steps, lift)),
           choices: [...otherChoices(others), ...followUps(lift)],
         });
-        openView(steps, lift);
+        openView(lift);
       }, run);
     return run();
   };
@@ -392,7 +396,7 @@ export default function Detective(p: DetectiveProps) {
         const r = rank(t.lat, t.lng);
         const { lift } = await describeSpot(t.lat, t.lng);
         reportAnswer(t.place, r, buildAnswer(r, themeHeader(t, r.cellKm), t.suggest, undefined, quality(r.cell.lat, r.cell.lng), lineChecks(r, refs)), { note: joinNotes(read ?? undefined, stepsNote(steps, lift)), choices: followUps(lift) });
-        openView(steps, lift);
+        openView(lift);
       }, run);
     return run();
   };

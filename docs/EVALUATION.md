@@ -236,7 +236,7 @@ These are judgement calls, not statistics. Each can be changed in one place.
    the calibration.)
 3. **Whether a "Robust" grade should be reworded for the eight variables with no independent record**, for
    example "No warning signs" instead of "Robust", so nobody reads it as "confirmed".
-4. **Which rainfall example to lead with.** Shanghai is confirmed by four of four records and is on the start strip.
+4. **Which rainfall example to lead with.** Shanghai is confirmed by four of four records and is one of the three findings under "About".
    Cebu is confirmed by three of four; it is usable, with the note that MERRA-2 shows about twice the size.
 5. **More independent records.** Sea ice (NSIDC) and snow cover would be the next most useful, because sea
    ice has the most jump flags.

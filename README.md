@@ -8,22 +8,27 @@ Trend Detective is a 3D globe coloured by how fast an Earth science variable has
 2025. Pick a variable, click any place, and a side panel shows that location's time series, the trend line,
 the rate of change per decade, a p-value, a 95% confidence range and a one-sentence plain-English verdict.
 
+![The globe coloured by the trend in air temperature, with the menu beside it](web/public/about/globe.jpg)
+
 It is a static website: there is no backend. The map is precomputed offline; the click panel fetches the
 selected location's data live from NASA POWER and computes the same statistics in the browser.
 
 ## What you can do on the site
 
-**Take the tour first.** A first visit starts a one-minute guided tour: a card says what to click and rings the control,
-and each click on the real page moves it on (lift a country, go back, switch to Water, pick one place, open the Detective).
-It can be skipped, and "Take the tour" in the top bar starts it again (`web/src/tour/`).
+**Take the tour first.** A first visit starts a guided tour of about two minutes: a card says what to click and rings
+the control, and each click on the real page moves it on. Its twelve steps lift a country or a sea, go back, and then
+show every part of the menu in turn (Data, Period, Scale, Click, Layers), one place in detail and the Detective. On a
+phone the menu starts folded, so the tour opens each part for its own step. It can be skipped, and "Take the tour" in
+the top bar starts it again (`web/src/tour/`).
 
-1. **Start with a confirmed finding.** A strip at the top offers three places to open with one click: Istanbul is
+1. **Start with a confirmed finding.** "About" in the top bar lists three places to open with one click: Istanbul is
    getting warmer (+0.54 °C per decade), Shanghai is getting wetter (+0.36 mm/day per decade) and the Amazon at
    Porto Velho is getting drier (-0.67 mm/day per decade). They were picked because an independent observation
-   record shows the same change, not only because MERRA-2 does (`web/src/menu/startFindings.ts`).
+   record shows the same change, not only because MERRA-2 does (`web/src/menu/startFindings.ts`). "About" is also
+   the one text that says how to read the map, the grades and the checks.
 2. **Click the globe.** By default a click lifts the country, sea or ocean under it into a full-screen view of its
    own: the trend for the whole area, every grid cell inside it, its provinces and its cities.
-3. **Use the menu** at the bottom left. Its rows choose the variable (ten, in four groups), the years (two sliders,
+3. **Use the menu** (a column on the left; a row across the top on a phone). Its parts choose the variable (ten, in four groups), the years (two sliders,
    any span of ten years or more), what a click does (lift the area, or a single ~50 km point, or a 2°, 5° or 10°
    box), wind streaks, and borders and labels. The Scale row shows the colour bar and how much of the map is
    significant, robust and independently confirmed.
@@ -31,11 +36,18 @@ It can be skipped, and "Take the tour" in the top bar starts it again (`web/src/
    It lists what is changing there, strongest first, with a button on each line that switches the map. A typed
    question sets four things in motion, in order: it finds the place; it reads any years in the question ("from 2016 to
    2025", "since 2000", "the last 20 years") and sets the period; it turns the globe to the place; and it opens the
-   country or sea view there. Google's Gemini (an AI model) reads the typed question, so it copes with typos, other languages
+   country or sea view there. A button that names a place (a theme, a country of a continent) does the same.
+   Google's Gemini (an AI model) reads the typed question, so it copes with typos, other languages
    ("Türkiye'de son 20 yılda sıcaklık"), phrases such as "the nineties" and places that are not in the site's lists ("the
    Gobi desert", "the Alps"). Gemini only says what is asked; every number is looked up from the precomputed trends.
 5. **Read the grade.** Every verdict comes with a grade (Robust, Use with caution, Doubtful) and, for air temperature
    and rainfall, a line saying whether an independent record confirms the trend. See "Evaluation layer".
+
+| A country lifted out of the map | One place in detail | The Detective |
+|---|---|---|
+| ![Turkey lifted out of the map, with its trend, its grid cells and its provinces](web/public/about/country.jpg) | ![The panel of one place: yearly values, trend line, rate and range](web/public/about/place.jpg) | ![The Detective answering a typed question about Europe](web/public/about/detective.jpg) |
+
+The pictures are screenshots of the site itself, taken on 15 November 2026.
 
 ## Variables
 
@@ -357,7 +369,7 @@ The site's code (`web/src/`) is sorted into folders by task; each test file sits
 App.tsx, main.tsx   the page: wires the parts below together
 map/         the globe and the flat fallback, their lines and labels, the map for a chosen period, the
              "Confirmed only" map, the notice for an empty map, the wind streaks (map/wind/)
-menu/        the menu, the period sliders, the start strip, "How to read this"
+menu/        the menu, the period sliders, "About" (with the three findings to open)
 point/       one place: the panel, its chart, the live NASA POWER request, the close-up map, the verdict sentence
 areas/       a lifted country, sea or ocean: its map, provinces, cities; continents for the Detective
 detective/   the Detective panel: understanding the question, ranking the variables at a place

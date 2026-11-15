@@ -67,7 +67,7 @@ Rules from the guide that affect us:
 - [x] Form text written (`SUBMISSION_FORM.md`).
 - [x] Deck built from `docs/deck/deck.html` (7 slides) and hosted on the site as a PDF. Slide 1 states the team
       (HawkTeam), the member (Osman Sahin Guler) and the challenge, as the guide requires.
-- [x] Start strip on the site with three findings that open with one click (`web/src/menu/StartCard.tsx`,
+- [x] Three findings that open with one click, listed under "About" on the site (`web/src/menu/About.tsx`,
       `web/src/menu/startFindings.ts`). Each is significant (p < 0.001), graded Robust, and confirmed by an independent
       record: Istanbul air temperature +0.54 °C per decade (NASA GISTEMP +0.55); Shanghai rainfall +0.36 mm/day
       per decade (GPCP +0.26); the Amazon at Porto Velho rainfall −0.67 mm/day per decade (GPCP −0.36).

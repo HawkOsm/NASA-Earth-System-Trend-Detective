@@ -162,6 +162,24 @@ export function targetAltitude(sizeDeg: number): number {
 export const WHOLE_GLOBE_ALTITUDE = 2.2;
 export const WHOLE_GLOBE_BUTTON_BELOW = 1.6;
 
+/** The globe camera's field of view from top to bottom, in degrees (the default of the three.js camera the globe uses). */
+const CAMERA_FOV_DEG = 50;
+/** The whole globe takes at most this share of the window's narrower side. */
+const FIT_SHARE = 0.9;
+
+/**
+ * The altitude from which the whole globe fits a map area of this shape: WHOLE_GLOBE_ALTITUDE in a wide window, higher
+ * in a tall narrow one (a phone held upright), where the globe would otherwise run off both sides.
+ * Altitude is in globe radii above the surface, so the globe's edge is seen at the angle asin(1 / (1 + altitude)).
+ */
+export function wholeGlobeAltitude(width: number, height: number): number {
+  if (!(width > 0) || !(height > 0)) return WHOLE_GLOBE_ALTITUDE;
+  const halfDown = ((CAMERA_FOV_DEG / 2) * Math.PI) / 180;
+  const halfAcross = Math.atan(Math.tan(halfDown) * (width / height));
+  const fit = 1 / Math.sin(FIT_SHARE * Math.min(halfDown, halfAcross)) - 1;
+  return Math.max(WHOLE_GLOBE_ALTITUDE, fit);
+}
+
 /** Altitude when a location is picked: the target, unless the camera is already closer (then keep it). */
 export function pickAltitude(current: number | undefined, sizeDeg: number): number {
   const t = targetAltitude(sizeDeg);

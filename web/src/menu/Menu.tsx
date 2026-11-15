@@ -9,7 +9,7 @@ import { formatTick, overlayBarCss } from '../map/legend';
 import { allChangesLine, scaleChangedLine } from '../map/emptyMap';
 import PeriodBar from './PeriodBar';
 import { periodText, type Period } from './period';
-import { MENU_STORAGE_KEY, SEGMENTS, defaultMenuState, parseMenuState, toggleSegment, type MenuState, type SegmentKey } from './menuState';
+import { MENU_STORAGE_KEY, defaultMenuState, parseMenuState, toggleSegment, type MenuState, type SegmentKey } from './menuState';
 
 declare global {
   interface Window {
@@ -65,12 +65,11 @@ export interface MenuProps {
   mapLines: boolean;
   onMapLines: (on: boolean) => void;
   onWholeGlobe: () => void;
-  onAbout: () => void;
   /** A side panel is open (the menu closes itself on a narrow screen so the two do not stack). */
   panelOpen: boolean;
   /** The country / sea overlay is open: the menu steps aside (it has its own controls). */
   overlayOpen: boolean;
-  /** Slot for extra footer buttons next to "about" (the "Detective" button goes here). */
+  /** Slot for buttons after the sub-menus (the "Detective" button goes here). */
   footerExtra?: ReactNode;
   /** "Independent check (SHORT): ..." for temperature and rainfall at the full period (reference.ts summaryLine), else null. */
   referenceLine?: string | null;
@@ -79,8 +78,9 @@ export interface MenuProps {
   /** The Show row ("All significant" / "Confirmed only", confirmedMap.ts): `enabled` per confirmedEnabled; `line` is the
    *  share sentence shown in the Scale row while `on`. */
   confirmed?: { enabled: boolean; on: boolean; onChange: (on: boolean) => void; line: string | null };
-  /** Show the switches and every segment whatever the user chose (the guided tour points at controls inside them). */
-  showAll?: boolean;
+  /** The part the guided tour is pointing into: it is dropped down whatever the visitor chose. On a phone it is the
+   *  only one down for that step, because the open menu lies over the globe; in a wide window the others stay as they are. */
+  tourSegment?: SegmentKey | null;
 }
 
 function Opt({
@@ -137,14 +137,12 @@ export default function Menu(p: MenuProps) {
   const [scaleInfo, setScaleInfo] = useState(false);
   const { meta, variable } = p;
   const group = groupOf(variable);
-  const on: readonly SegmentKey[] = p.showAll ? SEGMENTS.map((s) => s.key) : state.on;
+  const on: readonly SegmentKey[] = !p.tourSegment ? state.on : isNarrow() ? [p.tourSegment] : state.on.includes(p.tourSegment) ? state.on : [...state.on, p.tourSegment];
   const has = (k: SegmentKey) => on.includes(k);
   const toggle = (k: SegmentKey) => setState((s) => ({ on: toggleSegment(s.on, k) }));
 
   useEffect(() => {
     window.__menu = { open: state.on.length > 0, segments: [...state.on] };
-    // Lets other pieces step aside while a sub-menu is down on a narrow screen (the start strip does).
-    document.body.classList.toggle('menu-open', state.on.length > 0);
     try {
       window.localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(state));
     } catch {
@@ -154,7 +152,6 @@ export default function Menu(p: MenuProps) {
   useEffect(
     () => () => {
       delete window.__menu;
-      document.body.classList.remove('menu-open');
     },
     [],
   );
@@ -332,9 +329,6 @@ export default function Menu(p: MenuProps) {
           )}
         </Seg>
         <div className="menu-seg menu-extra" role="group" aria-label="More">
-          <Opt pressed={false} onClick={p.onAbout}>
-            about
-          </Opt>
           {/* Slot: more buttons (e.g. "Detective") are passed in as `footerExtra`. */}
           {p.footerExtra}
         </div>

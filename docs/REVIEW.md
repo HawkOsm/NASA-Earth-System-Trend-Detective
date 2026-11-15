@@ -179,7 +179,7 @@ From the walk-through at 1366 x 768 (96 screenshots). "Seen" means I looked at t
 | 11 | Unexplained marks: ▲ ▼ – on the variable tiles (the dash means "no clear trend"), a stray "⁞" | Not changed |
 | 12 | "Significant on its own, but not after allowing for the 8 variables tested at this place" has no help text | Not changed |
 | 13 | "Confirmed only" is not explained beside the button | Not changed |
-| 14 | "about" in the menu and "How to read this" in the top bar open the same text; the country view has a third, different "How to read this view" | Not changed |
+| 14 | "about" in the menu and "How to read this" in the top bar open the same text; the country view has a third, different "How to read this view" | Fixed later the same day: one "About" in the top bar, rewritten, with pictures; the menu's "about" is gone |
 | 15 | "How to read this" is 1,118 words in a box that shows about a quarter; the close button scrolls away (Escape works) | The close button now stays in sight; the length is not changed |
 | 16 | Each variable has its own colours and nothing says which colour is the worrying one | Not changed |
 | 17 | Small controls: the ⓘ icons are 20 x 19 px; "2°" and "5°" are 15 px wide | Not changed |
@@ -207,8 +207,8 @@ From the walk-through at 390 x 844 and, turned on its side, 844 x 390 (117 scree
 | 4 | In a long country view "Back to the globe" scrolls out of sight, and so does the × of the place panel. The only way back is to scroll to the top | Seen; fixed |
 | 5 | A Detective question jumps straight to a full-screen country view, which hides the "Gemini read this as" note and the answer | Not changed |
 | 6 | The Detective's answer area is about four lines tall on a phone | Not changed |
-| 7 | The tour's step 3 says "Left" and "Middle", which describes the laptop layout; on a phone the parts are stacked. Its cards also cover what they describe | Not changed |
-| 8 | "How to read this" speaks of the "left edge" and the "side panel"; a phone has neither | Not changed |
+| 7 | The tour's step 3 says "Left" and "Middle", which describes the laptop layout; on a phone the parts are stacked. Its cards also cover what they describe | Wording fixed later the same day; the tour now has twelve steps, one for each part of the menu |
+| 8 | "How to read this" speaks of the "left edge" and the "side panel"; a phone has neither | Fixed later the same day (the text is now "About") |
 | 9 | The "All variables" tiles scroll sideways with nothing to show there are more | Not changed |
 | 10 | The large rate is clipped in seven country views (a 105 x 48 px number in a 105 x 42 px box) | Not re-checked |
 | 11 | Eight identical "Show on map" buttons in a row | Not changed |

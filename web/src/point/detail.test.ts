@@ -21,6 +21,8 @@ import {
   summarize,
   targetAltitude,
   toLandPolygons,
+  WHOLE_GLOBE_ALTITUDE,
+  wholeGlobeAltitude,
 } from './detail';
 
 const years = Array.from({ length: 20 }, (_, k) => 2000 + k);
@@ -144,6 +146,20 @@ describe('camera altitude', () => {
     expect(areaChangeAltitude(1.5, 10, 0)).toBe(0.7);
     expect(areaChangeAltitude(0.5, 5, 2)).toBe(0.5);
     expect(areaChangeAltitude(2.2, 0, 10)).toBe(2.2);
+  });
+  it('shows the whole globe from further out in a tall narrow window', () => {
+    // a wide window: the usual altitude
+    expect(wholeGlobeAltitude(1366, 685)).toBe(WHOLE_GLOBE_ALTITUDE);
+    expect(wholeGlobeAltitude(800, 800)).toBe(WHOLE_GLOBE_ALTITUDE);
+    // a phone held upright: the globe's edge (asin(1 / (1 + altitude))) stays inside the half-width of the view
+    const alt = wholeGlobeAltitude(390, 689);
+    expect(alt).toBeGreaterThan(3);
+    expect(alt).toBeLessThan(4);
+    const halfAcross = Math.atan(Math.tan((25 * Math.PI) / 180) * (390 / 689));
+    expect(Math.asin(1 / (1 + alt))).toBeLessThan(halfAcross);
+    expect(Math.asin(1 / (1 + WHOLE_GLOBE_ALTITUDE))).toBeGreaterThan(halfAcross); // the usual altitude would not fit
+    // no size yet: the usual altitude
+    expect(wholeGlobeAltitude(0, 0)).toBe(WHOLE_GLOBE_ALTITUDE);
   });
 });
 

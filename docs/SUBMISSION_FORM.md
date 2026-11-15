@@ -56,7 +56,7 @@ significant; elsewhere a plain map shows through. From there:
 - switching to "Point" opens a panel for one grid cell, with the yearly series fetched live from NASA POWER,
   the trend line, the rate per decade, a 95% range, a p-value and a one-sentence verdict;
 - two sliders choose any period of ten years or more, and the map and every number are recomputed in the browser;
-- a first visit starts a one-minute guided tour that has the visitor click the real controls one at a time, so
+- a first visit starts a two-minute guided tour that has the visitor click the real controls one at a time, so
   nobody has to guess what "Lift" or "Point" mean; it can be skipped and started again;
 - the Detective panel answers "what is changing in Europe?" or "Istanbul" by ranking all ten variables for that
   place, significant changes first. Google's Gemini reads the typed question (typos, other languages, "the
@@ -92,7 +92,7 @@ Over the area where MERRA-2 shows a significant trend, most of the records confi
 rainfall records also disagree with each other, which is why the site asks all of them instead of one. A trend
 that is only partly confirmed or not confirmed stays visible but is labelled "Use with caution".
 
-**Three findings a visitor can reproduce in one click** (the start strip on the site), each significant
+**Three findings a visitor can reproduce in one click** (listed under "About" on the site), each significant
 (p < 0.001), graded Robust, and confirmed by most of the independent records:
 
 | Place | Change per decade | Independent records |
@@ -110,7 +110,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 514 browser-side and 240
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 516 browser-side and 240
 pipeline-side tests; GitHub Pages for hosting; Google Gemini (Flash-Lite and Flash) through a small Google Cloud Run service for
 reading questions in the Detective.
 

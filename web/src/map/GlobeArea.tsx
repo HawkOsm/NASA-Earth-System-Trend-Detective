@@ -35,6 +35,8 @@ interface Props {
   forceFlat: boolean;
   textureUrl: string;
   initialView: PointOfView;
+  /** See Globe.tsx: start with the whole globe in sight. */
+  fitStart?: boolean;
   onPick: (pos: LatLng) => void;
   landmarks?: Landmark[];
   marker: LatLng | null;
@@ -50,7 +52,7 @@ interface Props {
 export const HAS_WEBGL = typeof document !== 'undefined' ? hasWebGL() : false;
 const webgl = HAS_WEBGL;
 
-export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines }: Props) {
+export default function GlobeArea({ forceFlat, textureUrl, initialView, fitStart, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines }: Props) {
   const flat = <FlatMap textureUrl={textureUrl} onPick={onPick} marker={marker} box={box} mapLines={mapLines} />;
   if (forceFlat || !webgl) return flat;
   return (
@@ -58,6 +60,7 @@ export default function GlobeArea({ forceFlat, textureUrl, initialView, onPick, 
       <Globe
         textureUrl={textureUrl}
         initialView={initialView}
+        fitStart={fitStart}
         onPick={onPick}
         landmarks={landmarks}
         marker={marker}

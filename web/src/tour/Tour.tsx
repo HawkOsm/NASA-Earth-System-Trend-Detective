@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { TOUR_STEPS, stepFinished, stepNeedsMenu, type TourState, type TourTarget } from './tourSteps';
+import type { SegmentKey } from '../menu/menuState';
+import { TOUR_STEPS, stepFinished, stepSegment, type TourState, type TourTarget } from './tourSteps';
 import './tour.css';
 
 declare global {
@@ -15,12 +16,11 @@ interface Props {
   onBegin: () => void;
   /** The tour ended (finished or skipped). */
   onEnd: () => void;
-  /** The current step points at a control inside the menu (true) or not (false): the page opens the menu's sub-menus
-   *  only for those steps. */
-  onMenu: (needed: boolean) => void;
+  /** The part of the menu the current step is about (null: none): the page drops that part down for the step. */
+  onMenu: (segment: SegmentKey | null) => void;
 }
 
-/** The control a step asks for, if it is on the page and visible (the menu opens every sub-menu for the steps that point into it). */
+/** The control a step asks for, if it is on the page and visible (the menu drops the step's part down by itself). */
 function findTarget(target: TourTarget): { el: Element } | null {
   if (!target) return null;
   const optWithText = (text: string) =>
@@ -35,6 +35,10 @@ function findTarget(target: TourTarget): { el: Element } | null {
   if (target === 'country-back') el = document.querySelector('.co-back');
   else if (target === 'group-water') el = optWithText('Water');
   else if (target === 'click-point') el = optWithText('Point');
+  else if (target === 'period-bar') el = document.querySelector('.menu .period-bar');
+  // The whole dropped-down part, so the card sits clear of every control in it.
+  else if (target === 'scale') el = document.querySelector('#menu-seg-scale');
+  else if (target === 'layers') el = document.querySelector('#menu-seg-layers');
   else if (target === 'panel-close') el = document.querySelector('.panel-close');
   else if (target === 'detective-pill') el = document.querySelector('.dt-pill');
   else if (target === 'detective-input') el = document.querySelector('.dt-input');
@@ -71,7 +75,7 @@ export default function Tour({ active, state, onBegin, onEnd, onMenu }: Props) {
   }, [active]);
 
   useEffect(() => {
-    onMenu(stepNeedsMenu(step));
+    onMenu(stepSegment(step));
   }, [step, onMenu]);
 
   // The visitor did what the step asks: move on.

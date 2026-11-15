@@ -5,7 +5,7 @@ import { buildBorders, buildCoastlines } from './coastlines';
 import { buildGraticule, buildGraticuleLabels, type MapLabel } from './graticule';
 import { boxOutline, type RegionBox } from '../point/region';
 import { PLACES } from './places';
-import { WHOLE_GLOBE_ALTITUDE, WHOLE_GLOBE_BUTTON_BELOW } from '../point/detail';
+import { WHOLE_GLOBE_BUTTON_BELOW, wholeGlobeAltitude } from '../point/detail';
 import { dataUrl } from '../data/data';
 import { createWindLayer } from './wind/WindLayer';
 import { loadWindField, type WindField } from './wind/windField';
@@ -24,6 +24,9 @@ export interface PointOfView extends LatLng {
 interface GlobeProps {
   textureUrl: string;
   initialView: PointOfView;
+  /** Start far enough out for the whole globe to fit the map area (a phone needs more distance than `initialView` has).
+   *  Off when the address gives an altitude of its own. */
+  fitStart?: boolean;
   onPick: (pos: LatLng) => void;
   /** When set, landmarks are drawn as cyan points + labels (debug alignment mode). */
   landmarks?: Landmark[];
@@ -130,7 +133,7 @@ const TAP_PX = 10;
 /** For this long after a tap picked a place, the library's own click for the same tap is ignored. */
 const TAP_ECHO_MS = 600;
 
-export default function Globe({ textureUrl, initialView, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines = true }: GlobeProps) {
+export default function Globe({ textureUrl, initialView, fitStart, onPick, landmarks, marker, box, countryOutline, flyRef, wind, mapLines = true }: GlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [ready, setReady] = useState(false);
@@ -199,10 +202,13 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     };
   }, [mapLines]);
 
+  /** The altitude that shows the whole globe in the map area as it is now. */
+  const wholeAltitude = () => wholeGlobeAltitude(wrapRef.current?.clientWidth ?? 0, wrapRef.current?.clientHeight ?? 0);
+
   const handleReady = () => {
     const g = globeRef.current;
     if (!g) return;
-    g.pointOfView(initialView, 0);
+    g.pointOfView(fitStart ? { ...initialView, altitude: Math.max(initialView.altitude, wholeAltitude()) } : initialView, 0);
     // Draw only when something changed, at most ~60 fps (see renderOnDemand.ts).
     renderCtl.current?.dispose();
     renderCtl.current = renderOnDemand(g);
@@ -272,7 +278,7 @@ export default function Globe({ textureUrl, initialView, onPick, landmarks, mark
     const g = globeRef.current;
     if (!g) return;
     const v = g.pointOfView();
-    g.pointOfView({ lat: v.lat, lng: v.lng, altitude: WHOLE_GLOBE_ALTITUDE }, 1200);
+    g.pointOfView({ lat: v.lat, lng: v.lng, altitude: wholeAltitude() }, 1200);
   };
 
   // Lines and labels float slightly above the surface, so the coordinates react-globe.gl reports for a

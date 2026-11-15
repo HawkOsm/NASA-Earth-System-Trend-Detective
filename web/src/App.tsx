@@ -3,10 +3,10 @@ import GlobeArea, { HAS_WEBGL } from './map/GlobeArea';
 import { prefersReducedMotion } from './map/wind/WindLayer';
 import type { LatLng, PointOfView } from './map/Globe';
 import Menu from './menu/Menu';
-import HowToRead from './menu/HowToRead';
-import Detective, { type LiftTarget } from './detective/Detective';
-import StartCard from './menu/StartCard';
+import type { SegmentKey } from './menu/menuState';
+import About from './menu/About';
 import type { StartFinding } from './menu/startFindings';
+import Detective, { type LiftTarget } from './detective/Detective';
 import { VARIABLES } from './data/demos';
 import { LANDMARKS } from './map/landmarks';
 import Panel, { type PanelState } from './point/Panel';
@@ -56,7 +56,7 @@ import { rulesFromMeta, surfaceMessage } from './data/noData';
 import { fetchPointSeries, fetchRegionSeries, snapToCell, type PointSeries } from './point/power';
 import { areaMeanSeries, regionBox, type RegionBox, type RegionData } from './point/region';
 import DetailMap from './point/DetailMap';
-import { POINT_DETAIL_SIZE, WHOLE_GLOBE_ALTITUDE, areaChangeAltitude, cellTrends, pickAltitude, summarize, type DetailCell } from './point/detail';
+import { POINT_DETAIL_SIZE, areaChangeAltitude, cellTrends, pickAltitude, summarize, wholeGlobeAltitude, type DetailCell } from './point/detail';
 import { landmarksTextureUrl, loadMeta, type VariableMeta } from './data/data';
 import { useRangeMap } from './map/useRangeMap';
 import { FULL_PERIOD, clampPeriod, isFullPeriod, periodText, type Period } from './menu/period';
@@ -193,14 +193,15 @@ function parseNum(v: string | null): number | undefined {
 }
 
 export default function App() {
-  const { debugLandmarks, initialView, forceFlat } = useMemo(() => {
+  const { debugLandmarks, initialView, fitStart, forceFlat } = useMemo(() => {
     const q = new URLSearchParams(window.location.search);
     const view: PointOfView = {
       lat: parseNum(q.get('lat')) ?? DEFAULT_VIEW.lat,
       lng: parseNum(q.get('lng')) ?? DEFAULT_VIEW.lng,
       altitude: parseNum(q.get('alt')) ?? DEFAULT_VIEW.altitude,
     };
-    return { debugLandmarks: q.get('debug') === 'landmarks', initialView: view, forceFlat: q.get('flat') === '1' };
+    // No altitude in the address: start with the whole globe in sight, whatever the window's shape.
+    return { debugLandmarks: q.get('debug') === 'landmarks', initialView: view, fitStart: parseNum(q.get('alt')) === undefined, forceFlat: q.get('flat') === '1' };
   }, []);
 
   useEffect(() => {
@@ -222,9 +223,9 @@ export default function App() {
     }
     return shouldAutoStart(window.location.search, seen);
   });
-  // The tour's current step points at a control inside the menu: the menu then opens every sub-menu. Not for the other
-  // steps, because on a phone the open menu lies over the globe the visitor is asked to click.
-  const [tourMenu, setTourMenu] = useState(false);
+  // The part of the menu the tour's current step is about (null: none): the menu drops it down for that step. The other
+  // steps leave the menu alone, because on a phone the open menu lies over the globe the visitor is asked to click.
+  const [tourSegment, setTourSegment] = useState<SegmentKey | null>(null);
   const endTour = useCallback(() => {
     setTourActive(false);
     try {
@@ -704,7 +705,7 @@ export default function App() {
     handlePick({ lat, lng }, true);
   };
 
-  /** Start card: show one finding in the ordinary point panel, for the whole period. */
+  /** About, "Three findings you can check": show one finding in the panel of its place, for the whole period. */
   const openStartFinding = (f: StartFinding) => {
     resetPeriod();
     selectVariable(f.variable, false);
@@ -1057,8 +1058,8 @@ export default function App() {
           <button className="howto-btn tour-start-btn" onClick={() => setTourActive(true)}>
             Take the tour
           </button>
-          <button className="howto-btn" onClick={() => setShowHelp(true)}>
-            How to read this
+          <button className="howto-btn about-btn" onClick={() => setShowHelp(true)}>
+            About
           </button>
         </div>
       </header>
@@ -1068,6 +1069,7 @@ export default function App() {
             forceFlat={forceFlat}
             textureUrl={textureUrl}
             initialView={initialView}
+            fitStart={fitStart}
             onPick={handlePick}
             landmarks={debugLandmarks ? LANDMARKS : undefined}
             marker={panel ? { lat: panel.cell.lat, lng: panel.cell.lng } : detectiveOpen ? detectiveMarker : null}
@@ -1096,22 +1098,21 @@ export default function App() {
             onMapLines={setMapLines}
             onWholeGlobe={() => {
               const v = window.__view?.();
-              if (v) flyTo({ lat: v.lat, lng: v.lng }, WHOLE_GLOBE_ALTITUDE);
+              const area = document.querySelector('.globe-area');
+              if (v) flyTo({ lat: v.lat, lng: v.lng }, wholeGlobeAltitude(area?.clientWidth ?? 0, area?.clientHeight ?? 0));
             }}
-            onAbout={() => setShowHelp(true)}
             panelOpen={!!panel || waterPanel}
             overlayOpen={overlayOpen}
             referenceLine={referenceMenuLine}
             instrumentLine={instrumentMenuLine}
             confirmed={{ enabled: confirmedAllowed, on: confirmedOn, onChange: setConfirmedChoice, line: confirmedLine }}
-            showAll={tourMenu}
+            tourSegment={tourSegment}
             footerExtra={
               <button type="button" className="menu-opt" aria-pressed={detectiveOpen} onClick={() => setDetectiveOpen((o) => !o)}>
                 Detective
               </button>
             }
           />
-          <StartCard covered={!!panel || waterPanel || overlayOpen || detectiveOpen || tourActive} onOpen={openStartFinding} onDetective={() => setDetectiveOpen(true)} />
           <Detective
             open={detectiveOpen}
             hidden={!!panel || waterPanel || overlayOpen}
@@ -1232,9 +1233,9 @@ export default function App() {
           setCountryMode(true);
         }}
         onEnd={endTour}
-        onMenu={setTourMenu}
+        onMenu={setTourSegment}
       />
-      {showHelp && <HowToRead onClose={() => setShowHelp(false)} />}
+      {showHelp && <About onClose={() => setShowHelp(false)} onOpenFinding={openStartFinding} />}
     </div>
   );
 }
