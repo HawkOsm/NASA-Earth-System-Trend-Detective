@@ -106,7 +106,7 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 489 browser-side and 240
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 484 browser-side and 240
 pipeline-side tests; GitHub Pages for hosting.
 
 ## Use of Super Intelligence (SI)
