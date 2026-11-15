@@ -344,6 +344,9 @@ independent source. Air temperature does best, as in the long check, though over
 pipeline/   Python scripts, run once offline: fetch data, compute trend grids, export textures
 web/        Vite + React + TypeScript site (react-globe.gl, uPlot)
 web/public/data/   Exported textures and metadata (committed, so the site builds without Python)
+proxy/      The small server in front of Gemini for the Detective (Google Cloud Run)
+docs/       The guide to the evaluation layer, the deck's source, what was submitted, and the working reports
+            (docs/README.md says which is which)
 ```
 
 The pipeline's code is sorted into folders by task and run from `pipeline/` as `python -m <folder>.<script>`:
@@ -365,7 +368,7 @@ The site's code (`web/src/`) is sorted into folders by task; each test file sits
 ```
 App.tsx, main.tsx   the page: wires the parts below together
 map/         the globe and the flat fallback, their lines and labels, the map for a chosen period, the
-             "Confirmed only" map, the notice for an empty map, the wind streaks (map/wind/)
+             "Confirmed only" map, the wind streaks (map/wind/)
 menu/        the menu, the period sliders, "About"
 point/       one place: the panel, its chart, the live NASA POWER request, the close-up map, the verdict sentence
 areas/       a lifted country, sea or ocean: its map, provinces, cities; continents for the Detective

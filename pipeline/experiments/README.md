@@ -15,4 +15,4 @@ Optional argument: `check` (self-check against trendstats and pymannkendall), `p
 `trend_experiments.py` (run the same way, about one minute) measures whether any technique makes MERRA-2 trends agree
 better with the independent records: grades against confirmation, jump removal, later start years, other slope
 estimators, coarser scales, and a pattern-only rule. Its output is in `trend_experiments_output.txt`.
-Results of both scripts are summarised in `docs/NIGHT_REPORT.md`.
+Results of both scripts are summarised in `docs/history/NIGHT_REPORT.md`.
