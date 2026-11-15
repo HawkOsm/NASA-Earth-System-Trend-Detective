@@ -1,7 +1,8 @@
 /**
  * The "Detective" chat: pure logic (no React, no network). Place matching, the fixed demo places of the theme buttons,
- * and the building of an answer from a `RankResult` of whatsChanging.ts. There is no AI here: every number in an answer
- * is copied from `rankAt`; this file only decides which words surround it.
+ * and the building of an answer from a `RankResult` of whatsChanging.ts. There is no AI in this file: every number in an answer
+ * is copied from `rankAt`; this file only decides which words surround it. The optional AI reader (aiReader.ts) only says
+ * which place, years and variable a typed question is about.
  */
 import type { CityRec, CountryRec } from '../areas/country';
 import { formatLatLng } from '../data/format';
@@ -656,17 +657,21 @@ export interface PeriodAsk {
  * a shorter or out-of-range request is widened / moved and `adjusted` is set. Two plain numbers that are not years
  * (a latitude and longitude) are left alone.
  */
+/** Fit asked years into the data: inside `full`, at least ten years; `adjusted` says the years had to change. */
+export function fitAskedPeriod(s: number, e: number, full: [number, number]): { period: [number, number]; adjusted: boolean } {
+  const [lo, hi] = full;
+  let a = Math.max(lo, Math.min(hi, Math.min(s, e)));
+  let b = Math.max(lo, Math.min(hi, Math.max(s, e)));
+  if (b - a + 1 < MIN_ASK_YEARS) {
+    b = Math.min(hi, a + MIN_ASK_YEARS - 1);
+    a = Math.max(lo, b - MIN_ASK_YEARS + 1);
+  }
+  return { period: [a, b], adjusted: a !== Math.min(s, e) || b !== Math.max(s, e) };
+}
+
 export function parsePeriod(text: string, full: [number, number]): PeriodAsk {
   const [lo, hi] = full;
-  const fit = (s: number, e: number): { period: [number, number]; adjusted: boolean } => {
-    let a = Math.max(lo, Math.min(hi, Math.min(s, e)));
-    let b = Math.max(lo, Math.min(hi, Math.max(s, e)));
-    if (b - a + 1 < MIN_ASK_YEARS) {
-      b = Math.min(hi, a + MIN_ASK_YEARS - 1);
-      a = Math.max(lo, b - MIN_ASK_YEARS + 1);
-    }
-    return { period: [a, b], adjusted: a !== Math.min(s, e) || b !== Math.max(s, e) };
-  };
+  const fit = (s: number, e: number) => fitAskedPeriod(s, e, full);
   const cut = (m: RegExpExecArray) => (text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim();
   let m = new RegExp(`\\b(?:from\\s+|between\\s+)?${YEAR}\\s*(?:-|–|—|to|and|until|till|through)\\s*${YEAR}\\b`, 'i').exec(text);
   if (m) return { ...fit(Number(m[1]), Number(m[2])), rest: cut(m) };
@@ -691,7 +696,10 @@ export const CLICK_BUTTON = 'Click a place on the globe';
 
 export const OPENING = 'What do you want to investigate?';
 export const OPENING_HELP = 'Pick a button, or type a city, a country, a continent or a sea (or a pair like 41.0, 28.9).';
-export const HONESTY_NOTE = 'No AI here: I look up pre-computed NASA POWER / MERRA-2 trends. Numbers are for ~100 km grid boxes.';
+/** Under the text box. With the AI reader on, a typed question is sent to Google's Gemini to be read; the numbers never are. */
+export const HONESTY_NOTE =
+  'Google Gemini (an AI model) reads your typed question, which is sent to Google for that. Every number is looked up from pre-computed NASA POWER / MERRA-2 trends, never generated. Numbers are for ~100 km grid boxes.';
+export const HONESTY_NOTE_NO_AI = 'No AI here: I look up pre-computed NASA POWER / MERRA-2 trends. Numbers are for ~100 km grid boxes.';
 
 // ---- answers --------------------------------------------------------------------------------------------------------
 

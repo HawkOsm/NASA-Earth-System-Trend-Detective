@@ -1,0 +1,14 @@
+{
+  "name": "trend-detective-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Small server between the Trend Detective site and Google's Gemini API: it holds the API key and returns only a structured reading of a visitor's question.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

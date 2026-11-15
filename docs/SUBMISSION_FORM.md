@@ -59,7 +59,9 @@ significant; elsewhere a plain map shows through. From there:
 - a first visit starts a one-minute guided tour that has the visitor click the real controls one at a time, so
   nobody has to guess what "Lift" or "Point" mean; it can be skipped and started again;
 - the Detective panel answers "what is changing in Europe?" or "Istanbul" by ranking all ten variables for that
-  place, significant changes first. It contains no AI; it looks up precomputed statistics.
+  place, significant changes first. Google's Gemini reads the typed question (typos, other languages, "the
+  nineties", places such as "the Gobi desert"); every number is looked up from precomputed statistics, never
+  generated.
 
 **How it works.** A Python pipeline reads NASA POWER's annual archive once and computes, for each of 207,936
 grid cells and each variable, the Theil–Sen slope with its confidence interval and the Mann–Kendall test with
@@ -108,8 +110,9 @@ check covers the full 1981–2025 period, and the records are not fully independ
 not forecasts. The year-to-year memory correction covers one year of lag only.
 
 **Tools.** Python (NumPy, SciPy, xarray, zarr, Matplotlib) for the pipeline; TypeScript, React, Vite,
-react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 493 browser-side and 240
-pipeline-side tests; GitHub Pages for hosting.
+react-globe.gl with three.js, and uPlot for the site; Vitest and pytest for 513 browser-side and 240
+pipeline-side tests; GitHub Pages for hosting; Google Gemini Flash through a small Google Cloud Run service for
+reading questions in the Detective.
 
 ## Use of Super Intelligence (SI)
 
@@ -135,7 +138,11 @@ Results were checked independently of the generated code wherever possible: the 
 pymannkendall and a separately written reference; the browser code against the pipeline's test cases; the
 site's numbers against values recomputed from the pipeline's data.
 
-No AI runs on the site. The Detective panel is a lookup over precomputed statistics. No image or video in the
+One part of the site uses AI at runtime: the Detective sends a typed question to Google's Gemini Flash, which
+returns only its reading of the question (the place, the years, the variable). Every number the site shows is
+looked up from precomputed statistics, never generated, and the answer states how Gemini read the question. The
+question passes through a small server of this project on Google Cloud Run, which keeps the API key off the page.
+No image or video in the
 project is AI-generated: the pictures in the deck are screenshots of the site. No NASA logo or branding is used.
 
 ## NASA Data

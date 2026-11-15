@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from 'react';
+import { AI_VARIABLE_WORDS, aiEnabled, readQuestion, readingSentence, type AiReading } from './aiReader';
 import { prefersReducedMotion } from '../map/wind/WindLayer';
 import './detective.css';
 import { loadCities, loadCountries, loadMask, pickCountry } from '../areas/country';
 import {
   CLICK_BUTTON,
   HONESTY_NOTE,
+  HONESTY_NOTE_NO_AI,
   OPENING,
   OPENING_HELP,
   THEMES,
   YEARS_TEXT,
+  fitAskedPeriod,
   parsePeriod,
   themeFor,
   buildAnswer,
@@ -42,6 +45,8 @@ declare global {
       last: { place: string; cell: { lat: number; lng: number } | null; region?: boolean; lines: { variable: string; slopePerDecade: number; p: number; kind: string; grade: Grade | null; flags: QualityFlags | null; reference?: string | null }[] } | null;
     };
     __askDetective?: (text: string) => void;
+    /** How often the AI reader was asked in this visit, and its last reading (null: it did not answer). */
+    __detectiveAi?: { asked: number; last: import('./aiReader').AiReading | null };
   }
 }
 
@@ -105,7 +110,13 @@ export interface DetectiveProps {
 interface Steps {
   period: [number, number] | null;
   adjusted: boolean;
+  /** The variable the question is about, as Gemini read it (null: none, or the reader was not used). */
+  variable?: string | null;
+  /** "Gemini read this as: ..." (null when the reader was not used or read nothing). */
+  aiNote?: string | null;
 }
+/** The AI reader is on unless the address says `?ai=0`. */
+const AI_ON = aiEnabled(typeof window === 'undefined' ? '' : window.location.search);
 /** How long the globe takes to turn to a place before its view opens. */
 const TURN_MS = 1500;
 
@@ -127,6 +138,8 @@ export default function Detective(p: DetectiveProps) {
   const [messages, setMessages] = useState<Msg[]>(() => [openingMessage()]);
   const [text, setText] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  /** True while the AI reader has the question. */
+  const [reading, setReading] = useState(false);
   const [last, setLast] = useState<NonNullable<Window['__detective']>['last']>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -220,8 +233,9 @@ export default function Detective(p: DetectiveProps) {
    */
   const liftTimer = useRef<number | null>(null);
   useEffect(() => () => { if (liftTimer.current !== null) window.clearTimeout(liftTimer.current); }, []);
-  const applyPeriod = (steps: Steps | null) => {
+  const applySteps = (steps: Steps | null) => {
     if (steps?.period) p.onPeriod(steps.period);
+    if (steps?.variable && steps.variable !== p.variable) p.onShowVariable(steps.variable);
   };
   const openView = (steps: Steps | null, lift: LiftTarget | null) => {
     if (!steps || !lift) return;
@@ -232,6 +246,8 @@ export default function Detective(p: DetectiveProps) {
   const stepsNote = (steps: Steps | null, lift: LiftTarget | null, region = false): string | undefined => {
     if (!steps) return undefined;
     const parts: string[] = [];
+    if (steps.aiNote) parts.push(steps.aiNote);
+    if (steps.variable) parts.push(`The map now shows ${AI_VARIABLE_WORDS[steps.variable] ?? steps.variable}.`);
     if (steps.period) {
       parts.push(`I set the period to ${steps.period[0]}–${steps.period[1]}; the map and the country view now use it.`);
       if (steps.adjusted) parts.push(`That is the nearest I can do: at least ten years inside ${p.fullYears[0]}–${p.fullYears[1]}.`);
@@ -343,7 +359,7 @@ export default function Detective(p: DetectiveProps) {
 
   /** Fly to a named place and answer for it. */
   const answerNamed = (place: NamedPlace, read: string | null, others: NamedPlace[] = [], steps: Steps | null = null) => {
-    applyPeriod(steps);
+    applySteps(steps);
     if (place.kind === 'region') {
       p.onFly(place.lat, place.lng, place.altitude);
       return answerRegion(place, read, others, steps);
@@ -383,37 +399,70 @@ export default function Detective(p: DetectiveProps) {
         push({ from: 'bot', text: "I couldn't load my list of places. Please try again.", choices: [{ label: 'Try again', action: { t: 'ask', text: input } }] });
         return;
       }
-      // 1. the place, in the text without the words that name years; 2. the years; then 3. turn and 4. open the view.
+      // My own word matching first: 1. the place, in the text without the words that name years; 2. the years.
       const asked = parsePeriod(input, p.fullYears);
       const text = asked.rest.trim() || input;
-      const steps: Steps = { period: asked.period, adjusted: asked.adjusted };
       const m = matchPlace(text, idx);
-      // A region a theme button stands for ("the Sahara", "the Amazon"), unless the text names a listed place exactly.
-      const hit = themeFor(text);
+      const typedPoint = m.kind === 'point' || m.kind === 'bad-coordinates';
+      // Then the AI reader (aiReader.ts): Gemini's reading of the same question. It only says WHAT is asked; a typed
+      // latitude and longitude needs no reading. null when it is off, slow or refuses: my own matching then stands alone.
+      let ai: AiReading | null = null;
+      if (AI_ON && !typedPoint) {
+        setReading(true);
+        ai = await readQuestion(input);
+        setReading(false);
+      }
+      window.__detectiveAi = { asked: (window.__detectiveAi?.asked ?? 0) + (AI_ON && !typedPoint ? 1 : 0), last: ai };
+      let period = asked.period;
+      let adjusted = asked.adjusted;
+      if (!period && ai && (ai.start !== null || ai.end !== null)) {
+        const f = fitAskedPeriod(ai.start ?? p.fullYears[0], ai.end ?? p.fullYears[1], p.fullYears);
+        period = f.period;
+        adjusted = f.adjusted;
+      }
+      const steps: Steps = { period, adjusted, variable: ai?.variable ?? null, aiNote: ai ? readingSentence(ai, period) : null };
+      // Gemini's place, looked up in my own lists: only an exact name counts, never a guess on top of a guess.
+      const am = ai?.place ? matchPlace(ai.place, idx) : null;
+      const aiPlace = am && am.kind === 'place' && !am.read ? am.place : null;
       const exactPlace = (m.kind === 'place' && !m.read) || m.kind === 'choose';
-      if (hit && !exactPlace && m.kind !== 'point' && m.kind !== 'bad-coordinates' && (!hit.weak || m.kind === 'none')) {
-        applyPeriod(steps);
+      // A region a theme button stands for ("the Sahara", "the Amazon"), unless a listed place is named exactly.
+      const hit = (ai?.place ? themeFor(ai.place) : null) ?? themeFor(text);
+      if (m.kind === 'point') {
+        applySteps(steps);
+        p.onFly(m.lat, m.lng);
+        await answerSpot(m.lat, m.lng, undefined, steps);
+      } else if (m.kind === 'bad-coordinates') {
+        push({ from: 'bot', text: 'Those coordinates are outside the globe: latitude must be between -90 and 90 and longitude between -180 and 180.', choices: themeChoices() });
+      } else if (aiPlace) {
+        await answerNamed(aiPlace, null, [], steps);
+      } else if (hit && !hit.weak && !exactPlace) {
+        applySteps(steps);
         p.onFly(hit.theme.lat, hit.theme.lng);
         await answerTheme(hit.theme, steps, hit.note);
-      } else if (m.kind === 'place') {
-        await answerNamed(m.place, m.read ?? null, m.others ?? [], steps);
+      } else if (m.kind === 'place' && !m.read) {
+        await answerNamed(m.place, null, m.others ?? [], steps);
       } else if (m.kind === 'choose') {
         push({
           from: 'bot',
           text: `Which ${m.phrase.replace(/^./, (c) => c.toUpperCase())} do you mean?`,
           choices: m.options.map((o): Choice => ({ label: placeLabel(o), action: { t: 'place', place: o } })),
         });
-      } else if (m.kind === 'point') {
-        applyPeriod(steps);
-        p.onFly(m.lat, m.lng);
-        await answerSpot(m.lat, m.lng, undefined, steps);
-      } else if (m.kind === 'bad-coordinates') {
-        push({ from: 'bot', text: 'Those coordinates are outside the globe: latitude must be between -90 and 90 and longitude between -180 and 180.', choices: themeChoices() });
+      } else if (ai && ai.place && ai.lat !== null && ai.lng !== null) {
+        // A place Gemini knows and my lists do not (a desert, a mountain range): its position, and the trends there.
+        applySteps(steps);
+        p.onFly(ai.lat, ai.lng);
+        await answerSpot(ai.lat, ai.lng, `“${ai.place}” is not in my lists, so I used the position Gemini gave for it.`, steps);
+      } else if (m.kind === 'place') {
+        await answerNamed(m.place, m.read ?? null, m.others ?? [], steps);
+      } else if (hit) {
+        applySteps(steps);
+        p.onFly(hit.theme.lat, hit.theme.lng);
+        await answerTheme(hit.theme, steps, hit.note);
       } else {
         push({
           from: 'bot',
           text: `I couldn't find a place in “${triedText(text)}”. I can look up cities, countries, continents, seas and oceans by name, or a latitude and longitude like 41.0, 28.9.`,
-          choices: [...m.suggestions.map((s): Choice => ({ label: `Did you mean ${s}?`, action: { t: 'ask', text: s } })), ...themeChoices()],
+          choices: [...(m.kind === 'none' ? m.suggestions : []).map((s): Choice => ({ label: `Did you mean ${s}?`, action: { t: 'ask', text: s } })), ...themeChoices()],
         });
       }
     });
@@ -576,6 +625,11 @@ export default function Detective(p: DetectiveProps) {
           </div>
         ))}
       </div>
+      {reading && (
+        <p className="dt-status" role="status">
+          Gemini is reading your question…
+        </p>
+      )}
       {status === 'loading' && (
         <p className="dt-status" role="status">
           Loading the trends…
@@ -609,7 +663,7 @@ export default function Detective(p: DetectiveProps) {
           Send
         </button>
       </form>
-      <p className="dt-note">{HONESTY_NOTE}</p>
+      <p className="dt-note">{AI_ON ? HONESTY_NOTE : HONESTY_NOTE_NO_AI}</p>
     </section>
   );
 }

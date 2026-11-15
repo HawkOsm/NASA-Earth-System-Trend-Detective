@@ -38,7 +38,8 @@ Rules from the guide that affect us:
 - All content, including linked material, must be in English.
 - All team members must be confirmed participants at the same Local Event.
 - AI-generated images or video need a visible watermark; code and data made with AI must say so in descriptive
-  text. The project has no AI-generated images, and the README and the form text state the use of AI.
+  text. The project has no AI-generated images, and the README and the form text state the use of AI, including
+  the one place where an AI model runs on the site (Gemini reads the Detective's questions).
 - No NASA logos or branding in AI-generated content. The project uses none anywhere.
 - No image, video or audio of anyone under 18. There are none.
 - Judging criteria: Impact, Creativity, Validity, Relevance, Presentation.

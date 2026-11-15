@@ -76,7 +76,7 @@ export default function StartCard({ covered, onOpen, onDetective }: Props) {
           >
             <span className="start-headline">Ask the Detective</span>
             <span className="start-rate">Type a place or a question, like &ldquo;What is changing in Europe?&rdquo;</span>
-            <span className="start-record">It ranks all ten variables there. No AI: it looks the answer up.</span>
+            <span className="start-record">Gemini (AI) reads your question. The numbers are looked up, not generated.</span>
           </button>
         </li>
       </ul>

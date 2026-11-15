@@ -31,7 +31,9 @@ It can be skipped, and "Take the tour" in the top bar starts it again (`web/src/
    It lists what is changing there, strongest first, with a button on each line that switches the map. A typed
    question sets four things in motion, in order: it finds the place; it reads any years in the question ("from 2016 to
    2025", "since 2000", "the last 20 years") and sets the period; it turns the globe to the place; and it opens the
-   country or sea view there. It uses no AI: it looks up precomputed trends.
+   country or sea view there. Google's Gemini (an AI model) reads the typed question, so it copes with typos, other languages
+   ("Türkiye'de son 20 yılda sıcaklık"), phrases such as "the nineties" and places that are not in the site's lists ("the
+   Gobi desert", "the Alps"). Gemini only says what is asked; every number is looked up from the precomputed trends.
 5. **Read the grade.** Every verdict comes with a grade (Robust, Use with caution, Doubtful) and, for air temperature
    and rainfall, a line saying whether an independent record confirms the trend. See "Evaluation layer".
 
@@ -466,7 +468,18 @@ This project was built with substantial AI assistance, disclosed here as the hac
   TypeScript port is checked against the Python fixtures; the live site's numbers were compared with the
   precomputed grid.
 
-No AI is used at runtime: the site contains no model, and all numbers come from the statistics described above.
+**AI on the site.** One part of the site uses an AI model at runtime: the Detective sends a typed question to Google's
+**Gemini Flash**, which returns its reading of the question as a small structured object: the place (with its position), the
+years and the variable. Nothing else comes from the model. Every number shown is looked up from the precomputed statistics
+described above, and the answer says how Gemini read the question ("Gemini read this as: Gobi Desert, 1990–1999, about
+rainfall"). If the model is slow, refuses or is switched off (`?ai=0`), the Detective falls back to its own word matching.
+
+The page cannot hold an API key, so the question goes through a small server of this project on Google Cloud Run
+(`proxy/server.js`, no dependencies): it holds the key in Secret Manager, answers only this site's address, cuts a question
+at 300 characters, allows 12 questions a minute per address and 1,500 a day, and returns only the checked fields. The
+question text is sent to Google for this; the Detective says so under its text box. Deploying it:
+`gcloud run deploy trend-detective-ai --source proxy --region europe-west1 --allow-unauthenticated
+--set-secrets GEMINI_API_KEY=gemini-api-key:latest --max-instances 2`.
 
 ## License
 
